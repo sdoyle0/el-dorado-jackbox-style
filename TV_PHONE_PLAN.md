@@ -91,7 +91,15 @@ Never trust the client for legality — server already validates.
   (2) market audibility — opponent purchases now toast on all views,
   new reserve_replenished broadcast + toast/log when a reserve card stocks
   the market. (3) view-badge overlay removed (html/css/js).
-  Parked: hex icon-vs-number rebalance (HexRenderer) — separate task.
+  Parked: hex icon-vs-number rebalance (HexRenderer) — done, uncommitted:
+  terrain icons shrunk (32→22, El Dorado 38→26) since tile color carries
+  terrain meaning; cost badge enlarged into the freed space (16px→22px
+  type, 38×20→52×28 pill). Eyeball on TV before committing.
+  Follow-up: badge overlay layer — terrain icon is now a large faint
+  watermark (40px/0.22 opacity, physical-board density), cost/move numbers
+  paint above blockade planks via re-raised .tile-badges groups (fixes
+  planks covering numbers on 1–2 seam-adjacent tiles). 10/10 render checks
+  pass. Uncommitted — eyeball on TV.
 
 ## Work blocks
 

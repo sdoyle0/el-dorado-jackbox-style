@@ -135,6 +135,7 @@ class HexRenderer {
     const sorted = [...tiles].sort((a, b) => (ORDER[a.terrainType] ?? 1) - (ORDER[b.terrainType] ?? 1));
 
     for (const tile of sorted) this._renderTile(tile);
+    this._raiseBadges();
   }
 
   _center(q, r) {
@@ -290,11 +291,23 @@ class HexRenderer {
       g.appendChild(finishRing);
     }
 
-    // ── Terrain icon ──────────────────────────────────────────────────────────
-    // Sized for 10ft TV legibility (Block 7): icons + cost badges run larger
-    // than the old desktop defaults; still fine on laptop screens.
-    const iconSize = isElDorado ? 38 : (isMountain ? 30 : 32);
-    const iconY = (tile.movementCost > 1 && !isMountain) ? cy - 8 : cy + 2;
+    // ── Tile badges overlay group ───────────────────────────────────────────
+    // Terrain icon + cost pill + finishing flag live here instead of
+    // directly in the tile <g>. _raiseBadges() re-appends these groups
+    // above blockade planks (planks sit on seams and would otherwise paint
+    // over cost numbers on neighbouring tiles). Move-number badges join
+    // the same group in setValidMoves.
+    const badges = mk('g');
+    badges.setAttribute('class', 'tile-badges');
+    badges.setAttribute('pointer-events', 'none');
+
+    // ── Terrain icon (watermark style) ──────────────────────────────────────
+    // Physical-board density: one large faint icon behind the cost numeral
+    // instead of a small solid one beside it. Tile color already says the
+    // terrain at a glance; the watermark keeps the board from looking empty
+    // without fighting the number for attention.
+    const iconSize = isElDorado ? 44 : 40;
+    const iconY = (tile.movementCost > 1 && !isMountain) ? cy - 14 : cy + 2;
 
     const icon = mk('text');
     icon.setAttribute('x', cx);
@@ -302,35 +315,38 @@ class HexRenderer {
     icon.setAttribute('text-anchor', 'middle');
     icon.setAttribute('dominant-baseline', 'middle');
     icon.setAttribute('font-size', iconSize);
+    icon.setAttribute('opacity', '0.22');
     icon.setAttribute('pointer-events', 'none');
     if (style.textColor) icon.setAttribute('fill', style.textColor);
     icon.textContent = style.icon;
-    g.appendChild(icon);
+    badges.appendChild(icon);
 
     // ── Movement cost badge ───────────────────────────────────────────────────
+    // The prominent number on the tile: what it costs to enter. Larger than
+    // the terrain icon above it by design.
     if (tile.movementCost > 1 && !isMountain) {
       const badgeBg = mk('rect');
-      badgeBg.setAttribute('x', cx - 19);
-      badgeBg.setAttribute('y', cy + 13);
-      badgeBg.setAttribute('width', 38);
-      badgeBg.setAttribute('height', 20);
-      badgeBg.setAttribute('rx', '10');
+      badgeBg.setAttribute('x', cx - 26);
+      badgeBg.setAttribute('y', cy + 8);
+      badgeBg.setAttribute('width', 52);
+      badgeBg.setAttribute('height', 28);
+      badgeBg.setAttribute('rx', '14');
       badgeBg.setAttribute('fill', 'rgba(0,0,0,0.60)');
       badgeBg.setAttribute('pointer-events', 'none');
       g.appendChild(badgeBg);
 
       const badge = mk('text');
       badge.setAttribute('x', cx);
-      badge.setAttribute('y', cy + 24);
+      badge.setAttribute('y', cy + 23);
       badge.setAttribute('text-anchor', 'middle');
       badge.setAttribute('dominant-baseline', 'middle');
-      badge.setAttribute('font-size', '16');
+      badge.setAttribute('font-size', '22');
       badge.setAttribute('fill', '#ffd700');
       badge.setAttribute('font-weight', 'bold');
       badge.setAttribute('font-family', 'Inter, sans-serif');
       badge.setAttribute('pointer-events', 'none');
       badge.textContent = `×${tile.movementCost}`;
-      g.appendChild(badge);
+      badges.appendChild(badge);
     }
 
     // ── Finishing flag icon ───────────────────────────────────────────────────
@@ -343,8 +359,10 @@ class HexRenderer {
       flag.setAttribute('font-size', '18');
       flag.setAttribute('pointer-events', 'none');
       flag.textContent = '🏁';
-      g.appendChild(flag);
+      badges.appendChild(flag);
     }
+
+    g.appendChild(badges);
 
     // ── El Dorado animated shimmer ring ───────────────────────────────────────
     if (isElDorado) {
@@ -367,7 +385,17 @@ class HexRenderer {
 
     g.addEventListener('click', () => this.onTileClick?.(tile.id));
     this.svg.appendChild(g);
-    this.tileEls.set(tile.id, { g, poly, tile });
+    this.tileEls.set(tile.id, { g, poly, tile, badges });
+  }
+
+  // Re-append every tile-badges group above everything else in the SVG, so
+  // cost/move numbers always paint over blockade planks. Called after any
+  // pass that appends planks (renderBlockades, setBreakableBlockades) and
+  // at the end of render().
+  _raiseBadges() {
+    for (const badges of this.svg.querySelectorAll('.tile-badges')) {
+      this.svg.appendChild(badges);
+    }
   }
 
   // ── Valid move highlighting ───────────────────────────────────────────────
@@ -432,7 +460,7 @@ class HexRenderer {
           badge.appendChild(bg);
           badge.appendChild(label);
           entry._moveBadge = badge;
-          entry.g.appendChild(badge);
+          entry.badges.appendChild(badge);
         }
         badge.setAttribute('transform', `translate(${cx},${cy - 30})`);
         const labelEl = badge.querySelector('text');
@@ -631,6 +659,7 @@ class HexRenderer {
     for (const blockade of blockades) {
       this._renderBlockadePlank(blockade, false);
     }
+    this._raiseBadges();
   }
 
   // Build the geometry for one blockade plank and append it to the SVG.
@@ -830,5 +859,6 @@ class HexRenderer {
       // Render the pulsing breakable variant on top of the static plank
       this._renderBlockadePlank(blockade, true);
     }
+    this._raiseBadges();
   }
 }
