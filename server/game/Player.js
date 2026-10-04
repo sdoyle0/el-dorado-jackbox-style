@@ -21,6 +21,7 @@ class Player {
     this.hand          = [];
     this.discardPile   = [];
     this.removedCards  = [];
+    this.blockadeTokens = [];
   }
 
   // Mirrors multiplayer_service.initialize_game() per-player setup
@@ -29,6 +30,7 @@ class Player {
     this.deck          = shuffle(buildStarterDeck());
     this.hand          = [];
     this.discardPile   = [];
+    this.blockadeTokens = [];
     this.drawCards(4);
   }
 

@@ -262,7 +262,12 @@ class GameRoom {
           : null,
       },
       gameOver: gs.state === GS.GAME_OVER
-        ? { winnerId: gs.firstWinnerId, blockadeCounts: gs._blockadeCounts() }
+        ? {
+            winnerId: (typeof gs._determineWinner === 'function' ? gs._determineWinner() : gs.firstWinnerId),
+            blockadeCounts: gs._blockadeCounts(),
+            finishers: [...(gs.finishers || [])],
+            firstFinisherId: gs.firstWinnerId,
+          }
         : null,
     });
     if (playerOrNull && !playerOrNull.disconnected) {

@@ -20,6 +20,11 @@ class GameStateManager {
     this.finalRoundTriggered = false;
     this.finalRoundTriggerPlayerIndex = -1;
     this.firstWinnerId = null;
+    // Ordered list of every player that reached a finishing tile. The
+    // rulebook (p5) tiebreak — most blockade tokens wins when several
+    // players finish in the final round — is decided from this list at
+    // game-over time (see _determineWinner), not from firstWinnerId alone.
+    this.finishers = [];
     // ── Blockades ─────────────────────────────────────────────────────────────
     this.activeBlockades = null; // null = disabled
     this.onEvent = null;
@@ -167,7 +172,7 @@ class GameStateManager {
 
     // ── Finishing spaces ───────────────────────────────────────────────────
     if (tile.isFinishing) {
-      if (!this.firstWinnerId) this.firstWinnerId = playerId;
+      this._recordFinisher(playerId);
       this._relocateFinisher(player);
 
       const isLastPlayerOfRound = this.currentPlayerIndex === this.players.length - 1;
@@ -179,7 +184,7 @@ class GameStateManager {
         if (isLastPlayerOfRound) {
           this.state = GS.GAME_OVER;
           this._disposeFinishedCard(player);
-          this.emit('game_won', { playerId: this.firstWinnerId, blockadeCounts: this._blockadeCounts() });
+          this.emit('game_won', this._gameWonPayload());
           return { ok: true };
         }
 
@@ -240,9 +245,42 @@ class GameStateManager {
     player.currentTileId = tileId;
     this.emit('pawn_moved', { playerId, tileId });
 
+    // A rubble-cost finishing tile (no such tile on the current map, but
+    // future maps may have one) follows the same final-round flow as a
+    // normal finishing arrival — record the finisher instead of ending
+    // the game outright so blockade tiebreaks still apply.
+    if (tile.isFinishing) {
+      this._recordFinisher(playerId);
+      this._relocateFinisher(player);
+
+      const isLastPlayerOfRound = this.currentPlayerIndex === this.players.length - 1;
+
+      if (!this.finalRoundTriggered) {
+        this.finalRoundTriggered = true;
+        this.finalRoundTriggerPlayerIndex = this.currentPlayerIndex;
+
+        if (isLastPlayerOfRound) {
+          this.state = GS.GAME_OVER;
+          this._disposeFinishedCard(player);
+          this.emit('game_won', this._gameWonPayload());
+          return { ok: true };
+        }
+
+        this.emit('final_round_started', {
+          triggeredByPlayerId: playerId,
+          winnerId: this.firstWinnerId,
+        });
+      }
+
+      this._disposeFinishedCard(player);
+      this.endTurn(playerId);
+      return { ok: true };
+    }
+
     if (tile.terrainType === TerrainType.EL_DORADO) {
+      this._recordFinisher(playerId);
       this.state = GS.GAME_OVER;
-      this.emit('game_won', { playerId, blockadeCounts: this._blockadeCounts() });
+      this.emit('game_won', this._gameWonPayload());
       return { ok: true };
     }
 
@@ -282,7 +320,7 @@ class GameStateManager {
     if (this.finalRoundTriggered && this.currentPlayerIndex === this.players.length - 1) {
       this.state = GS.GAME_OVER;
       this.emit('hand_updated', { playerId: player.id, hand: player.hand });
-      this.emit('game_won', { playerId: this.firstWinnerId, blockadeCounts: this._blockadeCounts() });
+      this.emit('game_won', this._gameWonPayload());
       return { ok: true };
     }
 
@@ -404,6 +442,43 @@ class GameStateManager {
       counts[p.id] = (p.blockadeTokens || []).length;
     }
     return counts;
+  }
+
+  _recordFinisher(playerId) {
+    if (!this.finishers.includes(playerId)) this.finishers.push(playerId);
+    if (!this.firstWinnerId) this.firstWinnerId = playerId;
+  }
+
+  // Rulebook p5: "If the final round ends up with multiple players reaching
+  // El Dorado, the player who has collected the most blockades wins."
+  // Single finisher → that player. Multiple → most blockade tokens. The
+  // book's second tiebreak (highest-power single blockade) can't apply
+  // here: every digital blockade costs 1 move, so equal counts stay tied
+  // and the first finisher among the tied players holds the win.
+  _determineWinner() {
+    if (this.finishers.length === 0) return this.firstWinnerId;
+    if (this.finishers.length === 1) return this.finishers[0];
+    const counts = this._blockadeCounts();
+    let best = this.finishers[0];
+    let bestCount = counts[best] ?? 0;
+    for (let i = 1; i < this.finishers.length; i++) {
+      const id = this.finishers[i];
+      const c = counts[id] ?? 0;
+      if (c > bestCount) {
+        best = id;
+        bestCount = c;
+      }
+    }
+    return best;
+  }
+
+  _gameWonPayload() {
+    return {
+      playerId: this._determineWinner(),
+      blockadeCounts: this._blockadeCounts(),
+      finishers: [...this.finishers],
+      firstFinisherId: this.firstWinnerId,
+    };
   }
 
   _handleSpecialCardPlayed(player, card) {

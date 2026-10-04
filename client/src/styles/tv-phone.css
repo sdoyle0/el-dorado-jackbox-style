@@ -496,3 +496,23 @@ body.view-phone #toast-container {
   width: auto;
   max-width: none;
 }
+
+/* Final-round banner on phones: compact single line + tap-to-dismiss (see
+   main.js ensureFinalRoundBanner). The generic body:has() offset in main.css
+   already pushes the game column down so the fixed banner never covers the
+   top hand card — here we just tighten the height to match the smaller text
+   and keep toasts below the banner instead of overlapping it. */
+body.view-phone #final-round-banner {
+  font-size: 0.72rem;
+  padding: 0.45rem 0.6rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+body.view-phone:has(#final-round-banner) #game-screen.active {
+  padding-top: 2.1rem;
+}
+body.view-phone:has(#final-round-banner) #toast-container {
+  top: 2.9rem;
+}

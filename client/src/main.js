@@ -1034,11 +1034,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── Final round ────────────────────────────────────────────────────────────
   // Block 8: banner setup shared by the live event and the rejoin snapshot.
+  // The banner is position:fixed (see main.css + tv-phone.css offsets), so on
+  // phones it would otherwise sit on top of the top hand card. The CSS
+  // reserves its height via body:has() — and a tap dismisses it entirely so
+  // the cards are fully reachable.
   function ensureFinalRoundBanner() {
     if (!document.getElementById('final-round-banner')) {
       const banner = document.createElement('div');
       banner.id = 'final-round-banner';
-      banner.textContent = '⚑ Final Round — Someone Has Reached El Dorado';
+      banner.textContent = '⚑ Final Round — Someone Has Reached El Dorado (tap to hide)';
+      banner.title = 'Tap to hide';
+      banner.setAttribute('role', 'button');
+      banner.setAttribute('tabindex', '0');
+      const dismiss = () => banner.remove();
+      banner.addEventListener('click', dismiss);
+      banner.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); dismiss(); }
+      });
       document.body.appendChild(banner);
     }
   }
@@ -1104,6 +1116,8 @@ document.addEventListener('DOMContentLoaded', () => {
       client.onGameWon({
         playerId: snap.gameOver.winnerId,
         blockadeCounts: snap.gameOver.blockadeCounts || {},
+        finishers: snap.gameOver.finishers || [],
+        firstFinisherId: snap.gameOver.firstFinisherId || null,
       });
     }
   });
@@ -1238,12 +1252,13 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   client.onPromptRemove = ({ count }) => showRemovePromptWithModal(count);
 
-  client.onGameWon = ({ playerId, blockadeCounts = {} }) => {
+  client.onGameWon = ({ playerId, blockadeCounts = {}, finishers = [], firstFinisherId = null }) => {
     const winner = allPlayers.find(p => p.id === playerId);
     const winnerName = winner?.name || 'Someone';
     const isMe = client.playerId === playerId;
 
-    // Blockade tiebreaker display
+    // Blockade tiebreaker display (rulebook p5: most tokens wins when several
+    // players reach El Dorado in the final round).
     const totalBroken = Object.values(blockadeCounts).reduce((s, n) => s + n, 0);
     let blockadeMsg = '';
     if (totalBroken > 0) {
@@ -1253,12 +1268,39 @@ document.addEventListener('DOMContentLoaded', () => {
       blockadeMsg = `\n\nBlockade tokens (tiebreaker):\n${lines}`;
     }
 
-    const msg = (isMe
-      ? '🏆 You win! El Dorado is yours!'
-      : `${winnerName} wins the race to El Dorado. Game over.`) + blockadeMsg;
+    const finisherIds = (finishers && finishers.length > 0)
+      ? finishers
+      : (firstFinisherId ? [firstFinisherId] : [playerId]);
+    const firstId = firstFinisherId || finisherIds[0];
+    const first = allPlayers.find(p => p.id === firstId);
+    const firstName = first?.name || winnerName;
+    const tied = finisherIds.length > 1;
+
+    let headline;
+    if (!tied) {
+      headline = isMe
+        ? '🏆 You win! El Dorado is yours!'
+        : `${winnerName} wins the race to El Dorado. Game over.`;
+    } else if (playerId === firstId) {
+      // First to arrive also holds the tiebreak (most — or tied-most — tokens).
+      headline = isMe
+        ? '🏆 You reached El Dorado first and hold the tiebreak — you win!'
+        : `${winnerName} reached El Dorado first and holds the blockade tiebreak. Game over.`;
+    } else {
+      // An outright tiebreak overtake: say who was first and by what count,
+      // so "Shawn wins but Maggie had more tokens" can never confuse again.
+      const winnerCount = blockadeCounts[playerId] ?? 0;
+      const firstCount = blockadeCounts[firstId] ?? 0;
+      headline = isMe
+        ? `🏆 You win on the blockade tiebreak (${winnerCount} vs ${firstName} ${firstCount})! Both reached El Dorado.`
+        : `${winnerName} wins on the blockade tiebreak (${winnerCount} vs ${firstName} ${firstCount})! Both reached El Dorado. Game over.`;
+    }
+
+    const msg = headline + blockadeMsg;
 
     showModal(msg, false, true);
-    log(isMe ? '🏆 You win!' : `${winnerName} wins!`, 'win');
+    log(isMe ? `🏆 ${headline}` : `${winnerName} wins!`, 'win');
+    if (tied) log(`Both reached El Dorado — blockade tiebreak decides it.`, 'win');
     showToast(isMe ? '🏆 You win!' : `${winnerName} wins!`, {
       icon: '🏆', type: isMe ? 'accent' : 'info', duration: 8000,
     });

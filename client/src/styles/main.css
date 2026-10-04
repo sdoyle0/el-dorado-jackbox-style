@@ -1678,6 +1678,13 @@ body {
   z-index: 150;
   animation: banner-drop 0.4s ease forwards;
 }
+/* The banner is position:fixed at the top of the viewport, so without an
+   offset it sits on top of the game column (on phones: the top hand card).
+   Reserve its height at the top of the game screen while it exists. */
+body:has(#final-round-banner) #game-screen.active {
+  padding-top: 2.4rem;
+  box-sizing: border-box;
+}
 @keyframes banner-drop {
   from { transform: translateY(-100%); }
   to   { transform: translateY(0); }
