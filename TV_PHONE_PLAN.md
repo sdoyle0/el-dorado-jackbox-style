@@ -45,6 +45,15 @@ Important constraint: `renderer.onTileClick` is currently global. For TV+phone,
 TV should be display-only (or host-only), phones send `move_pawn` / `break_blockade`.
 Never trust the client for legality — server already validates.
 
+## Session progress (living log — update at the end of each block)
+
+- Block 5 (phone market purchase) — done, committed as `aa18b3d`.
+- Phone compact-market redesign (in-flow sticky top sheet + compact rows,
+  pool chips, pool-value badges, ℹ️ row details; `CardUI.js` + `main.js`
+  only, no server/shared changes) — done, committed as `80f033e`.
+  Rollback to pre-redesign: `git reset --hard aa18b3d`.
+- Next: Block 5b (phone HUD declutter), then Block 6.
+
 ## Work blocks
 
 ### Block 1 — LAN smoke test, no feature code
@@ -107,6 +116,21 @@ appears on sellout.
 
 Session starter prompt:
 > Read TV_PHONE_PLAN.md Block 5. Implement phone market purchase using existing CardUI market mode. Files: client/src/main.js, client/src/game/CardUI.js. No pricing-logic changes. Verify: pool shows live total, affordable cards enabled, purchase emits purchase_card, reserve picker works on sellout.
+
+### Block 5b — Phone HUD declutter (log + turn info live on TV)
+Scope: `client/index.html`, `client/src/main.js`, small CSS in `client/src/styles/`.
+Do: in `?view=phone` only, hide the TV-duplicate HUD (turn banner, player
+legend, game log / Field Notes) so the hand + market sheet own the screen.
+Keep turn signaling via the existing "Your turn!" toast and button
+enable/disable; do not change turn logic or events.
+Do not: change `HexRenderer.js`, `CardUI.js`, server/, shared/. Desktop and
+`?view=tv` layouts must be unaffected.
+Acceptance: on phone the HUD block is gone and the reclaimed space goes to
+hand/market; End Turn still enables only on my turn; "Your turn!" toast still
+fires; TV still shows banner, legend, and log.
+
+Session starter prompt:
+> Read TV_PHONE_PLAN.md Block 5b. In ?view=phone only, hide the TV-duplicate HUD (turn banner, player legend, game log). Files: client/index.html, client/src/main.js, client/src/styles/*. Touch nothing in server/ or shared/, and change nothing in CardUI.js. TV and desktop layouts must be unaffected. Verify: phone shows hand + market with no HUD block, End Turn enables only on my turn, Your-turn toast still fires, TV still shows all HUD elements.
 
 ### Block 6 — Phone rubble / camp / purple cards / blockades
 Scope: `client/src/main.js`, `client/src/game/CardUI.js` (rubble mode),
