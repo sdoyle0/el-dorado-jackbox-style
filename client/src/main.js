@@ -33,6 +33,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // market all work through tappable lists, so there is no Show-board toggle.
   // (Removed: the old board-collapsed toggle setup used to live here.)
 
+  // TV board-first layout: Field Notes live behind a toggle (hidden by
+  // default via CSS). Display-only; the log still updates underneath.
+  document.getElementById('log-toggle-btn')?.addEventListener('click', (e) => {
+    const open = document.body.classList.toggle('tv-log-open');
+    e.currentTarget.setAttribute('aria-expanded', String(open));
+    e.currentTarget.title = open ? 'Hide Field Notes' : 'Show Field Notes';
+  });
+
   // ── Lobby UI refs ──────────────────────────────────────────────────────────
   const nameInput = document.getElementById('player-name-input');
   const lobbyStatus = document.getElementById('lobby-status');

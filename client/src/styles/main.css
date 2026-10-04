@@ -510,6 +510,9 @@ body {
   color: var(--text-mid);
   line-height: 1.2;
 }
+#turn-banner-sub:empty {
+  display: none;
+}
 
 /* ── HUD section labels ───────────────────────────────────────────────────── */
 .hud-label {
@@ -1240,6 +1243,8 @@ body {
   font-size: 0.95rem;
   color: var(--text-bright);
   line-height: 1.55;
+  /* Game-won tiebreak lines contain \n (blockade counts) — render them. */
+  white-space: pre-line;
 }
 #modal-box button {
   padding: 0.5rem 1.5rem;
@@ -1460,8 +1465,8 @@ body {
 }
 
 @keyframes glow-pulse {
-  0%, 100% { stroke: rgba(255,238,0,0.4); stroke-width: 10; }
-  50%       { stroke: rgba(255,238,0,0.7); stroke-width: 13; }
+  0%, 100% { stroke: rgba(255,238,0,0.45); stroke-width: 14; }
+  50%       { stroke: rgba(255,238,0,0.75); stroke-width: 18; }
 }
 
 /* ── Toast notification system ───────────────────────────────────────────── */
@@ -1656,10 +1661,11 @@ body {
   top: 0; left: 0; right: 0;
   padding: 0.5rem 1rem;
   background: linear-gradient(135deg, #3a1500 0%, #1a0a00 100%);
-  border-bottom: 1px solid var(--gold-dim);
+  border-bottom: 2px solid var(--gold-dim);
   text-align: center;
   font-family: 'Cinzel', serif;
-  font-size: 0.78rem;
+  font-size: 0.85rem;
+  font-weight: 600;
   letter-spacing: 0.1em;
   color: var(--gold-bright);
   z-index: 150;
@@ -1785,6 +1791,11 @@ body {
 }
 
 /* ── Breakable blockade pulse animation ───────────────────────────────────── */
+@keyframes blockade-halo-pulse {
+  0%, 100% { opacity: 0.55; }
+  50%       { opacity: 0.95; }
+}
+
 @keyframes blockade-pulse {
 
   0%,

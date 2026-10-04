@@ -112,9 +112,14 @@
         <div id="turn-color-dot"></div>
         <div id="turn-banner-text">
           <div id="current-player-label">Waiting...</div>
+          <!-- Block 7 TV polish: optional sub-line hook (e.g. round info).
+               main.js leaves it empty for now — pure display, no logic. -->
+          <div id="turn-banner-sub"></div>
         </div>
       </div>
       <div id="player-legend"></div>
+      <!-- TV board-first layout: log hidden by default, opened via toggle. -->
+      <button id="log-toggle-btn" title="Show Field Notes" aria-expanded="false">📓 Notes</button>
 
       <div id="journal-label">
         <span>Field Notes</span>
@@ -135,6 +140,7 @@
     <!-- Card market overlay -->
     <div id="card-market" class="hidden">
       <div id="market-header">
+        <span id="market-tv-title">Market &amp; Reserve</span>
         <button id="marketShopButton" class="market-tab active">Market</button>
         <button id="marketReserveButton" class="market-tab">Reserve</button>
         <span id="purchase-total">💰 0</span>

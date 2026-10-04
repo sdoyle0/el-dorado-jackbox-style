@@ -24,61 +24,293 @@
   display: none; /* only shown in phone view (JS removes .hidden there) */
 }
 
-/* ── TV: board + turn banner + legend large, hand input hidden ────────────── */
+/* ── TV: board-first living-room layout ────────────────────────────────────
+   Block 7b: the board owns the screen. A slim top status strip carries turn +
+   legend chips; the old log sidebar is gone (📓 Notes opens it as an
+   overlay). Block 7c: the Market+Reserve sidebar is parked (hidden, CSS
+   kept below) — board goes full-bleed. Display only — no game logic. */
+
+/* Grid: slim status strip on top, board full-bleed below. (The Market
+   sidebar is parked — see below — so there is no second column for now.) */
+body.view-tv #game-screen.active {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "status"
+    "board";
+  overflow: hidden;
+}
+
 body.view-tv #player-hand-ui {
   display: none;
 }
 
 body.view-tv #board-and-hand-container {
-  flex: 1 1 auto;
+  grid-area: board;
+  min-width: 0;
+  min-height: 0;
   max-width: none;
 }
 
+/* ── Status strip: turn banner + legend chips, one slim row ───────────────── */
 body.view-tv #hud {
-  flex: 0 0 340px;
+  grid-area: status;
+  flex: none;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-left: none;
+  border-bottom: 1px solid var(--border);
 }
 
 body.view-tv #turn-banner {
-  padding: 1rem 1.1rem;
-  border-left-width: 5px;
+  flex: none;
+  padding: 0.45rem 0.7rem;
+  border-left-width: 4px;
 }
 
 body.view-tv #current-player-label {
-  font-size: 1.35rem;
+  font-size: 1.1rem;
+  font-weight: 800;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+body.view-tv #turn-banner-sub {
+  display: none;
 }
 
 body.view-tv #turn-color-dot {
-  width: 22px;
-  height: 22px;
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
 }
 
 body.view-tv #player-legend {
-  padding: 0.6rem 0.5rem;
-  gap: 4px;
+  flex: 1 1 auto;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+  padding: 0;
+  background: none;
+  border: none;
 }
 
 body.view-tv .legend-row {
-  padding: 0.55rem 0.6rem;
+  padding: 0.3rem 0.55rem;
+  gap: 0.4rem;
+  background: rgba(13, 17, 23, 0.5);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+body.view-tv .legend-row.active-player {
+  outline: 2px solid rgba(255, 215, 0, 0.55);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 body.view-tv .legend-avatar {
-  width: 36px;
-  height: 36px;
-  font-size: 0.8rem;
+  width: 26px;
+  height: 26px;
+  font-size: 0.62rem;
 }
 
 body.view-tv .legend-name {
-  font-size: 1rem;
+  font-size: 0.8rem;
+}
+
+body.view-tv .legend-you {
+  font-size: 0.65rem;
 }
 
 body.view-tv .legend-hand-count {
-  font-size: 0.8rem;
-  padding: 2px 8px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 1px 7px;
 }
 
+/* ── Log lives behind a toggle on TV, not a permanent sidebar ────────────── */
+body.view-tv #journal-label,
+body.view-tv #game-log {
+  display: none;
+}
+
+#log-toggle-btn {
+  display: none; /* TV-only; unhidden below */
+}
+
+body.view-tv #log-toggle-btn {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  margin-left: auto;
+  min-height: 44px;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-sm);
+  background: rgba(22, 39, 61, 0.8);
+  color: var(--text-mid);
+  font-size: 0.85rem;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+}
+
+body.view-tv #log-toggle-btn:hover {
+  color: var(--text-bright);
+  border-color: var(--gold-dim);
+}
+
+body.view-tv.tv-log-open #log-toggle-btn {
+  color: var(--gold-bright);
+  border-color: var(--gold-mid);
+}
+
+body.view-tv.tv-log-open #game-log {
+  display: flex;
+  position: fixed;
+  top: 84px;
+  left: 16px;
+  width: min(480px, 45vw);
+  height: auto;
+  max-height: 55vh;
+  z-index: 60;
+  border: 1px solid #8a6428;
+  border-radius: 0 0 6px 6px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+}
+
+/* TV log overlay text still reads from the couch. */
+body.view-tv #log-scroll p {
+  font-size: 1.1rem;
+}
+
+/* ── Market sidebar PARKED (Block 7c) ──────────────────────────────────────
+   The always-visible Market+Reserve sidebar made the cards compete with the
+   board, so the TV hides #card-market for now and goes board-full-bleed.
+   Nothing was ripped out: CardUI still renders into #shop-slots on every
+   market_updated (phones use their own sheet), and the sidebar styling
+   below stays intact — flip this rule back to `display: flex` (and restore
+   the grid `market` column above) to bring it back. */
+body.view-tv #card-market,
+body.view-tv #card-market.hidden {
+  display: none !important;
+}
+
+body.view-tv #market-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin: 0 -0.6rem 0;
+  padding: 0.6rem 0.6rem 0.5rem;
+  background: linear-gradient(180deg, #0d1e30 0%, #091525 100%);
+  border-bottom: 1px solid var(--border);
+}
+
+/* Buyer controls stay hidden on TV; a static title takes their place. */
+body.view-tv #marketShopButton,
+body.view-tv #marketReserveButton,
+body.view-tv #purchase-total,
+body.view-tv #cancel-purchase-btn {
+  display: none;
+}
+
+#market-tv-title {
+  display: none; /* TV-only; unhidden below */
+}
+
+body.view-tv #market-tv-title {
+  display: block;
+  font-family: 'Cinzel', serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gold-mid);
+}
+
+/* Both sections stack in the sidebar; reserve is no longer tab-gated. */
+body.view-tv #shop-slots {
+  flex-direction: column;
+  overflow: visible;
+}
+
+body.view-tv .market-available-section {
+  flex: none;
+}
+
+/* Must beat `#shop-slots:not(.show-reserve) .market-reserve-section`
+   (hides reserve) and `#shop-slots.show-reserve .market-available-section`
+   (hides shop) from main.css — extra class + element tip specificity. */
+body.view-tv #shop-slots:not(.show-reserve) .market-reserve-section,
+body.view-tv #shop-slots.show-reserve .market-reserve-section {
+  display: block;
+  flex: none;
+  border-left: none;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  padding-left: 0;
+  padding-top: 0.25rem;
+  background: none;
+}
+
+body.view-tv #shop-slots.show-reserve .market-available-section {
+  display: block;
+}
+
+body.view-tv .market-row {
+  gap: 0.45rem;
+}
+
+body.view-tv .market-section-header {
+  justify-content: flex-start;
+  padding: 0.35rem 0 0.25rem;
+}
+
+/* Final-round strip: full-width, heavy, readable at 10ft. */
 body.view-tv #final-round-banner {
-  font-size: 1rem;
-  padding: 0.75rem 1rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  padding: 1rem 1.25rem;
+  border-bottom-width: 3px;
+}
+
+/* Game-won modal on TV: near-fullscreen card, huge result text. */
+body.view-tv #modal-box {
+  max-width: 640px;
+  width: 88vw;
+  padding: 3rem 3.25rem;
+  gap: 1.5rem;
+}
+
+body.view-tv #modal-message {
+  font-size: 1.6rem;
+  line-height: 1.6;
+  white-space: pre-line;
+}
+
+body.view-tv #modal-box button {
+  font-size: 1.1rem;
+  padding: 0.9rem 2.5rem;
+}
+
+/* No zoom controls on TV (Block 7d): after setup nobody touches the laptop,
+   so they would only invite confusion. Kept in the DOM for desktop/phone —
+   hidden here only, easy to restore. */
+body.view-tv #zoom-controls {
+  display: none;
+}
+
+/* TV toasts (turn changes, moves, purchases) read from the couch. */
+body.view-tv #toast-container {
+  width: 560px;
+}
+
+body.view-tv .toast {
+  font-size: 1.2rem;
+  padding: 1rem 1.25rem;
 }
 
 /* ── Phone: boardless hand terminal (board lives on TV) ───────────────────

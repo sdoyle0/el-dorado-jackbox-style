@@ -197,7 +197,7 @@ class HexRenderer {
     poly.setAttribute('points', this._hexPoints(cx, cy));
     poly.setAttribute('fill', isElDorado ? 'url(#eldorado-radial)' : style.fill);
     poly.setAttribute('stroke', style.stroke);
-    poly.setAttribute('stroke-width', '1.5');
+    poly.setAttribute('stroke-width', '2');
     poly.style.transition = 'filter 0.15s, stroke 0.15s, stroke-width 0.15s';
     g.appendChild(poly);
 
@@ -264,7 +264,7 @@ class HexRenderer {
       ring1.setAttribute('points', this._hexPoints(cx, cy, HEX_R * 0.80));
       ring1.setAttribute('fill', 'none');
       ring1.setAttribute('stroke', 'rgba(255,215,0,0.65)');
-      ring1.setAttribute('stroke-width', '2');
+      ring1.setAttribute('stroke-width', '3');
       ring1.setAttribute('pointer-events', 'none');
       g.appendChild(ring1);
 
@@ -272,7 +272,7 @@ class HexRenderer {
       ring2.setAttribute('points', this._hexPoints(cx, cy, HEX_R * 0.58));
       ring2.setAttribute('fill', 'none');
       ring2.setAttribute('stroke', 'rgba(255,215,0,0.4)');
-      ring2.setAttribute('stroke-width', '1.5');
+      ring2.setAttribute('stroke-width', '2.5');
       ring2.setAttribute('pointer-events', 'none');
       g.appendChild(ring2);
     }
@@ -283,15 +283,17 @@ class HexRenderer {
       finishRing.setAttribute('points', this._hexPoints(cx, cy, HEX_R * 0.84));
       finishRing.setAttribute('fill', 'none');
       finishRing.setAttribute('stroke', '#ffd700');
-      finishRing.setAttribute('stroke-width', '2');
+      finishRing.setAttribute('stroke-width', '3.5');
       finishRing.setAttribute('stroke-dasharray', '8 5');
       finishRing.setAttribute('pointer-events', 'none');
-      finishRing.style.opacity = '0.8';
+      finishRing.style.opacity = '0.95';
       g.appendChild(finishRing);
     }
 
     // ── Terrain icon ──────────────────────────────────────────────────────────
-    const iconSize = isElDorado ? 34 : (isMountain ? 26 : 28);
+    // Sized for 10ft TV legibility (Block 7): icons + cost badges run larger
+    // than the old desktop defaults; still fine on laptop screens.
+    const iconSize = isElDorado ? 38 : (isMountain ? 30 : 32);
     const iconY = (tile.movementCost > 1 && !isMountain) ? cy - 8 : cy + 2;
 
     const icon = mk('text');
@@ -308,21 +310,21 @@ class HexRenderer {
     // ── Movement cost badge ───────────────────────────────────────────────────
     if (tile.movementCost > 1 && !isMountain) {
       const badgeBg = mk('rect');
-      badgeBg.setAttribute('x', cx - 14);
-      badgeBg.setAttribute('y', cy + 15);
-      badgeBg.setAttribute('width', 28);
-      badgeBg.setAttribute('height', 15);
-      badgeBg.setAttribute('rx', '7');
+      badgeBg.setAttribute('x', cx - 19);
+      badgeBg.setAttribute('y', cy + 13);
+      badgeBg.setAttribute('width', 38);
+      badgeBg.setAttribute('height', 20);
+      badgeBg.setAttribute('rx', '10');
       badgeBg.setAttribute('fill', 'rgba(0,0,0,0.60)');
       badgeBg.setAttribute('pointer-events', 'none');
       g.appendChild(badgeBg);
 
       const badge = mk('text');
       badge.setAttribute('x', cx);
-      badge.setAttribute('y', cy + 23);
+      badge.setAttribute('y', cy + 24);
       badge.setAttribute('text-anchor', 'middle');
       badge.setAttribute('dominant-baseline', 'middle');
-      badge.setAttribute('font-size', '12');
+      badge.setAttribute('font-size', '16');
       badge.setAttribute('fill', '#ffd700');
       badge.setAttribute('font-weight', 'bold');
       badge.setAttribute('font-family', 'Inter, sans-serif');
@@ -338,7 +340,7 @@ class HexRenderer {
       flag.setAttribute('y', cy - 22);
       flag.setAttribute('text-anchor', 'middle');
       flag.setAttribute('dominant-baseline', 'middle');
-      flag.setAttribute('font-size', '14');
+      flag.setAttribute('font-size', '18');
       flag.setAttribute('pointer-events', 'none');
       flag.textContent = '🏁';
       g.appendChild(flag);
@@ -350,7 +352,7 @@ class HexRenderer {
       shimmerRing.setAttribute('points', this._hexPoints(cx, cy, HEX_R * 0.93));
       shimmerRing.setAttribute('fill', 'none');
       shimmerRing.setAttribute('stroke', '#ffd700');
-      shimmerRing.setAttribute('stroke-width', '2');
+      shimmerRing.setAttribute('stroke-width', '3');
       shimmerRing.setAttribute('pointer-events', 'none');
       shimmerRing.setAttribute('opacity', '0');
       const animEl = mk('animate');
@@ -385,8 +387,10 @@ class HexRenderer {
       const style = TERRAIN[tile.terrainType] || {};
 
       if (isValid) {
+        // Block 7 TV polish: thick yellow stroke + fat outer glow read at
+        // 10ft. Desktop stays fine — these were previously 5 / 10.
         poly.setAttribute('stroke', '#ffee00');
-        poly.setAttribute('stroke-width', '5');
+        poly.setAttribute('stroke-width', '7');
         poly.style.filter = 'brightness(1.4)';
         poly.style.animation = 'hex-pulse 1.4s ease-in-out infinite';
 
@@ -394,10 +398,10 @@ class HexRenderer {
         if (!glowRing) {
           const { cx, cy } = this._center(tile.q, tile.r);
           glowRing = document.createElementNS(ns, 'polygon');
-          glowRing.setAttribute('points', this._hexPoints(cx, cy, HEX_R + 5));
+          glowRing.setAttribute('points', this._hexPoints(cx, cy, HEX_R + 6));
           glowRing.setAttribute('fill', 'none');
           glowRing.setAttribute('stroke', 'rgba(255,238,0,0.55)');
-          glowRing.setAttribute('stroke-width', '10');
+          glowRing.setAttribute('stroke-width', '14');
           glowRing.setAttribute('pointer-events', 'none');
           glowRing.style.animation = 'glow-pulse 1.4s ease-in-out infinite';
           entry._glowRing = glowRing;
@@ -414,14 +418,14 @@ class HexRenderer {
           badge = document.createElementNS(ns, 'g');
           badge.setAttribute('pointer-events', 'none');
           const bg = document.createElementNS(ns, 'circle');
-          bg.setAttribute('r', '21');
+          bg.setAttribute('r', '24');
           bg.setAttribute('fill', 'rgba(0,0,0,0.92)');
           bg.setAttribute('stroke', '#ffffff');
-          bg.setAttribute('stroke-width', '3');
+          bg.setAttribute('stroke-width', '3.5');
           const label = document.createElementNS(ns, 'text');
           label.setAttribute('text-anchor', 'middle');
           label.setAttribute('dominant-baseline', 'central');
-          label.setAttribute('font-size', '27');
+          label.setAttribute('font-size', '30');
           label.setAttribute('font-weight', '800');
           label.setAttribute('font-family', 'Inter, sans-serif');
           label.setAttribute('fill', '#ffffff');
@@ -436,7 +440,7 @@ class HexRenderer {
         badge.style.display = '';
       } else {
         poly.setAttribute('stroke', style.stroke || '#222');
-        poly.setAttribute('stroke-width', tile.terrainType === 'el_dorado' ? '2.5' : '1.5');
+        poly.setAttribute('stroke-width', tile.terrainType === 'el_dorado' ? '3' : '2');
         poly.style.filter = '';
         poly.style.animation = '';
 
@@ -471,31 +475,31 @@ class HexRenderer {
     const halo = mk('circle');
     halo.setAttribute('cx', cx);
     halo.setAttribute('cy', cy + 2);
-    halo.setAttribute('r', '20');
+    halo.setAttribute('r', '24');
     halo.setAttribute('fill', palette.glow);
-    halo.setAttribute('opacity', '0.4');
+    halo.setAttribute('opacity', '0.5');
     g.appendChild(halo);
 
     const body = mk('circle');
     body.setAttribute('cx', cx);
     body.setAttribute('cy', cy);
-    body.setAttribute('r', '15');
+    body.setAttribute('r', '18');
     body.setAttribute('fill', palette.fill);
     body.setAttribute('stroke', palette.stroke);
-    body.setAttribute('stroke-width', '2.5');
+    body.setAttribute('stroke-width', '3');
     g.appendChild(body);
 
     const highlight = mk('circle');
-    highlight.setAttribute('cx', cx - 4);
-    highlight.setAttribute('cy', cy - 4);
-    highlight.setAttribute('r', '5');
+    highlight.setAttribute('cx', cx - 5);
+    highlight.setAttribute('cy', cy - 5);
+    highlight.setAttribute('r', '6');
     highlight.setAttribute('fill', 'rgba(255,255,255,0.28)');
     g.appendChild(highlight);
 
     const ring = mk('circle');
     ring.setAttribute('cx', cx);
     ring.setAttribute('cy', cy);
-    ring.setAttribute('r', '17');
+    ring.setAttribute('r', '20');
     ring.setAttribute('fill', 'none');
     ring.setAttribute('stroke', 'rgba(255,255,255,0.2)');
     ring.setAttribute('stroke-width', '1');
@@ -538,7 +542,9 @@ class HexRenderer {
   // For multiple tiles, picks the tile closest to the group centroid.
   //
   // animate: uses smooth scroll behaviour
-  zoomToTiles(tileIds, { animate = true, maxZoom = 2.0 } = {}) {
+  // Block 7 TV polish: default punch-in zoom raised 2.0 → 2.4 so a focused
+  // tile fills more of a living-room screen. Display-only, no rules change.
+  zoomToTiles(tileIds, { animate = true, maxZoom = 2.4 } = {}) {
     if (!tileIds || tileIds.length === 0) return;
 
     const inner = this._getScrollInner();
@@ -662,9 +668,10 @@ class HexRenderer {
     const halfPad = HEX_R * 0.65;
     const plankLen = seamLen + halfPad * 2;
 
-    // Plank thickness — thick enough to be obvious, not so thick it covers tiles.
+    // Plank thickness — thick enough to read at 10ft, not so thick it covers tiles.
     // Breakable plank is noticeably chunkier than the static/idle one.
-    const plankThick = isBreakable ? 26 : 16;
+    // (Block 7: raised 16/26 → 20/30 for TV legibility.)
+    const plankThick = isBreakable ? 30 : 20;
 
     // Rotation angle in degrees
     const angleDeg = Math.atan2(dy, dx) * (180 / Math.PI);
@@ -690,7 +697,7 @@ class HexRenderer {
     }
 
     // ── Outer glow ────────────────────────────────────────────────────────
-    const glowPad = isBreakable ? 10 : 6;
+    const glowPad = isBreakable ? 12 : 8;
     const glow = document.createElementNS(ns, 'rect');
     glow.setAttribute('x', (cx - plankLen / 2).toFixed(1));
     glow.setAttribute('y', (cy - (plankThick / 2 + glowPad)).toFixed(1));
@@ -716,7 +723,7 @@ class HexRenderer {
     body.setAttribute('rx', (plankThick / 2).toFixed(1));
     body.setAttribute('fill', '#1a1008');
     body.setAttribute('stroke', isBreakable ? '#ffee00' : '#3a2010');
-    body.setAttribute('stroke-width', isBreakable ? '2' : '1');
+    body.setAttribute('stroke-width', isBreakable ? '3' : '2');
     body.setAttribute('pointer-events', 'none');
     body.setAttribute('transform', rot);
     body.setAttribute('data-blockade', blockade.id);
@@ -758,7 +765,7 @@ class HexRenderer {
       bolt.setAttribute('r', boltR.toFixed(1));
       bolt.setAttribute('fill', '#2a1a08');
       bolt.setAttribute('stroke', isBreakable ? '#ffee00' : '#c8a060');
-      bolt.setAttribute('stroke-width', '1.5');
+      bolt.setAttribute('stroke-width', '2');
       bolt.setAttribute('pointer-events', 'none');
       bolt.setAttribute('transform', rot);
       bolt.setAttribute('data-blockade', blockade.id);
@@ -772,7 +779,7 @@ class HexRenderer {
     iconEl.setAttribute('y', cy.toFixed(1));
     iconEl.setAttribute('text-anchor', 'middle');
     iconEl.setAttribute('dominant-baseline', 'middle');
-    iconEl.setAttribute('font-size', '14');
+    iconEl.setAttribute('font-size', '16');
     iconEl.setAttribute('pointer-events', 'none');
     iconEl.setAttribute('data-blockade', blockade.id);
     if (isBreakable) iconEl.setAttribute('data-blockade-breakable', blockade.id);

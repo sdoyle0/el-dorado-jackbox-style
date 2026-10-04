@@ -65,6 +65,16 @@ Never trust the client for legality — server already validates.
   Scientist/Travel Log remove banner with optimistic count; `main.js` +
   `CardUI.js` only, no server/shared changes) — done, committing now.
 - Next: Block 7.
+- Block 7 (TV polish: thicker highlights/pawns/blockades/finishing tiles,
+  zoomToTiles 2.0→2.4, TV banner/legend/modal/toast sizing, halo-pulse fix;
+  `HexRenderer.js` + `index.html` + CSS only) — done, uncommitted.
+- Block 7b (TV board-first layout: slim status strip, log behind 📓 toggle,
+  Market+Reserve as an always-visible sidebar; `index.html` + `main.js`
+  toggle wiring + `tv-phone.css` only, no server/shared/gameplay) — done,
+  uncommitted.
+- Block 7c (TV market sidebar parked: #card-market hidden on TV, board
+  full-bleed; sidebar CSS kept intact for later, phones unaffected) — done,
+  uncommitted.
 
 ## Work blocks
 
@@ -199,3 +209,10 @@ Session starter prompt:
   Cheap fix: host "force end turn" button (future block, not in MVP).
 - Future ideas (out of scope): persistent game save, AI opponent, Step 2-player
   second-pawn rules, caves variant from rulebook pp. 6-7.
+- Hands-off TV operation (7d notes, not in MVP — wireless mouse covers this
+  for now): nobody touches the laptop after setup (zoom buttons already
+  hidden on TV). Candidates: phone-local board zoom for close-up move
+  planning on your turn (hopefully the TV is big enough to skip this);
+  let a phone (e.g. the host's) Start Expedition so the TV never needs a
+  click; auto-dismiss (or skip) TV modals, which currently wait for a click
+  no one is around to give.
