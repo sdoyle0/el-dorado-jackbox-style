@@ -1460,8 +1460,8 @@ body {
 }
 
 @keyframes glow-pulse {
-  0%, 100% { stroke: rgba(255,238,0,0.35); stroke-width: 8; }
-  50%       { stroke: rgba(255,238,0,0.65); stroke-width: 11; }
+  0%, 100% { stroke: rgba(255,238,0,0.4); stroke-width: 10; }
+  50%       { stroke: rgba(255,238,0,0.7); stroke-width: 13; }
 }
 
 /* ── Toast notification system ───────────────────────────────────────────── */

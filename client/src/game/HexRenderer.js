@@ -386,7 +386,7 @@ class HexRenderer {
 
       if (isValid) {
         poly.setAttribute('stroke', '#ffee00');
-        poly.setAttribute('stroke-width', '3.5');
+        poly.setAttribute('stroke-width', '5');
         poly.style.filter = 'brightness(1.4)';
         poly.style.animation = 'hex-pulse 1.4s ease-in-out infinite';
 
@@ -396,8 +396,8 @@ class HexRenderer {
           glowRing = document.createElementNS(ns, 'polygon');
           glowRing.setAttribute('points', this._hexPoints(cx, cy, HEX_R + 5));
           glowRing.setAttribute('fill', 'none');
-          glowRing.setAttribute('stroke', 'rgba(255,238,0,0.45)');
-          glowRing.setAttribute('stroke-width', '8');
+          glowRing.setAttribute('stroke', 'rgba(255,238,0,0.55)');
+          glowRing.setAttribute('stroke-width', '10');
           glowRing.setAttribute('pointer-events', 'none');
           glowRing.style.animation = 'glow-pulse 1.4s ease-in-out infinite';
           entry._glowRing = glowRing;
@@ -406,21 +406,23 @@ class HexRenderer {
         glowRing.style.display = '';
 
         // ── Number badge (top-inside of hex, above terrain icon) ──────────
+        // Large enough to read at TV distance and on laptop screens: the
+        // badge must match the phone move-list number at a glance.
         const { cx, cy } = this._center(tile.q, tile.r);
         let badge = entry._moveBadge;
         if (!badge) {
           badge = document.createElementNS(ns, 'g');
           badge.setAttribute('pointer-events', 'none');
           const bg = document.createElementNS(ns, 'circle');
-          bg.setAttribute('r', '15');
-          bg.setAttribute('fill', 'rgba(0,0,0,0.88)');
+          bg.setAttribute('r', '21');
+          bg.setAttribute('fill', 'rgba(0,0,0,0.92)');
           bg.setAttribute('stroke', '#ffffff');
-          bg.setAttribute('stroke-width', '2.5');
+          bg.setAttribute('stroke-width', '3');
           const label = document.createElementNS(ns, 'text');
           label.setAttribute('text-anchor', 'middle');
           label.setAttribute('dominant-baseline', 'central');
-          label.setAttribute('font-size', '18');
-          label.setAttribute('font-weight', 'bold');
+          label.setAttribute('font-size', '27');
+          label.setAttribute('font-weight', '800');
           label.setAttribute('font-family', 'Inter, sans-serif');
           label.setAttribute('fill', '#ffffff');
           badge.appendChild(bg);
@@ -428,7 +430,7 @@ class HexRenderer {
           entry._moveBadge = badge;
           entry.g.appendChild(badge);
         }
-        badge.setAttribute('transform', `translate(${cx},${cy - 26})`);
+        badge.setAttribute('transform', `translate(${cx},${cy - 30})`);
         const labelEl = badge.querySelector('text');
         if (labelEl) labelEl.textContent = String(numberById.get(id) ?? '');
         badge.style.display = '';

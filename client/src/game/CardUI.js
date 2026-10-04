@@ -316,6 +316,15 @@ class CardUI {
 
   _setMode(mode) {
     this._mode = mode;
+    // Phone pooling gutter: while pooling, hand rows reserve a left gutter
+    // for the coin badge (absolute overlay, no layout growth). Off in
+    // movement/rubble modes so headers use the full width.
+    if (this.handEl) {
+      this.handEl.classList.toggle(
+        'market-pooling',
+        mode === 'market' && this._isPhoneView()
+      );
+    }
     this._syncHandState();
   }
 
@@ -499,17 +508,32 @@ class CardUI {
   _makeMarketRowEl(card, isReserve, transmitterActive = false) {
     const locked = isReserve && !transmitterActive;
     const row = document.createElement('div');
-    row.className = 'market-row-item' + (isReserve ? ' is-reserve' : '');
+    row.className = `market-row-item terrain-${card.movementTerrain || 'empty'}` + (isReserve ? ' is-reserve' : '');
     if (locked) row.classList.add('reserve-locked');
     row.dataset.cardKey = card.key;
 
     const effectDesc = this._specialDescription(card.specialEffect);
     const lastCopy = !isReserve && card.remaining === 1;
 
+    // Terrain colour reference (dot + left border via CSS): movement cards
+    // read green/blue/gold at a glance, purple vs grey stays distinct.
+    const dot = document.createElement('span');
+    dot.className = 'market-row-dot';
+    dot.setAttribute('aria-hidden', 'true');
+    row.appendChild(dot);
+
     const nameEl = document.createElement('span');
     nameEl.className = 'market-row-name';
     nameEl.textContent = card.cardName || card.key;
     row.appendChild(nameEl);
+
+    // What you're buying: movement value for green/blue/yellow cards.
+    if (card.movementTotal > 0) {
+      const mvEl = document.createElement('span');
+      mvEl.className = 'market-row-moves';
+      mvEl.textContent = `${this._terrainIcon(card.movementTerrain)} ${card.movementTotal}`;
+      row.appendChild(mvEl);
+    }
 
     if (effectDesc) {
       const effEl = document.createElement('span');
@@ -785,13 +809,25 @@ class CardUI {
   // Choose. Tapping ℹ️ must not choose — guarded like the desktop path.
   _makeReservePickRowEl(card, onChosen, overlay) {
     const row = document.createElement('div');
-    row.className = 'market-row-item reserve-pick-row';
+    row.className = `market-row-item reserve-pick-row terrain-${card.movementTerrain || 'empty'}`;
     row.dataset.cardKey = card.key;
+
+    const dot = document.createElement('span');
+    dot.className = 'market-row-dot';
+    dot.setAttribute('aria-hidden', 'true');
+    row.appendChild(dot);
 
     const nameEl = document.createElement('span');
     nameEl.className = 'market-row-name';
     nameEl.textContent = card.cardName || card.key;
     row.appendChild(nameEl);
+
+    if (card.movementTotal > 0) {
+      const mvEl = document.createElement('span');
+      mvEl.className = 'market-row-moves';
+      mvEl.textContent = `${this._terrainIcon(card.movementTerrain)} ${card.movementTotal}`;
+      row.appendChild(mvEl);
+    }
 
     const effectDesc = this._specialDescription(card.specialEffect);
     if (effectDesc) {

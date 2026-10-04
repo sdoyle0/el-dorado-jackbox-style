@@ -28,24 +28,10 @@ document.addEventListener('DOMContentLoaded', () => {
       badge.classList.remove('hidden');
     }
   }
-  if (VIEW === 'phone') {
-    const toggleBtn = document.getElementById('board-toggle-btn');
-    const boardAndHand = document.getElementById('board-and-hand-container');
-    if (toggleBtn && boardAndHand) {
-      const syncLabel = () => {
-        const collapsed = boardAndHand.classList.contains('board-collapsed');
-        toggleBtn.textContent = collapsed ? '🗺 Show board' : '🙈 Hide board';
-        toggleBtn.setAttribute('aria-expanded', String(!collapsed));
-      };
-      boardAndHand.classList.add('board-collapsed'); // board hidden behind toggle by default
-      toggleBtn.classList.remove('hidden');
-      syncLabel();
-      toggleBtn.addEventListener('click', () => {
-        boardAndHand.classList.toggle('board-collapsed');
-        syncLabel();
-      });
-    }
-  }
+  // Phone is boardless: the board lives on the TV and is hidden on phones
+  // via CSS (body.view-phone #board-container). Moves, blockades, and the
+  // market all work through tappable lists, so there is no Show-board toggle.
+  // (Removed: the old board-collapsed toggle setup used to live here.)
 
   // ── Lobby UI refs ──────────────────────────────────────────────────────────
   const nameInput = document.getElementById('player-name-input');
@@ -730,9 +716,26 @@ document.addEventListener('DOMContentLoaded', () => {
       body.view-phone .market-row-list { display: flex; flex-direction: column;
         gap: 0.35rem; }
       body.view-phone .market-row-item { display: flex; align-items: center;
-        gap: 0.5rem; min-height: 44px; padding: 0.35rem 0.55rem;
+        flex-wrap: wrap; row-gap: 0.2rem; gap: 0.5rem; min-height: 44px; padding: 0.35rem 0.55rem;
         border: 1px solid var(--border-mid, rgba(201,162,39,0.32));
+        border-left-width: 4px;
         background: rgba(22,39,61,0.9); color: #e8e0d0; border-radius: 8px; }
+      /* Terrain colour reference: dot + left border per card terrain. */
+      body.view-phone .market-row-item.terrain-jungle { border-left-color: #4cff4c; }
+      body.view-phone .market-row-item.terrain-water { border-left-color: #4a9ae8; }
+      body.view-phone .market-row-item.terrain-village { border-left-color: #ffd700; }
+      body.view-phone .market-row-item.terrain-wild { border-left-color: #888888; }
+      body.view-phone .market-row-item.terrain-empty { border-left-color: #9050e0; }
+      body.view-phone .market-row-dot { width: 12px; height: 12px; border-radius: 50%;
+        flex-shrink: 0; background: #888888; }
+      body.view-phone .market-row-item.terrain-jungle .market-row-dot { background: #4cff4c; }
+      body.view-phone .market-row-item.terrain-water .market-row-dot { background: #4a9ae8; }
+      body.view-phone .market-row-item.terrain-village .market-row-dot { background: #ffd700; }
+      body.view-phone .market-row-item.terrain-wild .market-row-dot { background: #888888; }
+      body.view-phone .market-row-item.terrain-empty .market-row-dot { background: #9050e0; }
+      /* Movement value: what the card does for green/blue/yellow. */
+      body.view-phone .market-row-moves { font-weight: 800; font-size: 0.9rem;
+        white-space: nowrap; flex-shrink: 0; }
       body.view-phone .market-row-item.can-afford {
         box-shadow: 0 0 0 2px #3adf3a, 0 2px 10px rgba(58,223,58,0.2); }
       body.view-phone .market-row-item.cant-afford { opacity: 0.7; }

@@ -81,7 +81,9 @@ body.view-tv #final-round-banner {
   padding: 0.75rem 1rem;
 }
 
-/* ── Phone: hand + primary buttons first, board behind toggle ─────────────── */
+/* ── Phone: boardless hand terminal (board lives on TV) ───────────────────
+   Phone is a hand + actions terminal: no board, no toggle. Moves,
+   blockades, and market all work through tappable lists (Blocks 4–6). */
 body.view-phone #game-screen.active {
   flex-direction: column;
   overflow-y: auto;
@@ -89,43 +91,166 @@ body.view-phone #game-screen.active {
   height: 100dvh;
 }
 
-/* Turn banner + legend stay visible near the top, compact log below them. */
+/* Block 5b — Phone HUD declutter: turn banner / legend / log live on TV.
+   Hide the whole #hud block on phones only (banner + legend + Field Notes +
+   game log). Turn signaling stays via the existing "Your turn!" toast and
+   End Turn enable/disable in main.js (untouched). TV + desktop unaffected. */
 body.view-phone #hud {
-  order: 1;
-  flex: none;
-  border-left: none;
-  border-bottom: 1px solid var(--border);
+  display: none !important;
 }
 
-body.view-phone #game-log {
-  flex: none;
-  min-height: 70px;
-  max-height: 110px;
+/* Phone never shows the board: way too large to be useful on a handset,
+   and the TV already shows it. Hide the toggle too (JS no longer unhides
+   it — see main.js phone block). */
+body.view-phone #board-toggle-btn {
+  display: none !important;
 }
 
-/* Hand + buttons above the (collapsed) board. */
+body.view-phone #board-container {
+  display: none !important;
+}
+
+/* Hand + actions own the phone screen. */
 body.view-phone #board-and-hand-container {
   order: 2;
-  flex: none;
+  flex: 1 1 auto;
   max-width: none;
+  min-height: 0;
 }
 
 body.view-phone #player-hand-ui {
   order: 0;
   height: auto;
-  min-height: 190px;
+  flex: 1 1 auto;
+  min-height: 0;
   flex-direction: column;
+  justify-content: flex-start;
+  gap: 0.5rem;
 }
 
+/* ── Phone hand: vertical full-width rows, not a squeezed 4-across strip ──
+   Desktop .card-btn is a fixed 140px art card with a 0.74rem header — on a
+   400px phone that crams 4 across and clips the movement value. Phone rows
+   stack vertically: name + large movement stat always visible, art hidden. */
+/* Hand stacks from the top (no flex growth pushing buttons away); long
+   hands scroll inside the list so the action buttons stay reachable. */
 body.view-phone #hand-cards {
+  order: 0;
   margin-right: 0;
-  min-height: 120px;
+  min-height: 0;
+  flex: none;
+  max-height: 46dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  overflow-x: hidden;
+  overflow-y: auto;
+  gap: 0.5rem;
+  padding: 0.1rem;
 }
 
+body.view-phone #hand-cards .card-btn {
+  width: 100%;
+  min-height: 60px;
+  flex-shrink: 0;
+  flex-direction: column;
+  align-items: stretch;
+  animation: none;
+}
+
+/* Art column hidden on phone rows: it caused the tall-card / clipped-header
+   squeeze and adds nothing tappable. Terrain colour on the header remains. */
+body.view-phone #hand-cards .card-body-area {
+  display: none;
+}
+
+body.view-phone #hand-cards .card-header-strip {
+  height: auto;
+  min-height: 60px;
+  padding: 0.55rem 0.7rem;
+  font-size: 1rem;
+  gap: 0.6rem;
+}
+
+body.view-phone #hand-cards .card-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+
+/* Movement value: never shrink, never clip — the whole point of the row. */
+body.view-phone #hand-cards .card-stat-line {
+  flex-shrink: 0;
+  margin-left: auto;
+  font-size: 1.45rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+/* ℹ️ stays tappable without covering the movement stat: vertically centred
+   in a reserved gutter, only on cards that have one. */
+body.view-phone #hand-cards .card-btn:has(.card-info-btn) {
+  padding-right: 52px;
+}
+
+body.view-phone #hand-cards .card-info-btn {
+  position: absolute;
+  top: 50%;
+  bottom: auto;
+  right: 4px;
+  transform: translateY(-50%);
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-grid;
+  place-items: center;
+  font-size: 1.2rem;
+}
+
+/* Pool-value badge (market-pooling mode only): absolute overlay in a
+   reserved left gutter — no layout growth, never covers the name's tail,
+   the movement stat, or ℹ️ (those live on the right side). The
+   .market-pooling class is toggled by CardUI._setMode. */
+body.view-phone #hand-cards.market-pooling .card-header-strip {
+  padding-left: 68px;
+}
+
+body.view-phone #hand-cards.market-pooling .card-btn .pool-value-badge {
+  position: absolute;
+  left: 6px;
+  top: 50%;
+  right: auto;
+  bottom: auto;
+  transform: translateY(-50%);
+  min-width: 0;
+  min-height: 0;
+  height: 26px;
+  padding: 0 0.5rem;
+  margin: 0;
+  align-self: auto;
+  display: inline-grid;
+  place-items: center;
+  white-space: nowrap;
+}
+
+body.view-phone #move-list-panel {
+  order: 1;
+  margin-top: 0;
+}
+
+/* Destination list sits directly under the hand (above Market / End Turn /
+   Discard) so options appear next to the card just played. */
 body.view-phone #hand-controls {
+  order: 2;
   flex-direction: row;
   flex-wrap: wrap;
   margin-right: 0;
+}
+
+body.view-phone #hand-messages {
+  order: 3;
 }
 
 body.view-phone #hand-controls button {
@@ -138,30 +263,4 @@ body.view-phone #hand-controls button {
 body.view-phone #end-turn-btn {
   border-color: var(--gold-mid);
   color: var(--gold-bright);
-}
-
-body.view-phone #board-toggle-btn {
-  display: block;
-  order: 1;
-  width: 100%;
-  min-height: 44px;
-  margin: 0.4rem 0.6rem 0;
-  width: calc(100% - 1.2rem);
-  border: 1px solid var(--border-mid);
-  background: rgba(22, 39, 61, 0.8);
-  color: var(--text-bright);
-  border-radius: var(--radius-sm);
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-body.view-phone #board-container {
-  order: 2;
-  min-height: 45vh;
-}
-
-/* Collapsed by default (JS adds .board-collapsed); toggle reveals the board. */
-body.view-phone #board-and-hand-container.board-collapsed #board-container {
-  display: none;
 }
