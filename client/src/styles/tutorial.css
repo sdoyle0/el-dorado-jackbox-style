@@ -1,0 +1,137 @@
+/* client/src/styles/tutorial.css
+   All tutorial-specific styles — kept separate from main.css so the
+   tutorial can be removed in one line if ever disabled.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* ── Lobby entry button ───────────────────────────────────────────────────── */
+.tutorial-entry-btn {
+  background: transparent;
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-sm);
+  color: var(--text-mid);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8rem;
+  padding: 0.4rem 1rem;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  margin-top: 0.25rem;
+}
+.tutorial-entry-btn:hover {
+  color: var(--gold-mid);
+  border-color: var(--gold-dim);
+}
+
+/* ── Tutorial overlay ─────────────────────────────────────────────────────── */
+#tutorial-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 600;
+  pointer-events: none; /* backdrop handles events, not this container */
+}
+#tutorial-screen.hidden { display: none; }
+
+/* Backdrop — covers everything, lets pointer events through only to callout */
+#tutorial-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  pointer-events: all;
+}
+
+/* Spotlight hole — punches through backdrop via box-shadow trick */
+#tutorial-spotlight-hole {
+  display: none;
+  position: fixed;
+  border-radius: var(--radius-md);
+  /* The enormous box-shadow IS the dark overlay; the element itself is clear */
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.72);
+  pointer-events: none;
+  z-index: 601;
+  transition: top 0.35s ease, left 0.35s ease, width 0.35s ease, height 0.35s ease;
+}
+
+/* Callout box */
+#tutorial-callout {
+  position: fixed;
+  width: 340px;
+  background: linear-gradient(160deg, #14243a 0%, #0f1c2e 100%);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1.4rem 1rem;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.7), 0 0 0 1px rgba(201,162,39,0.1);
+  pointer-events: all;
+  z-index: 602;
+  transition: top 0.35s ease, left 0.35s ease;
+}
+
+#tutorial-callout-step {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gold-dim);
+  margin-bottom: 0.4rem;
+}
+
+#tutorial-callout h3 {
+  font-family: 'Cinzel', serif;
+  font-size: 1rem;
+  color: var(--gold-bright);
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+#tutorial-callout p {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.84rem;
+  color: var(--text-mid);
+  line-height: 1.6;
+  margin-bottom: 0.9rem;
+}
+
+#tutorial-callout p strong {
+  color: var(--text-bright);
+}
+
+#tutorial-callout-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.tutorial-btn-primary {
+  padding: 0.45rem 1.1rem;
+  background: linear-gradient(135deg, var(--gold-dim), var(--gold-mid));
+  color: var(--deep-navy);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+.tutorial-btn-primary:hover { filter: brightness(1.12); }
+
+/* Skip button — top-right corner, always visible */
+#tutorial-skip-btn {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(13,17,23,0.85);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.75rem;
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+  pointer-events: all;
+  z-index: 603;
+  transition: color 0.15s, border-color 0.15s;
+}
+#tutorial-skip-btn:hover {
+  color: var(--text-bright);
+  border-color: var(--border-mid);
+}

@@ -1,0 +1,1800 @@
+/* client/src/styles/main.css */
+/* ─────────────────────────────────────────────────────────────────────────────
+   Quest for El Dorado — UI Design System
+   Palette:
+     --ink:        #0d1117  (near-black background)
+     --deep-navy:  #0f1c2e  (panel backgrounds)
+     --mid-navy:   #16273d  (card/element backgrounds)
+     --pale-navy:  #1e3352  (borders, hover states)
+     --gold-bright:#ffd700  (primary accent — torch-gold)
+     --gold-mid:   #c9a227  (secondary gold — aged metal)
+     --gold-dim:   #7a6020  (muted gold — old maps)
+     --text-bright:#e8e0d0  (warm off-white — aged parchment)
+     --text-mid:   #9aabbf  (cool mid-tone for labels)
+     --text-dim:   #4f6070  (de-emphasized text)
+     --jungle:     #1e5e1e  (hex board tile)
+     --water:      #1a5fa8  (hex board tile)
+     --danger:     #c0392b  (error states)
+   Typography:
+     Display: 'Cinzel' — Roman-cut serif, reads like an expedition journal or
+              engraved map title. Used only for large headings.
+     Body/UI: 'Inter'  — Clean, readable, works at small sizes in the HUD.
+     Journal: 'IM Fell English' — Period-authentic serif for the log panel.
+─────────────────────────────────────────────────────────────────────────────── */
+
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@400;500;600;700&family=IM+Fell+English:ital@0;1&display=swap');
+
+/* ── Reset & Root ─────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --ink:          #0d1117;
+  --deep-navy:    #0f1c2e;
+  --mid-navy:     #16273d;
+  --pale-navy:    #1e3352;
+  --gold-bright:  #ffd700;
+  --gold-mid:     #c9a227;
+  --gold-dim:     #7a6020;
+  --text-bright:  #e8e0d0;
+  --text-mid:     #9aabbf;
+  --text-dim:     #4f6070;
+  --border:       rgba(201, 162, 39, 0.18);
+  --border-mid:   rgba(201, 162, 39, 0.32);
+  --danger:       #c0392b;
+  --radius-sm:    5px;
+  --radius-md:    8px;
+  --radius-lg:    14px;
+  /* Journal parchment palette */
+  --parch-light:  #d4b878;
+  --parch-mid:    #c8a860;
+  --parch-dark:   #b89040;
+  --parch-ink:    #2e1a04;
+  --parch-sepia:  #5a3008;
+  --parch-border: #8a6428;
+  --parch-ruling: rgba(140, 90, 20, 0.18);
+  --parch-margin: rgba(160, 80, 40, 0.22);
+  --leather:      #6a3010;
+  --leather-light:#8a4818;
+}
+
+body {
+  background: var(--ink);
+  color: var(--text-bright);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 14px;
+  height: 100vh;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Screens ──────────────────────────────────────────────────────────────── */
+.screen { display: none; }
+.screen.active { display: flex; flex-direction: column; height: 100vh; }
+.hidden { display: none !important; }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   LOBBY SCREEN
+   Full-bleed atmosphere: a deep dark gradient evokes the jungle canopy at
+   night. The title card is the visual centrepiece — parchment-toned panel
+   with an embossed gold title that shimmers on load.
+───────────────────────────────────────────────────────────────────────────── */
+#lobby-screen,
+#waiting-screen {
+  align-items: center;
+  justify-content: center;
+  /* Layered radial gradients: distant firelight glow from bottom-left */
+  background:
+    radial-gradient(ellipse 60% 40% at 20% 90%, rgba(201,162,39,0.07) 0%, transparent 70%),
+    radial-gradient(ellipse 80% 60% at 80% 10%, rgba(30,83,82,0.12) 0%, transparent 70%),
+    linear-gradient(160deg, #0a1520 0%, #0d1117 50%, #0e1a10 100%);
+}
+
+#lobby-box,
+#waiting-box {
+  background: linear-gradient(160deg, #14243a 0%, #0f1c2e 100%);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-lg);
+  padding: 2.75rem 2.5rem 2.25rem;
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  box-shadow:
+    0 0 0 1px rgba(201,162,39,0.08),
+    0 24px 64px rgba(0,0,0,0.6),
+    inset 0 1px 0 rgba(255,255,255,0.04);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Decorative corner flourish — top-left */
+#lobby-box::before,
+#waiting-box::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 80px; height: 80px;
+  background:
+    linear-gradient(135deg, rgba(201,162,39,0.15) 0%, transparent 60%);
+  border-radius: 0 0 100% 0;
+  pointer-events: none;
+}
+
+/* ── Title — signature element: shimmer sweep on load ──────────────────── */
+.game-title {
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 2.1rem;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 0.04em;
+  line-height: 1.15;
+  /* Gold gradient base */
+  background: linear-gradient(
+    135deg,
+    #a07820 0%,
+    #ffd700 30%,
+    #ffe066 50%,
+    #ffd700 70%,
+    #a07820 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  /* Shimmer sweep animation */
+  animation: title-shimmer 3.5s ease-in-out forwards;
+}
+
+@keyframes title-shimmer {
+  0%   { background-position: 200% center; opacity: 0.6; }
+  40%  { background-position: 60% center; opacity: 1; }
+  100% { background-position: -20% center; opacity: 1; }
+}
+
+.game-subtitle {
+  font-family: 'Cinzel', serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold-dim);
+  margin-top: -0.85rem;
+  margin-bottom: 0.25rem;
+}
+
+/* ── Lobby inputs ──────────────────────────────────────────────────────── */
+#player-name-input {
+  padding: 0.65rem 1rem;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.95rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(201,162,39,0.25);
+  background: rgba(13,17,23,0.7);
+  color: var(--text-bright);
+  width: 100%;
+  text-align: center;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+}
+#player-name-input::placeholder { color: var(--text-dim); }
+#player-name-input:focus {
+  border-color: var(--gold-mid);
+  box-shadow: 0 0 0 3px rgba(201,162,39,0.12);
+}
+
+#lobby-actions {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.lobby-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.lobby-section h2 {
+  font-family: 'Cinzel', serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--gold-dim);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.lobby-label {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+#player-count-btns {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.count-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(201,162,39,0.2);
+  background: rgba(13,17,23,0.5);
+  color: var(--text-mid);
+  font-family: 'Inter', sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.count-btn:hover {
+  border-color: var(--gold-mid);
+  color: var(--gold-bright);
+}
+.count-btn.active {
+  border-color: var(--gold-mid);
+  background: rgba(122,96,32,0.2);
+  color: var(--gold-bright);
+  box-shadow: 0 0 12px rgba(201,162,39,0.2);
+}
+
+.primary-btn {
+  padding: 0.65rem 2rem;
+  background: linear-gradient(135deg, #a07820 0%, var(--gold-bright) 50%, #c9a227 100%);
+  color: #0f1c2e;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s, filter 0.15s;
+  width: 100%;
+  max-width: 220px;
+  text-transform: uppercase;
+}
+.primary-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(201,162,39,0.3);
+  filter: brightness(1.08);
+}
+.primary-btn:active {
+  transform: translateY(0);
+}
+.primary-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  filter: none;
+}
+
+.lobby-divider {
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  padding: 0.1rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+}
+.lobby-divider::before,
+.lobby-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+#room-code-input {
+  padding: 0.65rem 1rem;
+  font-family: 'Inter', sans-serif;
+  font-size: 1.1rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(201,162,39,0.25);
+  background: rgba(13,17,23,0.7);
+  color: var(--text-bright);
+  width: 100%;
+  max-width: 220px;
+  text-align: center;
+  letter-spacing: 0.2em;
+  font-weight: 700;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+}
+#room-code-input:focus {
+  border-color: var(--gold-mid);
+  box-shadow: 0 0 0 3px rgba(201,162,39,0.12);
+}
+
+.lobby-status {
+  font-size: 0.8rem;
+  color: var(--danger);
+  text-align: center;
+  min-height: 1.2em;
+}
+
+/* ── Waiting Room ─────────────────────────────────────────────────────────── */
+#room-code-display {
+  font-size: 0.85rem;
+  color: var(--text-mid);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+#room-code-value {
+  font-family: 'Inter', sans-serif;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--gold-bright);
+  letter-spacing: 0.2em;
+}
+#copy-code-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: transform 0.15s;
+  opacity: 0.7;
+}
+#copy-code-btn:hover { transform: scale(1.2); opacity: 1; }
+
+#waiting-subtitle {
+  font-size: 0.82rem;
+  color: var(--text-mid);
+  letter-spacing: 0.02em;
+}
+
+#waiting-players {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  background: rgba(13,17,23,0.5);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  min-height: 60px;
+}
+
+.waiting-player-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.3rem 0.35rem;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+.waiting-player-dot {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.15);
+  flex-shrink: 0;
+}
+.waiting-player-name {
+  font-size: 0.85rem;
+}
+
+#waiting-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   GAME SCREEN LAYOUT
+───────────────────────────────────────────────────────────────────────────── */
+#game-screen { flex-direction: row; }
+
+#board-and-hand-container {
+  flex: 6 6 auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-width: 1378px;
+  position: relative;
+}
+
+#board-container {
+  flex: 1;
+  display: flex;
+  overflow: auto;
+}
+
+#hex-board {
+  width: 100%;
+  height: 100%;
+  transform-origin: top left;
+  transform: scale(1);
+}
+
+/* ── Zoom controls ────────────────────────────────────────────────────────── */
+#zoom-controls {
+  position: fixed;
+  top: 0.75rem;
+  align-self: flex-start;
+  margin-left: auto;
+  margin-right: 0.75rem;
+  display: flex;
+  gap: 0.4rem;
+  z-index: 10;
+}
+
+.zoom-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border-mid);
+  background: rgba(15,28,46,0.9);
+  color: var(--gold-mid);
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  backdrop-filter: blur(8px);
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+}
+.zoom-btn:hover {
+  background: var(--mid-navy);
+  border-color: var(--gold-mid);
+  transform: translateY(-1px);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   HUD SIDEBAR
+───────────────────────────────────────────────────────────────────────────── */
+#hud {
+  flex: 1 1 0;
+  padding: 0.6rem 0.65rem;
+  background: linear-gradient(180deg, var(--deep-navy) 0%, #0c1825 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border-left: 1px solid var(--border);
+}
+
+/* ── Turn banner ──────────────────────────────────────────────────────────── */
+#turn-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.6rem 0.7rem;
+  border-radius: var(--radius-md);
+  background: rgba(13,17,23,0.6);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--text-dim);
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+#turn-banner.my-turn {
+  border-left-color: currentColor;
+  animation: pulse-turn 2s ease-in-out infinite;
+}
+@keyframes pulse-turn {
+  0%, 100% { box-shadow: 0 0 0 0 transparent; }
+  50%       { box-shadow: 0 0 10px rgba(255,215,0,0.12); }
+}
+
+#turn-color-dot {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  border: 2px solid rgba(255,255,255,0.15);
+  flex-shrink: 0;
+  transition: background 0.3s;
+}
+#turn-banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+#current-player-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--gold-bright);
+  line-height: 1.25;
+}
+#turn-banner-sub {
+  font-size: 0.65rem;
+  color: var(--text-mid);
+  line-height: 1.2;
+}
+
+/* ── HUD section labels ───────────────────────────────────────────────────── */
+.hud-label {
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  padding: 0 0.1rem;
+  margin-top: 0.15rem;
+}
+
+/* ── Player legend ────────────────────────────────────────────────────────── */
+#player-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0.35rem 0.3rem;
+  background: rgba(13,17,23,0.5);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+.legend-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.3rem 0.4rem;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+.legend-row.active-player {
+  background: rgba(255,255,255,0.05);
+}
+.legend-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.52rem;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+  letter-spacing: 0.01em;
+  border: 1.5px solid rgba(255,255,255,0.1);
+}
+.legend-name {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+.legend-row.active-player .legend-name {
+  color: var(--text-bright);
+  font-weight: 600;
+}
+.legend-you {
+  font-size: 0.6rem;
+  color: var(--gold-dim);
+  flex-shrink: 0;
+}
+.legend-hand-count {
+  font-size: 0.6rem;
+  color: var(--text-dim);
+  background: rgba(30,51,82,0.6);
+  border-radius: 3px;
+  padding: 1px 5px;
+  flex-shrink: 0;
+  min-width: 18px;
+  text-align: center;
+}
+.legend-row.active-player .legend-hand-count {
+  color: var(--text-mid);
+  background: rgba(30,51,82,0.9);
+}
+
+/* ── Game log ─────────────────────────────────────────────────────────────── */
+#game-log {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+  /* Warm parchment gradient */
+  background:
+    linear-gradient(
+      170deg,
+      #d4b878 0%,   #c8a860 8%,
+      #cdb268 20%,  #c4a450 35%,
+      #bfa050 50%,  #c8ad60 65%,
+      #d0b568 80%,  #c2a250 100%
+    );
+  border: 1px solid #8a6428;
+  border-top: 2px solid #6a4818;
+  border-bottom: none;
+  box-shadow:
+    inset 2px 0 5px rgba(0,0,0,0.12),
+    inset -2px 0 5px rgba(0,0,0,0.08),
+    inset 0 -3px 8px rgba(0,0,0,0.18);
+}
+
+/* Aged stain overlays on the parchment */
+#game-log::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 30% at 12% 85%, rgba(100,60,10,0.11) 0%, transparent 65%),
+    radial-gradient(ellipse 40% 20% at 88% 15%, rgba(80,50,8,0.09) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 50% 50%, rgba(0,0,0,0.03) 0%, transparent 80%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Red margin ruling line */
+#game-log::after {
+  content: '';
+  position: absolute;
+  left: 20px;
+  top: 0; bottom: 0;
+  width: 1px;
+  background: rgba(160,80,40,0.28);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* ── Leather spine tab above the log ─────────────────────────────────────── */
+#journal-label {
+  background: linear-gradient(135deg, #5a2e08 0%, #8b4a12 40%, #6b3a0a 100%);
+  border: 1px solid #3a1e06;
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  padding: 4px 10px 3px;
+  text-align: center;
+  position: relative;
+  box-shadow: inset 0 1px 0 rgba(255,200,100,0.15), inset 0 -1px 0 rgba(0,0,0,0.3);
+  flex-shrink: 0;
+}
+#journal-label::before,
+#journal-label::after {
+  content: '✦';
+  color: #c9a050;
+  font-size: 7px;
+  opacity: 0.65;
+  position: absolute;
+  top: 50%; transform: translateY(-50%);
+}
+#journal-label::before { left: 5px; }
+#journal-label::after  { right: 5px; }
+#journal-label span {
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 0.55rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #e8c870;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+}
+
+#log-scroll {
+  position: relative;
+  z-index: 3;
+  flex: 1;
+  overflow-y: auto;
+  /* left padding clears the margin line, right padding avoids compass overlap */
+  padding: 8px 14px 8px 26px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100,60,10,0.35) transparent;
+}
+
+/* ── Compass rose watermark ───────────────────────────────────────────────── */
+#journal-compass {
+  position: absolute;
+  bottom: 10px;
+  right: 7px;
+  width: 36px;
+  height: 36px;
+  opacity: 0.10;
+  z-index: 2;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+/* ── Scrollable log content ───────────────────────────────────────────────── */
+
+
+
+#log-scroll::-webkit-scrollbar { width: 3px; }
+#log-scroll::-webkit-scrollbar-thumb {
+  background: rgba(100,60,10,0.3);
+  border-radius: 2px;
+}
+
+/* Ruled lines — pure CSS, drawn with repeating-linear-gradient */
+#log-scroll {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 18px,
+    rgba(140, 90, 20, 0.16) 18px,
+    rgba(140, 90, 20, 0.16) 19px
+  );
+  background-attachment: local;
+}
+
+/* ── Log entries ──────────────────────────────────────────────────────────── */
+#log-scroll p {
+  font-family: 'IM Fell English', Georgia, serif;
+  font-size: 1rem;
+  line-height: 1.75;      /* aligns to the 19px ruled lines */
+  color: var(--parch-ink);
+  margin: 0;
+  padding: 0;
+  position: relative;
+  padding-left: 14px;    /* room for the margin glyph */
+}
+
+/* Margin glyph — the small mark to the LEFT of the margin line */
+#log-scroll p::before {
+  position: absolute;
+  left: -16px;
+  top: 2px;
+  font-size: 0.52rem;
+  line-height: 1;
+  opacity: 0.55;
+  font-style: normal;
+}
+
+/* Entry type variants */
+#log-scroll p.log-move::before   { content: '◆'; color: #3a5818; }
+
+#log-scroll p.log-purchase { font-style: italic; }
+#log-scroll p.log-purchase::before { content: '⊕'; color: #7a5010; }
+
+#log-scroll p.log-turn {
+  color: #3a1e04;
+  font-weight: bold;
+  margin-top: 2px;
+  padding-top: 2px;
+}
+#log-scroll p.log-turn::before { content: '❧'; color: #7a3010; }
+
+#log-scroll p.log-system { color: #4a3010; font-style: italic; font-size: 1rem; }
+#log-scroll p.log-system::before { content: '—'; color: #6a4020; }
+
+#log-scroll p.log-win {
+  color: #3a1400;
+  font-weight: bold;
+  text-align: center;
+  padding-left: 0;
+}
+#log-scroll p.log-win::before { content: '★'; color: #8a6010; font-size: 0.6rem; left: -14px; }
+
+#log-scroll p.log-warn { color: #5a1008; font-style: italic; }
+#log-scroll p.log-warn::before { content: '⚑'; color: #8a2008; }
+
+/* ── HUD sep ──────────────────────────────────────────────────────────────── */
+.hud-sep {
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--border) 30%, var(--border) 70%, transparent 100%);
+  margin: 1px 0;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   PLAYER HAND
+───────────────────────────────────────────────────────────────────────────── */
+#player-hand-ui {
+  height: 250px;
+  background: linear-gradient(180deg, #0e1e30 0%, var(--deep-navy) 100%);
+  border-top: 2px solid var(--gold-dim);
+  display: flex;
+  flex-direction: row;
+  padding: 0.55rem 0.6rem;
+  gap: 0.55rem;
+  transition: border-top-color 0.3s;
+}
+#hand-cards {
+  display: flex;
+  flex-direction: row;
+  gap: 0.4rem;
+  overflow-x: auto;
+  margin-right: 0.75rem;
+  padding-bottom: 2px; /* prevent clip on hover lift */
+  scrollbar-width: thin;
+  scrollbar-color: var(--pale-navy) transparent;
+}
+#hand-messages {
+  flex: 1;
+  min-width: 140px;
+}
+
+/* ── Hand controls ────────────────────────────────────────────────────────── */
+#hand-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-right: 0.6rem;
+}
+#hand-controls button {
+  padding: 0.35rem 0.85rem;
+  border: 1px solid var(--border-mid);
+  background: rgba(22,39,61,0.8);
+  color: var(--text-mid);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 500;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+#hand-controls button:hover {
+  background: var(--pale-navy);
+  border-color: var(--gold-dim);
+  color: var(--text-bright);
+}
+#hand-controls button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   CARD BUTTON — two-tone frame
+   The card is split into a header strip (dark, labelled by terrain) and a
+   body area. The whole button gets a terrain CSS class for theming.
+───────────────────────────────────────────────────────────────────────────── */
+.card-btn {
+  box-sizing: border-box;
+  position: relative;
+  width: 140px;
+  padding: 0;
+  background: transparent;
+  border: 2px solid transparent;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  box-shadow:
+    0 2px 8px rgba(0,0,0,0.5),
+    inset 0 1px 0 rgba(255,255,255,0.04);
+  transition: transform 0.1s, box-shadow 0.1s, border-color 0.15s;
+}
+.card-btn:hover {
+  transform: translateY(-3px);
+  border-color: rgba(255,255,255,0.2);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.6);
+}
+.card-btn.selected {
+  border-color: rgba(255,255,255,0.7);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.2);
+}
+
+.card-header-strip {
+  height: 2rem;
+  padding: 5px 7px 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 700;
+  font-size: 0.74rem;
+  font-family: 'Inter', sans-serif;
+  line-height: 1.1;
+}
+.card-body-area {
+  padding: 5px 7px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+}
+.card-stat-line {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 3px;
+  font-size: 1.2rem;
+  white-space: nowrap;
+}
+.card-terrain-pip {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.card-cost-corner { white-space: nowrap; }
+#player-hand-ui .card-cost-corner { display: none; }
+
+.card-gold-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-weight: 600;
+  margin-top: auto;
+  width: 100%;
+  align-self: flex-start;
+}
+.card-onetime-line {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  font-size: 1.1rem;
+  background-color: #ffffffaa;
+  border-radius: 8px;
+  padding: 3px;
+}
+.card-effect-line {
+  font-size: 0.65rem;
+  line-height: 1.3;
+  opacity: 0.85;
+}
+
+/* ── Terrain colour themes ────────────────────────────────────────────────── */
+.card-btn.terrain-jungle .card-header-strip,
+.market-card.terrain-jungle .card-header-strip   { background: #0a2a0a; color: #8fe88f; }
+.card-btn.terrain-jungle .card-body-area,
+.market-card.terrain-jungle .card-body-area       { background: #163d16; color: #b0deb0; }
+.card-btn.terrain-jungle .card-terrain-pip,
+.market-card.terrain-jungle .card-terrain-pip     { background: #4cff4c; }
+.card-btn.terrain-jungle .card-gold-badge         { color: #8fe88f; }
+
+.card-btn.terrain-water .card-header-strip,
+.market-card.terrain-water .card-header-strip     { background: #041528; color: #8ab8ee; }
+.card-btn.terrain-water .card-body-area,
+.market-card.terrain-water .card-body-area         { background: #0e3a6e; color: #b0ceee; }
+.card-btn.terrain-water .card-terrain-pip,
+.market-card.terrain-water .card-terrain-pip       { background: #4a9ae8; }
+.card-btn.terrain-water .card-gold-badge,
+.market-card.terrain-water .card-gold-badge        { color: #8ab8ee; }
+
+.card-btn.terrain-village .card-header-strip,
+.market-card.terrain-village .card-header-strip   { background: #4d3a00; color: #ffe066; }
+.card-btn.terrain-village .card-body-area,
+.market-card.terrain-village .card-body-area       { background: #7a5e00; color: #ffd966; }
+.card-btn.terrain-village .card-terrain-pip,
+.market-card.terrain-village .card-terrain-pip     { background: #ffd700; }
+.card-btn.terrain-village .card-gold-badge,
+.market-card.terrain-village .card-gold-badge      { color: #ffe066; }
+
+.card-btn.terrain-wild .card-header-strip,
+.market-card.terrain-wild .card-header-strip       { background: #0e0e0e; color: #c0c0c0; }
+.card-btn.terrain-wild .card-body-area,
+.market-card.terrain-wild .card-body-area           { background: #1e1e1e; color: #b0b0b0; }
+.card-btn.terrain-wild .card-terrain-pip,
+.market-card.terrain-wild .card-terrain-pip         { background: #888888; }
+.card-btn.terrain-wild .card-gold-badge,
+.market-card.terrain-wild .card-gold-badge          { color: #c0c0c0; }
+
+.card-btn.terrain-empty .card-header-strip,
+.market-card.terrain-empty .card-header-strip       { background: #2a0a44; color: #c8a0f0; }
+.card-btn.terrain-empty .card-body-area,
+.market-card.terrain-empty .card-body-area           { background: #180630; color: #b8a0e0; }
+.card-btn.terrain-empty .card-terrain-pip,
+.market-card.terrain-empty .card-terrain-pip         { background: #9050e0; }
+.card-btn.terrain-empty .card-gold-badge             { color: #c8a0f0; }
+
+/* In-pool (market / rubble selection) */
+.card-btn.in-pool {
+  border-color: #ff1493;
+  filter: brightness(1.6);
+}
+
+/* ── Card info button ─────────────────────────────────────────────────────── */
+.card-info-btn {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  cursor: pointer;
+  font-size: 21px;
+  border-radius: 8px;
+  overflow: hidden;
+  z-index: 2;
+}
+.card-info-btn:hover {
+  transform: scale(1.25);
+  background: rgba(255,255,255,0.2);
+}
+
+/* ── Card info modal ──────────────────────────────────────────────────────── */
+.card-info-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(4px);
+}
+.card-info-modal.hidden { display: none; }
+.card-info-modal-content {
+  background: linear-gradient(160deg, var(--mid-navy) 0%, var(--deep-navy) 100%);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-lg);
+  padding: 1.75rem 2rem;
+  max-width: 380px;
+  width: 90%;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.7);
+  text-align: center;
+}
+.card-info-modal-title {
+  font-family: 'Cinzel', serif;
+  color: var(--gold-bright);
+  font-size: 1.2rem;
+  margin-bottom: 0.75rem;
+}
+.card-info-modal-text {
+  color: var(--text-mid);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin-bottom: 1.25rem;
+}
+.card-info-modal-close {
+  background: var(--pale-navy);
+  color: var(--text-bright);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 1.5rem;
+  font-size: 0.85rem;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.card-info-modal-close:hover {
+  background: #2a4060;
+  border-color: var(--gold-dim);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   MARKET OVERLAY
+───────────────────────────────────────────────────────────────────────────── */
+#card-market {
+  /* Base styles — position/size/z-index are overridden in the Round 2 block below */
+  background: linear-gradient(180deg, #0d1e30 0%, #091525 100%);
+  border-top: 1px solid var(--border-mid);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  padding: 0.7rem 0.75rem 0.75rem;
+  box-shadow: 0 -8px 32px rgba(0,0,0,0.5);
+}
+
+#market-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.5rem;
+}
+
+.market-tab {
+  font-family: 'Cinzel', serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--gold-mid);
+  text-transform: uppercase;
+  background: transparent;
+  border: 1px solid var(--gold-mid);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  margin-right: 10px;
+  padding: 5px;
+}
+
+.market-tab.active {
+  background: var(--gold-mid);
+  color: black;
+  border-color: var(--gold-bright);
+
+}
+
+#purchase-total {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.85rem;
+  color: var(--gold-bright);
+  font-weight: 600;
+  margin-left: auto;
+  margin-right: 20px;
+}
+
+#cancel-purchase-btn {
+  padding: 0.2rem 0.65rem;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.05);
+  color: var(--text-mid);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-family: 'Inter', sans-serif;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+#cancel-purchase-btn:hover {
+  background: rgba(255,255,255,0.1);
+  color: var(--text-bright);
+  border-color: rgba(255,255,255,0.2);
+}
+
+#shop-slots {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.market-row {
+  display: flex;
+  flex-direction: row;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  max-width: 900px;
+}
+
+.market-section-header {
+  font-family: 'Cinzel', serif;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gold-dim);
+  padding: 0.4rem 0 0.4rem;
+  display: flex;
+  justify-content: center;
+}
+.market-reserve-header { color: var(--text-dim); }
+.market-available-section { 
+  flex: 1 1 0;
+}
+.market-reserve-section {
+  border-left: 1px solid var(--border);
+  padding-left: 0.6rem;
+  padding-bottom: 0.5rem;
+  flex: 2 2 0;
+  max-width: 920px;
+  background-color: rgba(0,0,0,0.15);
+  border-radius: 0 0 0 var(--radius-sm);
+}
+
+#shop-slots:not(.show-reserve) .market-reserve-section {
+  display: none;
+}
+
+#shop-slots.show-reserve .market-available-section {
+  display: none;
+}
+
+.market-card-info {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 10px;
+    margin-bottom: 5px;
+}
+
+/* ── Market cards ─────────────────────────────────────────────────────────── */
+.market-card {
+  position: relative;
+  width: 140px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+.market-card:not(.empty):not(.reserve-locked):hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.55);
+}
+.market-card.empty {
+  opacity: 0.35;
+  cursor: default;
+  background: rgba(13,17,23,0.6);
+  padding: 0.5rem;
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+}
+.market-card.reserve-locked { cursor: not-allowed; }
+.market-card.reserve-locked .card-info-btn,
+
+.market-card-wrapper { cursor: pointer; }
+.market-card-wrapper.cant-afford { cursor: not-allowed; opacity: 0.85; }
+
+/* Affordability states */
+#shop-slots:not(.transmitter-active) .market-available-section .market-card-wrapper.can-afford {
+  box-shadow: 0 0 0 2px #3adf3a, 0 2px 10px rgba(58,223,58,0.2);
+}
+#shop-slots:not(.transmitter-active) .market-available-section .market-card-wrapper.can-afford:hover {
+  box-shadow: 0 0 0 2px #6aef6a, 0 4px 14px rgba(58,223,58,0.3);
+}
+.market-available-section .market-card-wrapper.cant-afford:hover { opacity: 0.95; }
+.card-remaining { margin-top: auto; font-size: 0.68rem; opacity: 0.7; }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   MODALS
+───────────────────────────────────────────────────────────────────────────── */
+#modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(3px);
+}
+#modal-box {
+  background: linear-gradient(160deg, var(--mid-navy) 0%, var(--deep-navy) 100%);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-lg);
+  padding: 2rem 2.25rem;
+  max-width: 400px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.7);
+}
+#modal-message {
+  font-size: 0.95rem;
+  color: var(--text-bright);
+  line-height: 1.55;
+}
+#modal-box button {
+  padding: 0.5rem 1.5rem;
+  border-radius: var(--radius-sm);
+  border: none;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 600;
+  transition: filter 0.15s;
+}
+#modal-box button:hover { filter: brightness(1.1); }
+#modal-confirm-btn {
+  background: linear-gradient(135deg, var(--gold-dim), var(--gold-bright));
+  color: var(--deep-navy);
+}
+#modal-cancel-btn  { background: var(--pale-navy); color: var(--text-mid); }
+
+/* ── Reserve picker overlay ───────────────────────────────────────────────── */
+#reserve-picker {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+  backdrop-filter: blur(4px);
+}
+#reserve-picker-box {
+  background: linear-gradient(160deg, var(--mid-navy) 0%, var(--deep-navy) 100%);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1.5rem;
+  max-width: 580px;
+  width: 92%;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.7);
+}
+#reserve-picker-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+#reserve-picker-header > span:first-child {
+  font-family: 'Cinzel', serif;
+  font-size: 0.85rem;
+  color: var(--gold-mid);
+  letter-spacing: 0.06em;
+}
+#reserve-sold-out-label {
+  color: var(--text-dim);
+  font-size: 0.75rem;
+}
+#reserve-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+.reserve-card-btn {
+  min-width: 108px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  transition: transform 0.1s;
+}
+.reserve-card-btn:hover { transform: translateY(-2px); }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   DEBUG PANEL
+───────────────────────────────────────────────────────────────────────────── */
+#debug-toggle-btn {
+  position: absolute;
+  top: 0;
+  right: -30px;
+  background: rgba(192,57,43,0.8);
+  border: 1px solid #c0392b;
+  border-radius: 0 var(--radius-md) 0 var(--radius-sm);
+  color: #e74c3c;
+  cursor: pointer;
+  font-size: 0.65rem;
+  font-family: 'Inter', sans-serif;
+  padding: 2px 6px;
+  line-height: 1.4;
+  transition: background 0.15s;
+}
+#debug-toggle-btn:hover { background: rgba(192,57,43,1); color: #fff; }
+
+#debug-panel.collapsed .debug-row,
+#debug-panel.collapsed > div:last-child { display: none; }
+
+#debug-panel.collapsed {
+  padding: 0;
+}
+
+#debug-panel {
+  display: none;
+  position: fixed;
+  top: 50px;
+  left: 5px;
+  background: rgba(8,8,20,0.95);
+  border: 1px solid #c0392b;
+  border-radius: var(--radius-md);
+  padding: 0.5rem;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  backdrop-filter: blur(8px);
+}
+.debug-row { display: flex; gap: 0.4rem; align-items: center; }
+#debug-panel input {
+  padding: 0.25rem 0.4rem;
+  background: var(--deep-navy);
+  border: 1px solid var(--pale-navy);
+  border-radius: 3px;
+  color: var(--text-bright);
+  font-size: 0.7rem;
+  width: 200px;
+  font-family: 'Inter', sans-serif;
+}
+#debug-panel button {
+  padding: 0.25rem 0.5rem;
+  background: rgba(60,10,10,0.8);
+  border: 1px solid #c0392b;
+  border-radius: 3px;
+  color: #e74c3c;
+  cursor: pointer;
+  font-size: 0.7rem;
+  white-space: nowrap;
+  font-family: 'Inter', sans-serif;
+}
+#debug-panel button:hover { background: rgba(90,20,20,0.9); }
+.debug-presets-label { color: var(--text-dim); }
+.debug-preset {
+  border-color: var(--pale-navy) !important;
+  color: var(--text-mid) !important;
+  background: var(--deep-navy) !important;
+}
+.debug-preset:hover { background: var(--pale-navy) !important; }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   RUBBLE PAYMENT MODE
+───────────────────────────────────────────────────────────────────────────── */
+.card-btn.rubble-excluded {
+  opacity: 0.3;
+  filter: saturate(0.1) brightness(0.65);
+  cursor: not-allowed;
+  pointer-events: none;
+  position: relative;
+}
+.card-btn.rubble-excluded::after {
+  content: '🔒';
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 0.7rem;
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+.rubble-prompt {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.76rem;
+}
+.rubble-prompt-header {
+  font-weight: 700;
+  color: #e74c3c;
+  font-size: 0.8rem;
+  letter-spacing: 0.03em;
+}
+.rubble-committed-note {
+  color: #ffccaa;
+  line-height: 1.4;
+}
+.rubble-selection-count {
+  color: #ffaaaa;
+  font-size: 0.72rem;
+  font-style: italic;
+  transition: color 0.2s;
+}
+.rubble-prompt-actions {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   SCROLLBAR GLOBAL
+───────────────────────────────────────────────────────────────────────────── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--pale-navy) transparent;
+}
+*::-webkit-scrollbar { width: 5px; height: 5px; }
+*::-webkit-scrollbar-thumb { background: var(--pale-navy); border-radius: 3px; }
+*::-webkit-scrollbar-track { background: transparent; }
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   ADDITIONS — Round 2 Polish
+   Hex animations, toast system, turn transitions, misc improvements
+═════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Hex board pulse animations ──────────────────────────────────────────── */
+@keyframes hex-pulse {
+  0%, 100% { filter: brightness(1.4); }
+  50%       { filter: brightness(1.75); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { stroke: rgba(255,238,0,0.35); stroke-width: 8; }
+  50%       { stroke: rgba(255,238,0,0.65); stroke-width: 11; }
+}
+
+/* ── Toast notification system ───────────────────────────────────────────── */
+#toast-container {
+  position: fixed;
+  bottom: 185px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 8px;
+  z-index: 200;
+  pointer-events: none;
+  width: 380px;
+  max-width: 90vw;
+}
+
+.toast {
+  background: linear-gradient(135deg, #14243a 0%, #0f1c2e 100%);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-md);
+  padding: 0.65rem 1rem;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.84rem;
+  color: var(--text-bright);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.55), 0 0 0 1px rgba(201,162,39,0.08);
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  animation: toast-in 0.3s cubic-bezier(0.34,1.56,0.64,1) forwards;
+  transform-origin: bottom center;
+}
+
+.toast.toast-out {
+  animation: toast-out 0.25s ease-in forwards;
+}
+
+.toast-icon { font-size: 1.1rem; flex-shrink: 0; }
+.toast-text { flex: 1; line-height: 1.4; }
+.toast-accent { border-left-color: var(--gold-bright); border-left-width: 3px; }
+.toast-warn   { border-left-color: #e74c3c; border-left-width: 3px; }
+.toast-info   { border-left-color: #3498db; border-left-width: 3px; }
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.94); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes toast-out {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to   { opacity: 0; transform: translateY(-8px) scale(0.96); }
+}
+
+/* ── Turn transition flash ────────────────────────────────────────────────── */
+@keyframes my-turn-flash {
+  0%   { box-shadow: 0 0 0 0 rgba(255,215,0,0); }
+  30%  { box-shadow: 0 0 0 6px rgba(255,215,0,0.3); }
+  100% { box-shadow: 0 0 0 0 rgba(255,215,0,0); }
+}
+#turn-banner.just-became-my-turn {
+  animation: my-turn-flash 0.8s ease-out forwards, pulse-turn 2s ease-in-out 0.8s infinite;
+}
+
+/* ── Improved board container ─────────────────────────────────────────────── */
+#board-container {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Zoom controls need to sit above the board vignette */
+#zoom-controls { z-index: 5; }
+
+/* ── Market overlay — sits above the hand, never covers it ──────────────── */
+#card-market {
+  position: fixed !important;
+  inset: 0;
+  margin: auto;
+  width: fit-content;
+  height: fit-content;
+  max-height: calc(100vh - 250px - 48px); /* viewport minus hand minus some breathing room */
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0 !important;
+  border-top: 2px solid var(--gold-dim) !important;
+  border-left: 1px solid var(--border) !important;
+  border-right: 1px solid var(--border) !important;
+  overflow-y: auto;
+  /* animation: market-slide-up 0.25s cubic-bezier(0.34,1.2,0.64,1) forwards; */
+  backdrop-filter: blur(2px);
+  /* Ensure it's above the board but below modals */
+  z-index: 20 !important;
+}
+
+#card-market.hidden { animation: none; }
+
+@keyframes market-slide-up {
+  from { transform: translateY(20px); opacity: 0.7; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
+/* ── Screen transitions ───────────────────────────────────────────────────── */
+.screen.active {
+  animation: screen-fade 0.4s ease forwards;
+}
+@keyframes screen-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Game log — richer entries ────────────────────────────────────────────── */
+#game-log p.log-win      { color: #ffd700; font-weight: 600; }
+#game-log p.log-turn     { border-top: 1px solid rgba(0,0,0,.4); padding-top: 3px; margin-top: 3px; }
+
+/* ── Pawn move animation (triggered by JS) ───────────────────────────────── */
+[data-pawn] {
+  transition: all 0.4s cubic-bezier(0.34,1.2,0.64,1);
+}
+
+/* ── Hand area: card entrance animation ──────────────────────────────────── */
+.card-btn {
+  animation: card-deal 0.3s ease forwards;
+}
+@keyframes card-deal {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Rubble payment — cleaner confirm button ─────────────────────────────── */
+#rubble-confirm-btn {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  transition: filter 0.15s, opacity 0.15s;
+}
+#rubble-confirm-btn:not(:disabled):hover {
+  filter: brightness(1.15);
+}
+
+/* ── Waiting room: player row entrance ───────────────────────────────────── */
+.waiting-player-row {
+  animation: row-fade 0.25s ease forwards;
+}
+@keyframes row-fade {
+  from { opacity: 0; transform: translateX(-6px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ── HUD section separator ───────────────────────────────────────────────── */
+.hud-sep {
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--border) 30%, var(--border) 70%, transparent 100%);
+  margin: 1px 0;
+}
+
+/* ── Disabled/opponent hand indicator ────────────────────────────────────── */
+#player-hand-ui.opponent-turn #hand-cards {
+  opacity: 0.5;
+  pointer-events: none;
+}
+#player-hand-ui.opponent-turn::before {
+  content: "Waiting for opponent…";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%,-50%);
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  font-style: italic;
+  pointer-events: none;
+  font-family: 'Inter', sans-serif;
+}
+
+/* ── Action error shake ──────────────────────────────────────────────────── */
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  20%     { transform: translateX(-6px); }
+  40%     { transform: translateX(6px); }
+  60%     { transform: translateX(-4px); }
+  80%     { transform: translateX(4px); }
+}
+.shake { animation: shake 0.35s ease; }
+
+/* ── Reserve picker: backdrop blur ───────────────────────────────────────── */
+#reserve-picker { backdrop-filter: blur(6px); }
+
+/* ── Scrollbar refinements ───────────────────────────────────────────────── */
+#hand-cards::-webkit-scrollbar { height: 3px; }
+#hand-cards::-webkit-scrollbar-thumb { background: var(--pale-navy); border-radius: 2px; }
+
+/* ── Final round banner ──────────────────────────────────────────────────── */
+#final-round-banner {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, #3a1500 0%, #1a0a00 100%);
+  border-bottom: 1px solid var(--gold-dim);
+  text-align: center;
+  font-family: 'Cinzel', serif;
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  color: var(--gold-bright);
+  z-index: 150;
+  animation: banner-drop 0.4s ease forwards;
+}
+@keyframes banner-drop {
+  from { transform: translateY(-100%); }
+  to   { transform: translateY(0); }
+}
+
+/* Override the Round 2 overflow:hidden that broke scrolling */
+#board-container {
+  overflow: auto !important;
+  background-image: url(/shared/images/map.png);
+  background-position: center;
+  background-repeat: no-repeat;
+}
+ 
+/* The scroll-inner wrapper: starts at 100%/100%, grows when JS scales it up */
+#board-scroll-inner {
+  width: 100%;
+  height: 100%;
+  transform-origin: top left;
+  /* No transition here — zoom is instant on button press */
+}
+ 
+/* The SVG fills its wrapper at natural size; JS controls the wrapper's size */
+#hex-board {
+  background-color: #00000085;
+  width: 100%;
+  height: 100%;
+  display: block;
+  /* Remove the old direct transform — zoom now lives on the wrapper */
+  transform: none !important;
+  transform-origin: unset !important;
+}
+ 
+/* ── Shake animation on action_error (3h) ─────────────────────────────────
+   Already defined earlier as @keyframes shake + .shake class, but we
+   ensure the handler on #player-hand-ui works by re-confirming the class. */
+ 
+/* (no new CSS needed — .shake is already in the Round 2 block) */
+ 
+/* ── opponent-turn overlay positioning fix ───────────────────────────────── */
+/* The ::before pseudo needs position:relative on the parent to anchor */
+#player-hand-ui {
+  position: relative;
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   SESSION 4 ADDITIONS — append to the bottom of client/src/styles/main.css
+═════════════════════════════════════════════════════════════════════════════ */
+
+/* ── 4e: Rubble committed-card name highlight ─────────────────────────────── */
+/* The card that's already paying gets a subtle pill treatment so it
+   stands out from the surrounding instruction copy. */
+.rubble-committed-card {
+  display: inline-block;
+  background: rgba(231, 76, 60, 0.15);
+  border: 1px solid rgba(231, 76, 60, 0.35);
+  border-radius: 3px;
+  padding: 0 5px;
+  color: #ffb3aa;
+  font-weight: 600;
+  font-size: 0.72rem;
+  letter-spacing: 0.01em;
+  margin-right: 2px;
+}
+
+/* ── 4e: Rubble note body text — make <strong> pop slightly ──────────────── */
+.rubble-committed-note strong {
+  color: #ffd700;
+}
+
+/* ── 4d: Ensure card-deal animation plays correctly on staggered new cards ── */
+/* The animation is already defined as @keyframes card-deal in the main block.
+   This just ensures cards start invisible before their delay fires so there's
+   no flash of fully-visible cards before the animation begins. */
+.card-btn {
+  animation-fill-mode: both;
+}
+
+
+/* ── Lobby blockade toggle ────────────────────────────────────────────────── */
+.blockade-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0.1rem 0 0.1rem;
+}
+
+.blockade-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.78rem;
+  color: var(--text-mid);
+  cursor: pointer;
+  user-select: none;
+}
+
+.blockade-toggle-label input[type="checkbox"] {
+  accent-color: var(--gold-mid);
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
+.blockade-toggle-label:hover {
+  color: var(--text-bright);
+}
+
+/* ── Log: blockade entry type ─────────────────────────────────────────────── */
+#log-scroll p.log-blockade {
+  color: #c8a060;
+  font-style: italic;
+}
+
+#log-scroll p.log-blockade::before {
+  content: '🚧';
+  font-style: normal;
+  left: -18px;
+}
+
+/* ── Breakable blockade pulse animation ───────────────────────────────────── */
+@keyframes blockade-pulse {
+
+  0%,
+  100% {
+    opacity: 0.4;
+    stroke-width: 14;
+  }
+
+  50% {
+    opacity: 0.9;
+    stroke-width: 18;
+  }
+}

@@ -1,0 +1,167 @@
+/* Block 2 — ?view=tv / ?view=phone layout split (scaffolding only).
+   No game logic here. TV hides hand input and enlarges turn/legend.
+   Phone stacks hand + primary buttons first, board collapsed behind a toggle.
+   Default (no ?view=) layout is untouched. */
+
+/* ── Shared bits ─────────────────────────────────────────────────────────── */
+#view-badge {
+  position: fixed;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 300;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(15, 28, 46, 0.9);
+  border: 1px solid rgba(201, 162, 39, 0.4);
+  color: #ffd700;
+  pointer-events: none;
+}
+
+#board-toggle-btn {
+  display: none; /* only shown in phone view (JS removes .hidden there) */
+}
+
+/* ── TV: board + turn banner + legend large, hand input hidden ────────────── */
+body.view-tv #player-hand-ui {
+  display: none;
+}
+
+body.view-tv #board-and-hand-container {
+  flex: 1 1 auto;
+  max-width: none;
+}
+
+body.view-tv #hud {
+  flex: 0 0 340px;
+}
+
+body.view-tv #turn-banner {
+  padding: 1rem 1.1rem;
+  border-left-width: 5px;
+}
+
+body.view-tv #current-player-label {
+  font-size: 1.35rem;
+}
+
+body.view-tv #turn-color-dot {
+  width: 22px;
+  height: 22px;
+}
+
+body.view-tv #player-legend {
+  padding: 0.6rem 0.5rem;
+  gap: 4px;
+}
+
+body.view-tv .legend-row {
+  padding: 0.55rem 0.6rem;
+}
+
+body.view-tv .legend-avatar {
+  width: 36px;
+  height: 36px;
+  font-size: 0.8rem;
+}
+
+body.view-tv .legend-name {
+  font-size: 1rem;
+}
+
+body.view-tv .legend-hand-count {
+  font-size: 0.8rem;
+  padding: 2px 8px;
+}
+
+body.view-tv #final-round-banner {
+  font-size: 1rem;
+  padding: 0.75rem 1rem;
+}
+
+/* ── Phone: hand + primary buttons first, board behind toggle ─────────────── */
+body.view-phone #game-screen.active {
+  flex-direction: column;
+  overflow-y: auto;
+  height: 100vh;
+  height: 100dvh;
+}
+
+/* Turn banner + legend stay visible near the top, compact log below them. */
+body.view-phone #hud {
+  order: 1;
+  flex: none;
+  border-left: none;
+  border-bottom: 1px solid var(--border);
+}
+
+body.view-phone #game-log {
+  flex: none;
+  min-height: 70px;
+  max-height: 110px;
+}
+
+/* Hand + buttons above the (collapsed) board. */
+body.view-phone #board-and-hand-container {
+  order: 2;
+  flex: none;
+  max-width: none;
+}
+
+body.view-phone #player-hand-ui {
+  order: 0;
+  height: auto;
+  min-height: 190px;
+  flex-direction: column;
+}
+
+body.view-phone #hand-cards {
+  margin-right: 0;
+  min-height: 120px;
+}
+
+body.view-phone #hand-controls {
+  flex-direction: row;
+  flex-wrap: wrap;
+  margin-right: 0;
+}
+
+body.view-phone #hand-controls button {
+  flex: 1 1 30%;
+  min-height: 44px;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+body.view-phone #end-turn-btn {
+  border-color: var(--gold-mid);
+  color: var(--gold-bright);
+}
+
+body.view-phone #board-toggle-btn {
+  display: block;
+  order: 1;
+  width: 100%;
+  min-height: 44px;
+  margin: 0.4rem 0.6rem 0;
+  width: calc(100% - 1.2rem);
+  border: 1px solid var(--border-mid);
+  background: rgba(22, 39, 61, 0.8);
+  color: var(--text-bright);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+body.view-phone #board-container {
+  order: 2;
+  min-height: 45vh;
+}
+
+/* Collapsed by default (JS adds .board-collapsed); toggle reveals the board. */
+body.view-phone #board-and-hand-container.board-collapsed #board-container {
+  display: none;
+}

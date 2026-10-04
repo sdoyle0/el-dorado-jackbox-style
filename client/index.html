@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quest for El Dorado</title>
+  <link rel="stylesheet" href="src/styles/main.css" />
+  <link rel="stylesheet" href="src/styles/tutorial.css" />
+  <link rel="stylesheet" href="src/styles/tv-phone.css" />
+</head>
+
+<body>
+  <div id="view-badge" class="hidden" aria-live="polite"></div>
+
+  <!-- ===================== HOME LOBBY ===================== -->
+  <div id="lobby-screen" class="screen active">
+    <div id="lobby-box">
+      <h1 class="game-title">Quest for El Dorado</h1>
+      <p class="game-subtitle">A Race Through the Jungle</p>
+
+      <input id="player-name-input" type="text" placeholder="Your expedition name" maxlength="20" autocomplete="off" />
+
+      <div id="lobby-actions">
+        <!-- Create a room -->
+        <div class="lobby-section">
+          <h2>Create Room</h2>
+          <label class="lobby-label">Expeditioners</label>
+          <div id="player-count-btns">
+            <button class="count-btn active" data-count="2">2</button>
+            <button class="count-btn" data-count="3">3</button>
+            <button class="count-btn" data-count="4">4</button>
+          </div>
+          <div class="blockade-toggle-row">
+            <label class="blockade-toggle-label">
+              <input type="checkbox" id="blockades-toggle" checked/>
+              Enable blockades
+            </label>
+          </div>
+          <button id="create-room-btn" class="primary-btn">Begin Expedition</button>
+        </div>
+
+        <div class="lobby-divider">or</div>
+
+        <!-- Join by code -->
+        <div class="lobby-section">
+          <h2>Join Room</h2>
+          <input id="room-code-input" type="text" placeholder="Room code" maxlength="6" autocomplete="off"
+            style="text-transform:uppercase" />
+          <button id="join-room-btn" class="primary-btn">Join Expedition</button>
+        </div>
+      </div>
+
+      <button id="tutorial-btn" class="tutorial-entry-btn">
+        📖 Learn to Play
+      </button>
+
+      <p id="lobby-status" class="lobby-status"></p>
+    </div>
+  </div>
+
+  <!-- ===================== WAITING ROOM ===================== -->
+  <div id="waiting-screen" class="screen">
+    <div id="waiting-box">
+      <h1 class="game-title">Quest for El Dorado</h1>
+
+      <div id="room-code-display">
+        <span>Room code:</span>
+        <span id="room-code-value"></span>
+        <button id="copy-code-btn" title="Copy to clipboard">📋</button>
+      </div>
+
+      <p id="waiting-subtitle"></p>
+      <p id="waiting-blockades-note" class="lobby-status" style="color:#c9a227;font-size:0.78rem;"></p>
+
+      <div id="waiting-players"></div>
+
+      <div id="waiting-actions">
+        <button id="start-game-btn" class="primary-btn" disabled>Start Expedition</button>
+        <p id="waiting-hint" class="lobby-status"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== GAME ===================== -->
+  <div id="game-screen" class="screen">
+
+    <div id="board-and-hand-container">
+      <button id="board-toggle-btn" class="hidden" aria-expanded="false">🗺 Show board</button>
+      <div id="board-container">
+        <div id="zoom-controls" class="zoom-controls">
+          <button id="zoom-out-btn" class="zoom-btn" aria-label="Zoom out">−</button>
+          <button id="zoom-in-btn" class="zoom-btn" aria-label="Zoom in">+</button>
+        </div>
+        <div id="board-scroll-inner">
+          <svg id="hex-board" xmlns="http://www.w3.org/2000/svg"></svg>
+        </div>
+      </div>
+      <div id="player-hand-ui">
+        <div id="hand-cards"></div>
+        <div id="hand-controls">
+          <button id="open-market-btn">Market</button>
+          <button id="end-turn-btn">End Turn</button>
+          <button id="discard-btn">Discard</button>
+        </div>
+        <div id="hand-messages"></div>
+      </div>
+    </div>
+
+    <div id="hud">
+      <div id="turn-banner">
+        <div id="turn-color-dot"></div>
+        <div id="turn-banner-text">
+          <div id="current-player-label">Waiting...</div>
+        </div>
+      </div>
+      <div id="player-legend"></div>
+
+      <div id="journal-label">
+        <span>Field Notes</span>
+      </div>
+
+      <div id="game-log">
+        <svg id="journal-compass" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <polygon points="16,2 18,14 16,16 14,14" fill="#5a3008" />
+          <polygon points="16,30 18,18 16,16 14,18" fill="#5a3008" />
+          <polygon points="2,16 14,14 16,16 14,18" fill="#5a3008" />
+          <polygon points="30,16 18,14 16,16 18,18" fill="#5a3008" />
+          <circle cx="16" cy="16" r="2" fill="#5a3008" />
+        </svg>
+        <div id="log-scroll"></div>
+      </div>
+    </div>
+
+    <!-- Card market overlay -->
+    <div id="card-market" class="hidden">
+      <div id="market-header">
+        <button id="marketShopButton" class="market-tab active">Market</button>
+        <button id="marketReserveButton" class="market-tab">Reserve</button>
+        <span id="purchase-total">💰 0</span>
+        <button id="cancel-purchase-btn">✕ Close</button>
+      </div>
+      <div id="shop-slots"></div>
+    </div>
+
+    <!-- Reserve picker -->
+    <div id="reserve-picker" class="hidden">
+      <div id="reserve-picker-box">
+        <div id="reserve-picker-header">
+          <span>Choose a reserve card for the empty market slot</span>
+          <span id="reserve-sold-out-label"></span>
+        </div>
+        <div id="reserve-cards"></div>
+      </div>
+    </div>
+
+    <!-- Prompt modals -->
+    <div id="modal-overlay" class="overlay hidden">
+      <div id="modal-box">
+        <p id="modal-message"></p>
+        <button id="modal-confirm-btn">OK</button>
+        <button id="modal-cancel-btn">Cancel</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Toast notification container -->
+  <div id="toast-container"></div>
+
+  <div id="tutorial-screen" class="hidden">
+    <div id="tutorial-backdrop"></div>
+    <div id="tutorial-spotlight-hole"></div>
+    <div id="tutorial-callout">
+      <div id="tutorial-callout-step">Step 1 of 0</div>
+      <h3 id="tutorial-callout-title"></h3>
+      <p id="tutorial-callout-body"></p>
+      <div id="tutorial-callout-actions">
+        <button id="tutorial-next-btn" class="tutorial-btn-primary">Next →</button>
+      </div>
+    </div>
+    <button id="tutorial-skip-btn" class="tutorial-skip">Skip tutorial ×</button>
+  </div>
+
+  <script src="/shared/constants.js"></script>
+  <script src="/shared/cardData.js"></script>
+  <script src="/shared/HexBoard.js"></script>
+  <script src="/shared/blockadeData.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="src/game/HexRenderer.js"></script>
+  <script src="src/game/CardUI.js"></script>
+  <script src="src/game/GameClient.js"></script>
+  <script src="src/game/Tutorial.js"></script>
+  <script src="src/main.js"></script>
+
+</body>
+
+</html>
