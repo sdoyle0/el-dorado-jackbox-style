@@ -570,7 +570,15 @@ document.addEventListener('DOMContentLoaded', () => {
   // ── Cards ──────────────────────────────────────────────────────────────────
   cardUI.onCardPlayed = (instanceId) => selectCardForMove(instanceId);
   cardUI.onEndTurn = () => client.endTurn();
-  cardUI.onDiscardClicked = () => client.discardCard(selectedCard.instanceId);
+  cardUI.onDiscardClicked = () => {
+    // Guard: Discard with no movement card selected (e.g. while pooling for
+    // the market) must be a no-op, not a TypeError on null.instanceId.
+    if (!selectedCard?.instanceId) {
+      showToast('Select a card first.', { icon: '🃏', type: 'info', duration: 2000 });
+      return;
+    }
+    client.discardCard(selectedCard.instanceId);
+  };
   cardUI.onMarketCard = ({ cardKey, handCardsUsed }) => client.purchaseCard(cardKey, handCardsUsed);
 
   // ── Server → UI ────────────────────────────────────────────────────────────
@@ -641,6 +649,8 @@ document.addEventListener('DOMContentLoaded', () => {
     renderer.clearHighlights();
     renderer.setBreakableBlockades([], []);
     clearMoveList();
+    // Block 5: never leave a stale purchase pool open on someone else's turn.
+    if (nextPlayerId !== client.playerId) cardUI.closeMarket();
     currentTurnPlayerId = nextPlayerId;
     updateTurnLabel(nextPlayerId);
     log(`${nextPlayerName}'s turn.`, 'turn');
@@ -675,9 +685,53 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
+  // ── Block 5: phone market purchase (CardUI market pool mode) ───────────
+  // Server broadcasts purchase_opened / purchase_closed to the whole room,
+  // but pooling + buying is the acting player's job. Gate the overlay so TV
+  // and opponent phones stay display-only while the buyer taps hand cards to
+  // pool purchasingPower (live total) and taps an affordable card to emit
+  // purchase_card. Pricing lives server-side (shared/cardData.js + GameState);
+  // the client only sums for display. No pricing-logic changes here.
+  function isMyActingTurn() {
+    return !currentTurnPlayerId || currentTurnPlayerId === client.playerId;
+  }
+
+  function ensureMarketPhoneStyles() {
+    if (VIEW !== 'phone' || document.getElementById('market-phone-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'market-phone-styles';
+    style.textContent = `
+      body.view-phone #purchase-total { font-size: 1.05rem; font-weight: 800;
+        white-space: nowrap; }
+      body.view-phone #card-market { max-height: 82dvh; overflow-y: auto;
+        -webkit-overflow-scrolling: touch; }
+      body.view-phone .market-card { min-height: 44px; }
+      body.view-phone .market-card-wrapper { min-height: 44px; }
+      body.view-phone #market-header { position: sticky; top: 0; z-index: 2; }
+      body.view-phone #reserve-picker-box { max-height: 86dvh; overflow-y: auto;
+        -webkit-overflow-scrolling: touch; }
+      body.view-phone #reserve-cards .market-card-wrapper { min-height: 44px; }
+      body.view-phone #cancel-purchase-btn { min-height: 44px; padding: 0.5rem 1rem; }
+    `;
+    document.head.appendChild(style);
+  }
+  ensureMarketPhoneStyles();
+
   client.onMarketUpdated = ({ market }) => { cardUI.renderMarket(market); cardUI.showMarket(false); };
-  client.onPurchaseOpened = ({ totalPurchasePower }) => cardUI.openMarketWithBonus(totalPurchasePower);
-  client.onPurchaseClosed = () => cardUI.closeMarket();
+  client.onPurchaseOpened = ({ totalPurchasePower }) => {
+    // Transmitter free pick: only the acting player's phone opens the market.
+    // TV (spectator) and opponent phones ignore it and stay display-only.
+    if (!isMyActingTurn()) return;
+    cardUI.openMarketWithBonus(totalPurchasePower);
+    if (VIEW === 'phone') {
+      showToast('Transmitter: pick any market card FREE.', { icon: '📡', type: 'accent' });
+    }
+  };
+  client.onPurchaseClosed = (data = {}) => {
+    // Only the buyer closes; opponent/TV overlays (if any) are untouched.
+    if (data.playerId && data.playerId !== client.playerId) return;
+    cardUI.closeMarket();
+  };
   client.onPromptRemove = ({ count }) => showModal(`Select ${count} card(s) to permanently remove from your deck.`);
 
   client.onGameWon = ({ playerId, blockadeCounts = {} }) => {
@@ -708,11 +762,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── Reserve picker ─────────────────────────────────────────────────────────
   client.onPromptReserveChoice = ({ soldOutKey, reserveCards }) => {
+    // DM'd to the buyer only (GameManager routes by playerId): the sold-out
+    // slot stays empty until they pick. Market overlay may already be closed
+    // by market_updated/purchase_closed; the picker is a separate overlay.
+    if (VIEW === 'phone') {
+      showToast('Market slot empty — pick a reserve card.', { icon: '📦', type: 'accent', duration: 4000 });
+    }
     cardUI.showReservePicker(soldOutKey, reserveCards, (chosenKey) => {
       client.chooseReserveCard(soldOutKey, chosenKey);
       log(`Added ${chosenKey.replace(/_/g, ' ')} to the market.`, 'purchase');
     });
   };
+
+  // GameClient exposes no card_purchased hook, so listen on the raw socket
+  // (main.js only — no GameClient.js change). Gives phones a confirmation
+  // toast/log for own and opponent purchases.
+  socket.on('card_purchased', ({ playerId, cardKey } = {}) => {
+    const buyer = allPlayers.find(p => p.id === playerId);
+    const buyerName = buyer?.name || 'Someone';
+    const pretty = (cardKey || 'card').replace(/_/g, ' ');
+    if (playerId === client.playerId) {
+      showToast(`Purchased ${pretty}!`, { icon: '💰', type: 'accent' });
+      log(`You purchased ${pretty}.`, 'purchase');
+    } else {
+      log(`${buyerName} purchased ${pretty}.`, 'purchase');
+    }
+  });
 
   client.onActionError = ({ message }) => {
     isMidMove = false;

@@ -504,6 +504,9 @@ class CardUI {
   }
 
   // ── Purchase power ────────────────────────────────────────────────────────
+  // Display-only sum for the live pool total (Block 5). Pricing authority is
+  // the server (shared/cardData.js getPurchasingPower + GameState) — this
+  // never decides affordability, it only mirrors it for the pool UI.
 
   _currentPurchasePower() {
     let total = this._transmitterBonus;
@@ -513,9 +516,16 @@ class CardUI {
     return total;
   }
 
+  // True while the buyer is pooling (overlay visible in market mode).
+  isMarketOpen() {
+    return this._mode === 'market' && !this.marketEl.classList.contains('hidden');
+  }
+
   _updatePurchaseTotal() {
     const power = this._currentPurchasePower();
-    if (this.totalEl) this.totalEl.textContent = `💰 ${power.toFixed(1)}`;
+    // Live total + pooled count, e.g. "💰 2.5 · 3 pooled" — verifies yellow
+    // (face value) + 0.5-value cards are both counted as tapped.
+    if (this.totalEl) this.totalEl.textContent = `💰 ${power.toFixed(1)} · ${this._purchasePool.size} pooled`;
     this._updateAffordability();
   }
 
