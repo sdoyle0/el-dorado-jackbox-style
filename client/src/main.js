@@ -22,11 +22,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (VIEW) {
     document.body.classList.add(`view-${VIEW}`);
     document.body.dataset.view = VIEW;
-    const badge = document.getElementById('view-badge');
-    if (badge) {
-      badge.textContent = VIEW === 'tv' ? '📺 TV DISPLAY' : '📱 PHONE';
-      badge.classList.remove('hidden');
-    }
   }
   // Phone is boardless: the board lives on the TV and is hidden on phones
   // via CSS (body.view-phone #board-container). Moves, blockades, and the
@@ -154,6 +149,11 @@ document.addEventListener('DOMContentLoaded', () => {
   let tvModalTimer = null;
   let selectedCard = null;
   let selectedValidMoves = [];
+  // Server-sent move budget (valid_moves_updated): lets the phone tell a
+  // fresh "Cancel" (card returns) from a partial-move "Done moving" (card
+  // is discarded, unused moves lost).
+  let moveMovesRemaining = null;
+  let moveMovementTotal = 0;
   let isMidMove = false;
   let rubblePendingTileId = null;
   let rubbleCardsNeeded = 0;
@@ -376,6 +376,18 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       blockadeHeaderEl.classList.add('hidden');
     }
+    // "Cancel" returns the card to hand only while no moves are spent —
+    // afterwards the server discards it, so label the button honestly.
+    const cancelBtn = panel.querySelector('#move-list-cancel');
+    if (cancelBtn) {
+      if (moveMovementTotal > 0 && (moveMovesRemaining ?? moveMovementTotal) < moveMovementTotal) {
+        cancelBtn.textContent = `Done moving ✓ (discards ${cardName})`;
+        cancelBtn.title = 'Forfeit remaining moves; the card is discarded.';
+      } else {
+        cancelBtn.textContent = 'Cancel';
+        cancelBtn.title = 'Return the card to your hand.';
+      }
+    }
     panel.classList.remove('hidden');
   }
 
@@ -393,6 +405,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function cancelMoveSelection() {
     const instanceId = selectedCard?.instanceId;
+    const wasPartial = moveMovementTotal > 0
+      && (moveMovesRemaining ?? moveMovementTotal) < moveMovementTotal;
+    const doneCardName = selectedCard?.cardName || selectedCard?.key || 'card';
     isMidMove = false;
     selectedCard = null;
     selectedValidMoves = [];
@@ -405,6 +420,11 @@ document.addEventListener('DOMContentLoaded', () => {
     clearMoveList();
     if (instanceId) client.cancelCard(instanceId);
     else client.cancelCard();
+    if (wasPartial) {
+      const msg = `${doneCardName} discarded — unused moves lost.`;
+      log(msg, 'move');
+      showToast(msg, { icon: '🃏', type: 'info', duration: 4000 });
+    }
   }
 
   // Shared destination tap: same rubble handling as board clicks, but works
@@ -838,9 +858,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  client.onValidMoves = ({ validMoves, breakableBlockades = [] }) => {
+  client.onValidMoves = ({ validMoves, breakableBlockades = [], movesRemaining, movementTotal }) => {
     isMidMove = true;
     selectedValidMoves = validMoves || [];
+    moveMovesRemaining = (typeof movesRemaining === 'number') ? movesRemaining : null;
+    moveMovementTotal = movementTotal || 0;
     currentBreakableBlockades = breakableBlockades;
     renderer.setValidMoves(selectedValidMoves);
     renderer.setBreakableBlockades(breakableBlockades, activeBlockades);
@@ -893,6 +915,8 @@ document.addEventListener('DOMContentLoaded', () => {
     selectedCard = null;
     selectedValidMoves = [];
     currentBreakableBlockades = [];
+    moveMovesRemaining = null;
+    moveMovementTotal = 0;
     renderer.clearHighlights();
     renderer.setBreakableBlockades([], []);
     clearMoveList();
@@ -901,10 +925,18 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   client.onTurnEnded = ({ nextPlayerId, nextPlayerName }) => {
+    // Ending your turn with a movement card in flight discards it (rules:
+    // unused moves are lost) — say so, since the card just vanishes.
+    const endedCard = (currentTurnPlayerId === client.playerId) ? selectedCard : null;
+    const endedPartial = !!endedCard && moveMovementTotal > 0
+      && (moveMovesRemaining ?? moveMovementTotal) < moveMovementTotal;
+    const endedMovesLeft = moveMovesRemaining;
     isMidMove = false;
     selectedCard = null;
     selectedValidMoves = [];
     currentBreakableBlockades = [];
+    moveMovesRemaining = null;
+    moveMovementTotal = 0;
     renderer.clearHighlights();
     renderer.setBreakableBlockades([], []);
     clearMoveList();
@@ -917,6 +949,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (nextPlayerId === client.playerId) {
       showToast('Your turn!', { icon: '⚡', type: 'accent', duration: 2000 });
+    }
+
+    if (endedCard) {
+      const name = endedCard.cardName || endedCard.key || 'card';
+      const msg = endedPartial && typeof endedMovesLeft === 'number'
+        ? `Turn ended — ${name} discarded, ${endedMovesLeft} unused move(s) lost.`
+        : `Turn ended — ${name} discarded.`;
+      log(msg, 'move');
+      showToast(msg, { icon: '🃏', type: 'info', duration: 4000 });
     }
   };
 
@@ -978,6 +1019,8 @@ document.addEventListener('DOMContentLoaded', () => {
     currentTurnPlayerId = snap.currentPlayerId || null;
     selectedCard = null;
     selectedValidMoves = [];
+    moveMovesRemaining = null;
+    moveMovementTotal = 0;
     clearMoveList();
     updateTurnLabel(currentTurnPlayerId);
 
@@ -1175,8 +1218,27 @@ document.addEventListener('DOMContentLoaded', () => {
       showToast(`Purchased ${pretty}!`, { icon: '💰', type: 'accent' });
       log(`You purchased ${pretty}.`, 'purchase');
     } else {
+      // Phones hide the log, so purchases need a toast — otherwise nobody
+      // notices the market changed behind the scenes.
+      showToast(`${buyerName} bought ${pretty}.`, { icon: '💰', type: 'info' });
       log(`${buyerName} purchased ${pretty}.`, 'purchase');
     }
+  });
+
+  // A reserve card entering the market is otherwise invisible to everyone but
+  // the buyer (market_updated just re-renders). Raw socket.on, main.js only.
+  socket.on('reserve_replenished', ({ playerId, soldOutKey, chosenKey } = {}) => {
+    const p = allPlayers.find(p => p.id === playerId);
+    const name = p?.name || 'Someone';
+    const pretty = (k) => (k || 'card').replace(/_/g, ' ');
+    const isMe = playerId === client.playerId;
+    const msg = isMe
+      ? `You stocked ${pretty(chosenKey)} (replacing sold-out ${pretty(soldOutKey)}).`
+      : `${name} stocked ${pretty(chosenKey)} (replacing sold-out ${pretty(soldOutKey)}).`;
+    showToast(isMe ? `Stocked ${pretty(chosenKey)}!` : msg, {
+      icon: '📦', type: isMe ? 'accent' : 'info',
+    });
+    log(msg, 'purchase');
   });
 
   client.onActionError = ({ message }) => {
@@ -1184,6 +1246,8 @@ document.addEventListener('DOMContentLoaded', () => {
     selectedCard = null;
     selectedValidMoves = [];
     currentBreakableBlockades = [];
+    moveMovesRemaining = null;
+    moveMovementTotal = 0;
     renderer.clearHighlights();
     renderer.setBreakableBlockades([], []);
     clearMoveList();
@@ -1218,6 +1282,8 @@ document.addEventListener('DOMContentLoaded', () => {
       selectedCard = null;
       selectedValidMoves = [];
       currentBreakableBlockades = [];
+      moveMovesRemaining = null;
+      moveMovementTotal = 0;
       renderer.clearHighlights();
       renderer.setBreakableBlockades([], []);
       clearMoveList();

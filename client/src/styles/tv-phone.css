@@ -4,21 +4,6 @@
    Default (no ?view=) layout is untouched. */
 
 /* ── Shared bits ─────────────────────────────────────────────────────────── */
-#view-badge {
-  position: fixed;
-  top: 0.5rem;
-  right: 0.5rem;
-  z-index: 300;
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  padding: 0.25rem 0.6rem;
-  border-radius: 999px;
-  background: rgba(15, 28, 46, 0.9);
-  border: 1px solid rgba(201, 162, 39, 0.4);
-  color: #ffd700;
-  pointer-events: none;
-}
 
 #board-toggle-btn {
   display: none; /* only shown in phone view (JS removes .hidden there) */

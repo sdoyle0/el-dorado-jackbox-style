@@ -83,6 +83,15 @@ Never trust the client for legality — server already validates.
   first pickup — TV modals auto-dismiss in 6s except sticky game-won;
   `GameManager.js` + `main.js` only) — done, uncommitted.
   Headless: 35/35 checks pass. Live server + sockets: 16/16 pass.
+- Follow-ups (uncommitted): (1) partial-move forfeit clarity — valid_moves
+  now carries movesRemaining/movementTotal, phone list Cancel becomes
+  "Done moving ✓ (discards X)" once moves are spent, forfeit toasts on Done
+  + End Turn (behavior unchanged: played cards are always discarded, which
+  is rules-correct); removed duplicate valid_moves emit in break/move paths.
+  (2) market audibility — opponent purchases now toast on all views,
+  new reserve_replenished broadcast + toast/log when a reserve card stocks
+  the market. (3) view-badge overlay removed (html/css/js).
+  Parked: hex icon-vs-number rebalance (HexRenderer) — separate task.
 
 ## Work blocks
 

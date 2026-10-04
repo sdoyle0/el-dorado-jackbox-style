@@ -274,6 +274,8 @@ class GameRoom {
           this.io.to(socket.id).emit('valid_moves_updated', {
             validMoves: gs.validMoves,
             breakableBlockades: gs.breakableBlockades,
+            movesRemaining: gs.movesRemaining,
+            movementTotal: gs.playedCardData ? gs.playedCardData.movementTotal : 0,
           });
         }
         if (gs.selectingCardsToRemove > 0) {

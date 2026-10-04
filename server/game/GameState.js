@@ -146,10 +146,6 @@ class GameStateManager {
     // Recalculate — seam is now open, new moves available, new breakable blockades
     if (this.movesRemaining > 0) {
       this._recalculateValidMoves();
-      this.emit('valid_moves_updated', {
-        validMoves: this.validMoves,
-        breakableBlockades: this.breakableBlockades,
-      });
     } else {
       this._disposeFinishedCard(player);
     }
@@ -216,10 +212,6 @@ class GameStateManager {
 
     if (this.movesRemaining > 0) {
       this._recalculateValidMoves();
-      this.emit('valid_moves_updated', {
-        validMoves: this.validMoves,
-        breakableBlockades: this.breakableBlockades,
-      });
       return { ok: true };
     }
 
@@ -366,6 +358,8 @@ class GameStateManager {
       return { ok: false, error: 'invalid reserve card selection' };
     }
     this.pendingReserveSlot = null;
+    // Audible to the whole room: otherwise only the buyer knows the market changed.
+    this.emit('reserve_replenished', { playerId, soldOutKey, chosenKey });
     this.emit('market_updated', { market: cardMarket.getShopState() });
     return { ok: true };
   }
@@ -393,10 +387,14 @@ class GameStateManager {
       activeBlockades: this.activeBlockades || [],
     });
 
-    // Emit breakable blockades alongside valid moves so client can highlight them
+    // Emit breakable blockades alongside valid moves so client can highlight them.
+    // movesRemaining/movementTotal let the client label "Done moving" vs
+    // "Cancel" once part of a multi-move card is spent.
     this.emit('valid_moves_updated', {
       validMoves: this.validMoves,
       breakableBlockades: this.breakableBlockades,
+      movesRemaining: this.movesRemaining,
+      movementTotal: this.playedCardData ? this.playedCardData.movementTotal : 0,
     });
   }
 
