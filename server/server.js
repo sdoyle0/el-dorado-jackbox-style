@@ -1,6 +1,8 @@
 // server/server.js
 const express = require('express');
 const http = require('http');
+const os = require('os');
+const QRCode = require('qrcode');
 const { Server } = require('socket.io');
 const path = require('path');
 const { GameManager } = require('./game/GameManager');
@@ -15,6 +17,42 @@ const io = new Server(server, {
 });
 
 const PORT = process.env.PORT || 3000;
+
+// Block 9: QR-code join. Phones scan a QR on the TV/waiting room, so the
+// encoded URL must use the host's real LAN IPv4 (never localhost) —
+// window.location.hostname would be "localhost" when the TV tab opened the
+// server that way. First non-internal IPv4 from os.networkInterfaces().
+function getLanIpv4() {
+  const ifaces = os.networkInterfaces();
+  for (const addrs of Object.values(ifaces)) {
+    for (const a of addrs || []) {
+      if (a.family === 'IPv4' && !a.internal) return a.address;
+    }
+  }
+  return null;
+}
+
+// Served same-origin (no internet CDN): the client builds
+// http://<lan-ip>:<PORT>/?view=phone&room=<CODE> from this, then loads the
+// QR pixels from /api/qr below.
+app.get('/api/server-info', (req, res) => {
+  res.json({ lanIp: getLanIpv4(), port: PORT });
+});
+
+// QR pixels as PNG. Text is the join URL above; capped so the endpoint
+// can't be abused as an arbitrary image generator.
+app.get('/api/qr', async (req, res) => {
+  const text = String(req.query.text || '');
+  if (!text || text.length > 500) { res.status(400).send('missing ?text='); return; }
+  try {
+    const buf = await QRCode.toBuffer(text, {
+      type: 'png', errorCorrectionLevel: 'M', margin: 1, width: 256,
+    });
+    res.type('png').set('Cache-Control', 'public, max-age=300').send(buf);
+  } catch (e) {
+    res.status(500).send('qr failed');
+  }
+});
 
 app.use('/shared', express.static(path.join(__dirname, '../shared')));
 app.use(express.static(path.join(__dirname, '..', 'client')));
@@ -182,5 +220,7 @@ io.on('connection', (socket) => {
 });
 
 server.listen(PORT, () => {
+  const lan = getLanIpv4();
   console.log(`El Dorado server running at http://localhost:${PORT}`);
+  if (lan) console.log(`On your LAN: http://${lan}:${PORT} (phones scan the TV QR)`);
 });

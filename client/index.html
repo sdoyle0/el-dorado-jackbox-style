@@ -21,8 +21,8 @@
       <input id="player-name-input" type="text" placeholder="Your expedition name" maxlength="20" autocomplete="off" />
 
       <div id="lobby-actions">
-        <!-- Create a room -->
-        <div class="lobby-section">
+        <!-- Create a room (hidden in ?view=phone: phones join, TV hosts) -->
+        <div class="lobby-section" id="create-room-section">
           <h2>Create Room</h2>
           <label class="lobby-label">Expeditioners</label>
           <div id="player-count-btns">
@@ -39,7 +39,7 @@
           <button id="create-room-btn" class="primary-btn">Begin Expedition</button>
         </div>
 
-        <div class="lobby-divider">or</div>
+        <div class="lobby-divider" id="lobby-divider-or">or</div>
 
         <!-- Join by code -->
         <div class="lobby-section">
@@ -67,6 +67,15 @@
         <span>Room code:</span>
         <span id="room-code-value"></span>
         <button id="copy-code-btn" title="Copy to clipboard">📋</button>
+      </div>
+
+      <!-- Block 9: QR-code join (scan, no typing). main.js sets the <img>
+           to /api/qr?text=<join-URL> and the <p> to the URL text. Same-origin
+           only — no internet CDN, so it works offline on the LAN. -->
+      <div id="join-qr-block">
+        <p id="join-qr-label">📱 Scan to join from your phone</p>
+        <img id="join-qr-img" class="hidden" width="180" height="180" alt="Scan to join this room" />
+        <p id="join-qr-url"></p>
       </div>
 
       <p id="waiting-subtitle"></p>

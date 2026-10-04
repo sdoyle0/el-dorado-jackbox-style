@@ -23,6 +23,23 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.classList.add(`view-${VIEW}`);
     document.body.dataset.view = VIEW;
   }
+  // Block 9: QR deep link ?room=<CODE> (encoded as
+  // http://<host-lan-ip>:<PORT>/?view=phone&room=<CODE>). Prefill only —
+  // never auto-join here; the name is still typed once. Auto-join stays
+  // exclusive to the Block 8 session rejoin below.
+  const DEEP_LINK_ROOM = (() => {
+    try {
+      return (new URLSearchParams(window.location.search).get('room') || '').trim().toUpperCase();
+    } catch (e) { return ''; }
+  })();
+  // Phone lobby is join-only: the TV hosts (Create Room), phones scan the QR
+  // and join by code. Display-only — the create handler below stays intact
+  // for desktop/TV. Waiting-room Start stays host-only; moving it to a phone
+  // is a future block, not this view (you must join first).
+  if (VIEW === 'phone') {
+    document.getElementById('create-room-section')?.style.setProperty('display', 'none');
+    document.getElementById('lobby-divider-or')?.style.setProperty('display', 'none');
+  }
   // Phone is boardless: the board lives on the TV and is hidden on phones
   // via CSS (body.view-phone #board-container). Moves, blockades, and the
   // market all work through tappable lists, so there is no Show-board toggle.
@@ -564,10 +581,64 @@ document.addEventListener('DOMContentLoaded', () => {
     lobbyStatus.style.color = '#aaa';
   }
 
+  // ── Block 9: QR-code join ────────────────────────────────────────────
+  // Waiting room (+ TV, same DOM) shows a QR encoding
+  // http://<host-lan-ip>:<PORT>/?view=phone&room=<CODE>. The LAN IP comes
+  // from GET /api/server-info (never localhost: the TV tab may itself have
+  // opened the server via localhost); pixels come from GET /api/qr (same
+  // origin, no internet CDN, works offline). If the image fails, the URL
+  // text below it keeps manual entry working.
+  let joinQrUrl = '';
+  let serverInfoCache = null;
+
+  function ensureJoinQrStyles() {
+    if (document.getElementById('join-qr-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'join-qr-styles';
+    style.textContent = `
+      #join-qr-block { display: flex; flex-direction: column; align-items: center;
+        gap: 0.35rem; margin: 0.6rem 0 0.2rem; }
+      #join-qr-label { font-size: 0.85rem; color: #e8e0d0; margin: 0; }
+      #join-qr-img { background: #fff; padding: 8px; border-radius: 8px;
+        width: 180px; height: 180px; }
+      #join-qr-url { font-size: 0.72rem; color: #9aabbf; word-break: break-all;
+        text-align: center; margin: 0; max-width: 320px; }
+    `;
+    document.head.appendChild(style);
+  }
+
+  async function updateJoinQr() {
+    ensureJoinQrStyles();
+    const code = client.roomId;
+    const img = document.getElementById('join-qr-img');
+    const urlEl = document.getElementById('join-qr-url');
+    if (!code || !img || !urlEl) return;
+    let lanIp = null;
+    let port = null;
+    try {
+      if (!serverInfoCache) {
+        const r = await fetch('/api/server-info', { cache: 'no-store' });
+        if (r.ok) serverInfoCache = await r.json();
+      }
+      lanIp = serverInfoCache?.lanIp || null;
+      port = serverInfoCache?.port || null;
+    } catch (e) { /* offline fallback below — URL text still shows */ }
+    const host = lanIp || window.location.hostname || 'localhost';
+    const portStr = String(port || window.location.port || '3000');
+    const joinUrl = `http://${host}:${portStr}/?view=phone&room=${code}`;
+    if (joinUrl === joinQrUrl && !img.classList.contains('hidden')) return;
+    joinQrUrl = joinUrl;
+    urlEl.textContent = joinUrl;
+    img.onload = () => img.classList.remove('hidden');
+    img.onerror = () => img.classList.add('hidden');
+    img.src = `/api/qr?text=${encodeURIComponent(joinUrl)}`;
+  }
+
   // ── Waiting-room rendering ─────────────────────────────────────────────────
   function renderWaitingRoom() {
     const { players, maxPlayers, hostId, enableBlockades } = waitingRoomState;
     roomCodeValue.textContent = client.roomId || '';
+    updateJoinQr();
     waitingSubtitle.textContent = `${players.length} / ${maxPlayers} players joined`;
     waitingBlockadesNote.textContent = enableBlockades
       ? '🚧 Blockades enabled'
@@ -1431,10 +1502,20 @@ document.addEventListener('DOMContentLoaded', () => {
   // Same ?view= only. Socket.IO buffers the emit until connected. onJoined
   // skips the waiting room while we wait for game_snapshot (with a fallback
   // for pre-game seats, which get no snapshot).
+  // Block 9: a ?room= deep link prefills the code box but never auto-joins
+  // (name still typed once). A link to a *different* room wins over a stale
+  // session — don't auto-join the old room underneath the scanned one.
   (function tryAutoRejoin() {
+    if (DEEP_LINK_ROOM) roomCodeInput.value = DEEP_LINK_ROOM;
     const sess = readSession();
     if (!sess || !sess.roomId || sess.view !== VIEW) return;
     if (!sess.playerName && VIEW !== 'tv') return;
+    if (DEEP_LINK_ROOM && String(sess.roomId).toUpperCase() !== DEEP_LINK_ROOM) {
+      pendingIdentity = null;
+      rejoinPending = false;
+      setLobbyInfo('');
+      return;
+    }
     nameInput.value = sess.playerName || nameInput.value;
     roomCodeInput.value = sess.roomId;
     pendingIdentity = sess.playerName || getLobbyName();
