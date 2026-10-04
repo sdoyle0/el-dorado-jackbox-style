@@ -5,7 +5,14 @@ const { CardMarket } = require('./CardMarket');
 const { HexBoard } = require('./HexBoard');
 const { Player } = require('./Player');
 const { BLOCKADE_SEAMS, BLOCKADE_TERRAIN_POOL } = require('../../shared/blockadeData');
+const { GameState: GS } = require('../../shared/constants');
 const MAP_DATA = require('../../shared/mapData.json');
+
+// Block 8: phone refresh mid-turn keeps its seat for a grace period instead
+// of losing it instantly. No DB — the Player object stays in the roster with
+// disconnected=true; rejoin by room code + same name reclaims the same seat
+// (same playerNumber, preserved hand/position/turn).
+const RECONNECT_GRACE_MS = 120000;
 
 function shuffle(arr) {
   const a = [...arr];
@@ -38,6 +45,9 @@ class GameRoom {
       if (event === 'hand_updated' && data.playerId) {
         const owner = this.players.find(p => p.id === data.playerId);
         if (owner) {
+          // Block 8: a grace-held/expired seat has no live socket — skip the
+          // DM (io.to(null) is not a valid room) instead of throwing.
+          if (!owner.socketId) return;
           this.io.to(owner.socketId).emit('hand_updated', { hand: data.hand });
           return;
         }
@@ -45,6 +55,7 @@ class GameRoom {
       if (event === 'prompt_reserve_choice' && data.playerId) {
         const owner = this.players.find(p => p.id === data.playerId);
         if (owner) {
+          if (!owner.socketId) return;
           this.io.to(owner.socketId).emit('prompt_reserve_choice', data);
           return;
         }
@@ -109,17 +120,170 @@ class GameRoom {
   }
 
   removePlayer(socketId) {
-    this.players = this.players.filter(p => p.socketId !== socketId);
-    if (this.hostId === socketId) {
+    const player = this.players.find(p => p.socketId === socketId);
+    if (!player) return;
+    if (this.started) {
+      // Block 8: mid-game disconnect keeps the seat for the grace period so
+      // a phone refresh doesn't lose the turn. Real removal happens on timer
+      // expiry (or never, if they reclaim). Turn order + gameState.players
+      // reference stay intact because the object is never spliced out here.
+      this._markDisconnected(player);
+      return;
+    }
+    this._removePlayerNow(player);
+  }
+
+  // Block 8: immediate removal (pre-game only). Splices in place so the
+  // gameState.players array reference (assigned at _startGame) never goes
+  // stale — the old filter-and-reassign broke turn tracking after rejoins.
+  _removePlayerNow(player) {
+    const idx = this.players.indexOf(player);
+    if (idx === -1) return;
+    if (player.disconnectTimer) {
+      clearTimeout(player.disconnectTimer);
+      player.disconnectTimer = null;
+    }
+    this.players.splice(idx, 1);
+    // gameState.players is the same array reference; guard anyway.
+    if (this.gameState.players !== this.players) {
+      const gi = this.gameState.players.indexOf(player);
+      if (gi !== -1) this.gameState.players.splice(gi, 1);
+    }
+    if (this.hostId === player.socketId || this.hostId === player.id) {
       this.hostId = this.players.length > 0
         ? this.players[0].socketId
         : [...this.spectators.keys()][0] || null;
     }
     this._broadcast('player_left', {
-      socketId,
+      socketId: player.socketId || player.id,
+      playerName: player.name,
       players: this.players.map(p => p.toPublicData()),
       hostId: this.hostId,
     });
+  }
+
+  // Block 8: grace-mark a mid-game disconnect. If the current player drops,
+  // the turn simply waits for them (host force-end-turn is a future block).
+  _markDisconnected(player) {
+    if (player.disconnected) return;
+    player.disconnected = true;
+    player.socketId = null;
+    if (player.disconnectTimer) clearTimeout(player.disconnectTimer);
+    player.disconnectTimer = setTimeout(() => {
+      player.disconnectTimer = null;
+      this._expireDisconnectedSeat(player);
+    }, RECONNECT_GRACE_MS);
+    if (player.disconnectTimer.unref) player.disconnectTimer.unref();
+    this._broadcast('player_left', {
+      socketId: player.id,
+      playerName: player.name,
+      disconnected: true,
+      players: this.players.map(p => p.toPublicData()),
+      hostId: this.hostId,
+    });
+  }
+
+  // Block 8: grace expired — drop the seat without crashing the room. If it
+  // was their turn, end it first so the game passes on instead of soft-locking.
+  _expireDisconnectedSeat(player) {
+    if (!player.disconnected) return; // reclaimed in the meantime
+    if (this.players.indexOf(player) === -1) return;
+    if (this.started
+      && this.gameState.state !== GS.GAME_OVER
+      && this.gameState.currentPlayer
+      && this.gameState.currentPlayer.id === player.id) {
+      this.gameState.endTurn(player.id);
+    }
+    const removedIdx = this.players.indexOf(player);
+    this._removePlayerNow(player);
+    // _removePlayerNow spliced the shared array; repair the turn index.
+    if (this.players.length === 0) {
+      this.gameState.currentPlayerIndex = 0;
+    } else if (removedIdx < this.gameState.currentPlayerIndex) {
+      this.gameState.currentPlayerIndex--;
+    } else if (this.gameState.currentPlayerIndex >= this.players.length) {
+      this.gameState.currentPlayerIndex = 0;
+    }
+    if (this.players.length === 0 && this.spectators.size === 0 && this.onEmpty) {
+      this.onEmpty();
+    }
+  }
+
+  // Block 8: reclaim a grace-held seat by player name (case-insensitive).
+  // Returns the player or null. Updates id + socketId to the new socket,
+  // rejoins the socket.io room, and DMs a full state snapshot + hand so the
+  // refreshed phone renders without waiting for the next broadcast.
+  tryReclaimSeat(socket, playerName) {
+    const wanted = (playerName || '').trim().toLowerCase();
+    if (!wanted) return null;
+    const player = this.players.find(p =>
+      p.disconnected && (p.name || '').trim().toLowerCase() === wanted);
+    if (!player) return null;
+    const oldId = player.id;
+    if (player.disconnectTimer) {
+      clearTimeout(player.disconnectTimer);
+      player.disconnectTimer = null;
+    }
+    player.disconnected = false;
+    player.id = socket.id;
+    player.socketId = socket.id;
+    if (this.hostId === oldId) this.hostId = socket.id;
+    socket.join(this.roomId);
+    this._broadcast('player_joined', {
+      player: player.toPublicData(),
+      roomId: this.roomId,
+      players: this.players.map(p => p.toPublicData()),
+      hostId: this.hostId,
+      rejoined: true,
+    });
+    // Deferred past the server's synchronous joined_room reply so the client
+    // processes joined_room (identity) before the snapshot that references it.
+    setImmediate(() => this.sendFullState(socket, player));
+    return player;
+  }
+
+  // Block 8: full snapshot for a rejoiner (reclaimed phone or spectator that
+  // joined mid-game, e.g. a refreshed TV). Private data (hand, pending valid
+  // moves) is DM'd only to the seat owner; the board/market/blockades payload
+  // itself is public.
+  sendFullState(socket, playerOrNull) {
+    const gs = this.gameState;
+    socket.emit('game_snapshot', {
+      tiles: [...this.board.tiles.values()].map(t => ({ ...t })),
+      players: this.players.map(p => p.toPublicData()),
+      currentPlayerId: gs.currentPlayer?.id,
+      market: this.market.getShopState(),
+      blockades: (this.gameState.activeBlockades || []).map(b =>
+        ({ id: b.id, label: b.label, terrainType: b.terrainType, edges: b.edges })),
+      finalRound: {
+        triggered: gs.finalRoundTriggered,
+        triggeredByPlayerId: gs.finalRoundTriggerPlayerIndex >= 0
+          ? gs.players[gs.finalRoundTriggerPlayerIndex]?.id || null
+          : null,
+      },
+      gameOver: gs.state === GS.GAME_OVER
+        ? { winnerId: gs.firstWinnerId, blockadeCounts: gs._blockadeCounts() }
+        : null,
+    });
+    if (playerOrNull && !playerOrNull.disconnected) {
+      this.io.to(socket.id).emit('hand_updated', { hand: playerOrNull.hand });
+      if (gs.state === GS.AWAITING_MOVE
+        && gs.currentPlayer && gs.currentPlayer.id === playerOrNull.id) {
+        if ((gs.validMoves && gs.validMoves.length > 0)
+          || (gs.breakableBlockades && gs.breakableBlockades.length > 0)) {
+          this.io.to(socket.id).emit('valid_moves_updated', {
+            validMoves: gs.validMoves,
+            breakableBlockades: gs.breakableBlockades,
+          });
+        }
+        if (gs.selectingCardsToRemove > 0) {
+          this.io.to(socket.id).emit('prompt_remove_cards', {
+            playerId: playerOrNull.id,
+            count: gs.selectingCardsToRemove,
+          });
+        }
+      }
+    }
   }
 
   tryStartGame(socketId) {
@@ -240,6 +404,7 @@ class GameManager {
   createRoom(socket, playerName, { debugMode = false, maxPlayers = 2, enableBlockades = true, asSpectator = false } = {}) {
     const roomId = uuidv4().slice(0, 6).toUpperCase();
     const room = new GameRoom(roomId, this.io, { debugMode, maxPlayers, enableBlockades });
+    room.onEmpty = () => this.rooms.delete(room.roomId);
     this.rooms.set(roomId, room);
     if (asSpectator) {
       room.addSpectator(socket, playerName);
@@ -254,10 +419,22 @@ class GameManager {
   joinRoom(socket, playerName, roomId, asSpectator = false) {
     const room = this.rooms.get(roomId.toUpperCase());
     if (!room) return { ok: false, error: 'Room not found' };
-    if (room.started) return { ok: false, error: 'Game already in progress' };
+    // Block 8: a refreshed phone reclaims its grace-held seat by name, even
+    // mid-game. Spectators (e.g. a refreshed TV) may also join mid-game —
+    // they hold no seat, so this is always safe.
+    if (!asSpectator) {
+      const reclaimed = room.tryReclaimSeat(socket, playerName);
+      if (reclaimed) {
+        this.playerRooms.set(socket.id, room.roomId);
+        return { ok: true, room, player: reclaimed, rejoined: true };
+      }
+    }
+    if (room.started && !asSpectator) return { ok: false, error: 'Game already in progress' };
     if (asSpectator) {
       room.addSpectator(socket, playerName);
       this.playerRooms.set(socket.id, room.roomId);
+      // Deferred past joined_room (see tryReclaimSeat): identity first, then state.
+      if (room.started) setImmediate(() => room.sendFullState(socket, null));
       return { ok: true, room, player: null, spectator: true };
     }
     if (room.players.length >= room.maxPlayers) return { ok: false, error: 'Room is full' };

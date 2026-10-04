@@ -75,6 +75,14 @@ Never trust the client for legality — server already validates.
 - Block 7c (TV market sidebar parked: #card-market hidden on TV, board
   full-bleed; sidebar CSS kept intact for later, phones unaffected) — done,
   uncommitted.
+- Block 8 (disconnects + final/game-over: 120s grace-held seats, reclaim by
+  room code + name, game_snapshot DM + hand/valid-moves resend, mid-game
+  spectator join for refreshed TVs, expiry ends a stuck turn without
+  crashing; client sessionStorage auto-rejoin, snapshot render, roster merge
+  by seat, final/game-won verified on all views with blockade counts; 7d
+  first pickup — TV modals auto-dismiss in 6s except sticky game-won;
+  `GameManager.js` + `main.js` only) — done, uncommitted.
+  Headless: 35/35 checks pass. Live server + sockets: 16/16 pass.
 
 ## Work blocks
 

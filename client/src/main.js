@@ -147,6 +147,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const PAWN_COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12'];
   let allPlayers = [];
   let localHand = [];
+  // Block 8: refresh resilience — set once a full server snapshot arrives
+  // (game_snapshot); used to tell a mid-game rejoin from a fresh lobby join.
+  let snapshotReceived = false;
+  // Block 8 (7d hands-off TV): auto-dismiss timer for TV modals.
+  let tvModalTimer = null;
   let selectedCard = null;
   let selectedValidMoves = [];
   let isMidMove = false;
@@ -502,6 +507,30 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // ── Block 8: refresh-safe sessions ───────────────────────────────────────
+  // After a phone/TV refresh, auto-rejoin the same room (same ?view= only —
+  // a TV session must not hijack a phone tab). The server holds a
+  // disconnected seat for ~2 min; reclaim is by room code + player name.
+  const SESSION_KEY = 'eldorado.session';
+  let pendingIdentity = null;
+  let rejoinPending = false;
+  let rejoinFallbackTimer = null;
+
+  function storeSession(roomId, playerName, isSpectator) {
+    try {
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify({
+        roomId, playerName, spectator: !!isSpectator, view: VIEW,
+      }));
+    } catch (e) { /* private mode — rejoin just won't survive refresh */ }
+  }
+
+  function readSession() {
+    try {
+      const raw = sessionStorage.getItem(SESSION_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+  }
+
   // Waiting-room state
   let waitingRoomState = { players: [], maxPlayers: 2, hostId: null, enableBlockades: true };
 
@@ -580,6 +609,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!name) { setLobbyError('Enter your name first.'); return; }
     setLobbyInfo('Creating room…');
     createRoomBtn.disabled = true;
+    pendingIdentity = name; // Block 8: refresh-safe session
     const enableBlockades = blockadesToggle?.checked ?? true;
     client.createRoom(name, selectedPlayerCount, DEBUG, enableBlockades, VIEW === 'tv');
   });
@@ -591,6 +621,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!code) { setLobbyError('Enter a room code.'); return; }
     setLobbyInfo('Joining…');
     joinRoomBtn.disabled = true;
+    pendingIdentity = name; // Block 8: refresh-safe session
     client.joinRoom(name, code, VIEW === 'tv');
   });
 
@@ -636,6 +667,22 @@ document.addEventListener('DOMContentLoaded', () => {
       hostId: data.hostId,
       enableBlockades: data.enableBlockades ?? true,
     };
+    storeSession(data.roomId, pendingIdentity || nameInput.value.trim(), data.isSpectator);
+    if (rejoinPending) {
+      // Block 8: boot auto-rejoin after a refresh — skip the waiting room.
+      // A mid-game server follows up with game_snapshot; otherwise (fresh
+      // seat pre-game, or reclaim failed) fall back to the waiting room.
+      rejoinPending = false;
+      showToast('Reconnected — syncing game state…', { icon: '🔄', type: 'info' });
+      if (rejoinFallbackTimer) clearTimeout(rejoinFallbackTimer);
+      rejoinFallbackTimer = setTimeout(() => {
+        if (!snapshotReceived && !gameScreen.classList.contains('active')) {
+          showScreen('waiting');
+          renderWaitingRoom();
+        }
+      }, 6000);
+      return;
+    }
     showScreen('waiting');
     renderWaitingRoom();
   };
@@ -652,12 +699,49 @@ document.addEventListener('DOMContentLoaded', () => {
     if (data.hostId) waitingRoomState.hostId = data.hostId;
     if (data.enableBlockades !== undefined) waitingRoomState.enableBlockades = data.enableBlockades;
     if (waitingScreen.classList.contains('active')) renderWaitingRoom();
+    syncRoster(data.players);
   };
 
+  // Block 8: mid-game roster sync. A reclaimed seat keeps its playerNumber
+  // but gets a new socket id; an expired seat vanishes. Merge by seat so the
+  // TV legend + turn label track the server roster across refreshes.
+  // (Pre-game allPlayers is empty — waiting-room flow above owns that.)
+  function syncRoster(players) {
+    if (!players || allPlayers.length === 0) return;
+    const bySeat = new Map(players.map(p => [p.playerNumber, p]));
+    let turnIdChanged = false;
+    allPlayers = allPlayers
+      .filter(p => bySeat.has(p.playerNumber))
+      .map(p => {
+        const fresh = bySeat.get(p.playerNumber);
+        if (p.id !== fresh.id && currentTurnPlayerId === p.id) {
+          currentTurnPlayerId = fresh.id;
+          turnIdChanged = true;
+        }
+        if (fresh.currentTileId && fresh.currentTileId !== p.currentTileId) {
+          const idx = allPlayers.findIndex(q => q.playerNumber === fresh.playerNumber);
+          renderer.setPawnPosition(fresh.id, fresh.currentTileId, idx >= 0 ? idx : 0);
+        }
+        return { ...p, ...fresh };
+      });
+    if (turnIdChanged) updateTurnLabel(currentTurnPlayerId);
+    else renderPlayerLegend(currentTurnPlayerId);
+  }
+
   client.onPlayerJoined = ({ player }) => log(`${player.name} joined.`);
-  client.onPlayerLeft = ({ socketId }) => {
+  client.onPlayerLeft = ({ socketId, playerName, disconnected }) => {
+    // Block 8: grace-held seats broadcast disconnected:true — the seat (and
+    // any mid-turn state) survives ~2 min for a phone refresh.
+    if (disconnected) {
+      const p = allPlayers.find(p => p.id === socketId);
+      const name = playerName || p?.name || 'A player';
+      log(`${name} disconnected — seat held for ~2 min.`, 'warn');
+      showToast(`${name} disconnected — holding seat…`, { icon: '📴', type: 'warn' });
+      return;
+    }
     const p = allPlayers.find(p => p.id === socketId);
     if (p) log(`${p.name} left.`);
+    else if (playerName) log(`${playerName} left.`);
   };
 
   // ── Game start ─────────────────────────────────────────────────────────────
@@ -837,16 +921,21 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   // ── Final round ────────────────────────────────────────────────────────────
-  client.onFinalRoundStarted = ({ triggeredByPlayerId }) => {
-    const trigger = allPlayers.find(p => p.id === triggeredByPlayerId);
-    const triggerName = trigger?.name || 'A player';
-
+  // Block 8: banner setup shared by the live event and the rejoin snapshot.
+  function ensureFinalRoundBanner() {
     if (!document.getElementById('final-round-banner')) {
       const banner = document.createElement('div');
       banner.id = 'final-round-banner';
       banner.textContent = '⚑ Final Round — Someone Has Reached El Dorado';
       document.body.appendChild(banner);
     }
+  }
+
+  client.onFinalRoundStarted = ({ triggeredByPlayerId }) => {
+    const trigger = allPlayers.find(p => p.id === triggeredByPlayerId);
+    const triggerName = trigger?.name || 'A player';
+
+    ensureFinalRoundBanner();
 
     showToast('Final round! Someone reached El Dorado.', { icon: '🏆', type: 'accent', duration: 6000 });
 
@@ -860,6 +949,50 @@ document.addEventListener('DOMContentLoaded', () => {
       log(msg, 'warn');
     }
   };
+
+  // Block 8: full-state sync after a mid-game (re)join — refreshed phone or
+  // TV. Same rendering as onGameStarted, but with a "synced" toast plus the
+  // restored final-round banner / game-won modal (with blockade counts)
+  // instead of the "Expedition begun" one.
+  // Raw socket.on like card_purchased below (main.js only, no GameClient.js change).
+  socket.on('game_snapshot', (snap = {}) => {
+    snapshotReceived = true;
+    if (rejoinFallbackTimer) { clearTimeout(rejoinFallbackTimer); rejoinFallbackTimer = null; }
+    showScreen('game');
+    allPlayers = snap.players || [];
+    clientBoard.loadMap({ tiles: snap.tiles || [] });
+
+    renderer.render(snap.tiles || []);
+
+    (snap.players || []).forEach((p, i) => {
+      if (p.currentTileId) renderer.setPawnPosition(p.id, p.currentTileId, i);
+    });
+
+    activeBlockades = snap.blockades || [];
+    blockadeEdgeLookup = activeBlockades.length > 0
+      ? window.ElDoradoBlockades.buildEdgeLookup(activeBlockades)
+      : null;
+    renderer.renderBlockades(activeBlockades);
+
+    if (snap.market) cardUI.renderMarket(snap.market);
+    currentTurnPlayerId = snap.currentPlayerId || null;
+    selectedCard = null;
+    selectedValidMoves = [];
+    clearMoveList();
+    updateTurnLabel(currentTurnPlayerId);
+
+    if (snap.finalRound && snap.finalRound.triggered) ensureFinalRoundBanner();
+
+    showToast('Game state synced.', { icon: '🔄', type: 'accent' });
+    log('Reconnected — game state synced.', 'system');
+
+    if (snap.gameOver && snap.gameOver.winnerId) {
+      client.onGameWon({
+        playerId: snap.gameOver.winnerId,
+        blockadeCounts: snap.gameOver.blockadeCounts || {},
+      });
+    }
+  });
 
   // ── Block 5: phone market purchase (CardUI market pool mode) ───────────
   // Server broadcasts purchase_opened / purchase_closed to the whole room,
@@ -1010,7 +1143,7 @@ document.addEventListener('DOMContentLoaded', () => {
       ? '🏆 You win! El Dorado is yours!'
       : `${winnerName} wins the race to El Dorado. Game over.`) + blockadeMsg;
 
-    showModal(msg, false);
+    showModal(msg, false, true);
     log(isMe ? '🏆 You win!' : `${winnerName} wins!`, 'win');
     showToast(isMe ? '🏆 You win!' : `${winnerName} wins!`, {
       icon: '🏆', type: isMe ? 'accent' : 'info', duration: 8000,
@@ -1212,14 +1345,37 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  function showModal(message, showCancel = false) {
+  // Block 8: first 7d hands-off-TV pickup — TV modals auto-dismiss (nobody
+  // is at the laptop to click OK mid-game). Game-won (sticky) stays up as
+  // the end screen. Phones are unaffected.
+  function showModal(message, showCancel = false, sticky = false) {
     const overlay = document.getElementById('modal-overlay');
     document.getElementById('modal-message').textContent = message;
     document.getElementById('modal-cancel-btn').style.display = showCancel ? '' : 'none';
     overlay.classList.remove('hidden');
     document.getElementById('modal-confirm-btn').onclick = () => overlay.classList.add('hidden');
     document.getElementById('modal-cancel-btn').onclick = () => overlay.classList.add('hidden');
+    if (tvModalTimer) { clearTimeout(tvModalTimer); tvModalTimer = null; }
+    if (VIEW === 'tv' && !sticky) {
+      tvModalTimer = setTimeout(() => overlay.classList.add('hidden'), 6000);
+    }
   }
+
+  // ── Block 8: boot auto-rejoin after a refresh ────────────────────────────
+  // Same ?view= only. Socket.IO buffers the emit until connected. onJoined
+  // skips the waiting room while we wait for game_snapshot (with a fallback
+  // for pre-game seats, which get no snapshot).
+  (function tryAutoRejoin() {
+    const sess = readSession();
+    if (!sess || !sess.roomId || sess.view !== VIEW) return;
+    if (!sess.playerName && VIEW !== 'tv') return;
+    nameInput.value = sess.playerName || nameInput.value;
+    roomCodeInput.value = sess.roomId;
+    pendingIdentity = sess.playerName || getLobbyName();
+    rejoinPending = true;
+    setLobbyInfo('Reconnecting…');
+    client.joinRoom(pendingIdentity, sess.roomId, VIEW === 'tv');
+  })();
 
   // ── Debug mode ─────────────────────────────────────────────────────────────
   if (DEBUG) {
