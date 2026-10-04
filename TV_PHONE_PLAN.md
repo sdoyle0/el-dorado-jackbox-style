@@ -59,7 +59,12 @@ Never trust the client for legality — server already validates.
   full-width rows, larger move badges; market rows regain terrain color +
   movement chips; pool badge overlay via `market-pooling` gutter;
   destination list ordered under hand) — committing now.
-- Next: Block 6.
+- Block 6 (phone rubble/camp/purple/blockades: breakable blockades as
+  tappable rows in the move-list panel → `break_blockade`; rubble toll
+  hints + 44px Cross Rubble/Cancel; camp landing toast/log; persistent
+  Scientist/Travel Log remove banner with optimistic count; `main.js` +
+  `CardUI.js` only, no server/shared changes) — done, committing now.
+- Next: Block 7.
 
 ## Work blocks
 

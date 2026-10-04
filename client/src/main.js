@@ -196,6 +196,36 @@ document.addEventListener('DOMContentLoaded', () => {
         font-weight: 500; white-space: nowrap; }
       .move-empty { font-size: 0.82rem; color: #ffaaaa; font-style: italic;
         padding: 0.35rem 0.1rem; }
+      /* Block 6: breakable blockades share the move-list panel so the
+         boardless phone can break without board taps (renderer.onBlockadeClick
+         needs the TV board). Same 44px tappable-row pattern as Block 4. */
+      #blockade-list-header { font-size: 0.78rem; font-weight: 700; color: #ff9f43;
+        letter-spacing: 0.03em; margin-top: 0.35rem; }
+      #blockade-list { display: flex; flex-direction: column; gap: 0.4rem; }
+      .blockade-break-btn { display: flex; align-items: center; gap: 0.5rem;
+        width: 100%; min-height: 44px; padding: 0.55rem 0.75rem;
+        border: 1px solid rgba(255,159,67,0.65);
+        background: rgba(61,39,22,0.92); color: #e8e0d0; border-radius: 6px;
+        cursor: pointer; font-size: 0.9rem; font-weight: 600; text-align: left; }
+      .blockade-break-btn:hover { background: #53341c; border-color: #ff9f43; }
+      .blockade-break-btn:active { transform: translateY(1px); }
+      .blockade-break-btn:disabled { opacity: 0.5; cursor: wait; }
+      .blockade-break-icon { font-size: 1.1rem; }
+      .blockade-break-label { font-variant-numeric: tabular-nums; font-size: 0.8rem;
+        font-weight: 700; }
+      .blockade-break-meta { margin-left: auto; font-size: 0.75rem; color: #ffcf9e;
+        font-weight: 500; white-space: nowrap; }
+      /* Block 6: persistent Scientist/Travel Log remove prompt. The modal
+         alone dismisses; this banner stays in #hand-messages until the server
+         disposes the card, so it's clear hand taps remove (not move). */
+      #remove-prompt-banner { padding: 0.55rem 0.7rem; border: 1px solid
+        rgba(146,0,200,0.6); background: rgba(40,16,60,0.85);
+        border-radius: 8px; font-size: 0.82rem; color: #e8d0ff; }
+      #remove-prompt-banner strong { color: #fff; }
+      /* Block 6: rubble toll buttons meet the 44px phone minimum. Desktop
+         keeps the same sizes (harmless) — no separate phone stylesheet. */
+      .rubble-prompt-actions button { min-height: 44px; font-size: 0.9rem !important; }
+      .rubble-prompt-actions { display: flex; gap: 0.5rem; margin-top: 0.35rem; }
       #move-list-cancel { min-height: 44px; padding: 0.5rem 1rem;
         border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.06);
         color: #e8e0d0; border-radius: 6px; cursor: pointer;
@@ -218,6 +248,8 @@ document.addEventListener('DOMContentLoaded', () => {
       <div id="move-list-header">Choose destination</div>
       <div id="move-list-sub"></div>
       <div id="move-list"></div>
+      <div id="blockade-list-header" class="hidden">🚧 Break blockade</div>
+      <div id="blockade-list"></div>
       <button id="move-list-cancel" type="button">Cancel</button>`;
     host.appendChild(panel);
     panel.querySelector('#move-list-cancel').addEventListener('click', cancelMoveSelection);
@@ -232,16 +264,32 @@ document.addEventListener('DOMContentLoaded', () => {
     return { terrain, icon, cost };
   }
 
-  function renderMoveList(validMoves) {
+  function blockadeLabelFor(blockadeId) {
+    const b = activeBlockades.find(x => x.id === blockadeId);
+    const terrain = b?.terrainType || 'unknown';
+    const icon = BLOCKADE_TERRAIN_ICONS[terrain] || '🚧';
+    const label = b?.label || blockadeId;
+    return { terrain, icon, label };
+  }
+
+  function renderMoveList(validMoves, breakableIds = []) {
     const panel = ensureMoveListPanel();
     const listEl = panel.querySelector('#move-list');
     const subEl = panel.querySelector('#move-list-sub');
+    const blockadeHeaderEl = panel.querySelector('#blockade-list-header');
+    const blockadeListEl = panel.querySelector('#blockade-list');
     const cardName = selectedCard?.cardName || selectedCard?.key || 'card';
+    const moveCount = validMoves ? validMoves.length : 0;
+    const blockadeCount = breakableIds ? breakableIds.length : 0;
+    const parts = [];
+    if (moveCount > 0) parts.push(`${moveCount} move${moveCount === 1 ? '' : 's'}`);
+    if (blockadeCount > 0) parts.push(`${blockadeCount} blockade${blockadeCount === 1 ? '' : 's'}`);
     panel.querySelector('#move-list-header').textContent =
-      `Choose destination — ${cardName} (${validMoves.length})`;
+      parts.length > 0 ? `Choose — ${cardName} (${parts.join(', ')})` : `Choose — ${cardName}`;
     listEl.innerHTML = '';
+    blockadeListEl.innerHTML = '';
     if (!validMoves || validMoves.length === 0) {
-      subEl.textContent = '';
+      subEl.textContent = blockadeCount > 0 ? 'No moves — break a blockade below.' : '';
       const empty = document.createElement('div');
       empty.className = 'move-empty';
       empty.textContent = 'No valid moves';
@@ -266,7 +314,15 @@ document.addEventListener('DOMContentLoaded', () => {
         tileSpan.textContent = tileId;
         const metaSpan = document.createElement('span');
         metaSpan.className = 'move-dest-meta';
-        metaSpan.textContent = `${terrain} ×${cost}`;
+        // Block 6: camp/rubble hints so boardless phones know the toll.
+        // Camp removes the played card; cost-2+ rubble needs extra cards.
+        if (terrain === 'camp') {
+          metaSpan.textContent = '⛺ camp · removes card';
+        } else if (terrain === 'rubble' && Number(cost) > 1) {
+          metaSpan.textContent = `rubble ×${cost} +${Number(cost) - 1} toll`;
+        } else {
+          metaSpan.textContent = `${terrain} ×${cost}`;
+        }
         btn.appendChild(numSpan);
         btn.appendChild(iconSpan);
         btn.appendChild(tileSpan);
@@ -275,6 +331,37 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.addEventListener('click', () => attemptMoveToTile(tileId));
         listEl.appendChild(btn);
       });
+    }
+    // Block 6: breakable blockades as tappable rows (phone has no board, so
+    // renderer.onBlockadeClick is unreachable there). Server already accepts
+    // break_blockade; this only exposes it in the list.
+    if (breakableIds && breakableIds.length > 0) {
+      blockadeHeaderEl.classList.remove('hidden');
+      blockadeHeaderEl.textContent = `🚧 Break blockade — ${selectedCard?.cardName || selectedCard?.key || 'card'} (${breakableIds.length})`;
+      breakableIds.forEach((blockadeId) => {
+        const { terrain, icon, label } = blockadeLabelFor(blockadeId);
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'blockade-break-btn';
+        btn.dataset.blockade = blockadeId;
+        const iconSpan = document.createElement('span');
+        iconSpan.className = 'blockade-break-icon';
+        iconSpan.textContent = '🚧';
+        const labelSpan = document.createElement('span');
+        labelSpan.className = 'blockade-break-label';
+        labelSpan.textContent = `${icon} ${label} · ${terrain}`;
+        const metaSpan = document.createElement('span');
+        metaSpan.className = 'blockade-break-meta';
+        metaSpan.textContent = 'Break · 1 move';
+        btn.appendChild(iconSpan);
+        btn.appendChild(labelSpan);
+        btn.appendChild(metaSpan);
+        btn.setAttribute('aria-label', `Break ${terrain} blockade ${label}, costs 1 move`);
+        btn.addEventListener('click', () => attemptBreakBlockade(blockadeId));
+        blockadeListEl.appendChild(btn);
+      });
+    } else {
+      blockadeHeaderEl.classList.add('hidden');
     }
     panel.classList.remove('hidden');
   }
@@ -285,6 +372,10 @@ document.addEventListener('DOMContentLoaded', () => {
     panel.classList.add('hidden');
     const listEl = panel.querySelector('#move-list');
     if (listEl) listEl.innerHTML = '';
+    const blockadeListEl = panel.querySelector('#blockade-list');
+    if (blockadeListEl) blockadeListEl.innerHTML = '';
+    const blockadeHeaderEl = panel.querySelector('#blockade-list-header');
+    if (blockadeHeaderEl) blockadeHeaderEl.classList.add('hidden');
   }
 
   function cancelMoveSelection() {
@@ -296,6 +387,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderer.clearHighlights();
     renderer.setBreakableBlockades([], []);
     exitRubblePaymentMode();
+    clearRemovePrompt();
     cardUI.updateSelectedCardForMovement(null);
     clearMoveList();
     if (instanceId) client.cancelCard(instanceId);
@@ -326,10 +418,79 @@ document.addEventListener('DOMContentLoaded', () => {
       }, () => {
         exitRubblePaymentMode();
       });
+      // Block 6: boardless phones get no board highlight for the toll, so say
+      // it outright (desktop sees the same prompt in #hand-messages).
+      log(`🪨 Rubble toll: pick ${rubbleCardsNeeded} extra card(s), then Cross Rubble.`, 'system');
+      if (VIEW === 'phone') {
+        showToast(`Rubble toll: pick ${rubbleCardsNeeded} extra card(s).`, { icon: '🪨', type: 'info', duration: 4000 });
+      }
       return;
     }
     if (isMidMove || selectedCard) {
       client.movePawn(tileId);
+    }
+  }
+
+  // Block 6: phone blockade breaking. Desktop/TV-host taps the highlighted
+  // blockade on the board (renderer.onBlockadeClick); phones have no board,
+  // so the move-list panel renders the same breakableBlockades as buttons.
+  // Server validates adjacency + terrain + turn — this only emits the event.
+  function attemptBreakBlockade(blockadeId) {
+    if (!currentBreakableBlockades.includes(blockadeId)) return;
+    const btn = document.querySelector(`.blockade-break-btn[data-blockade="${blockadeId}"]`);
+    if (btn) btn.disabled = true;
+    client.breakBlockade(blockadeId);
+  }
+
+  // Block 6: Scientist / Travel Log remove prompt. Server emits
+  // prompt_remove_cards once with the count; each subsequent hand tap is a
+  // removal (GameState.playCard treats it as removeCardPermanently while
+  // selectingCardsToRemove > 0). The modal alone dismisses, so keep a
+  // persistent banner in #hand-messages until the server disposes the card —
+  // that makes clear that hand taps remove instead of moving.
+  let pendingRemovals = 0;
+
+  function showRemovePrompt(count) {
+    pendingRemovals = count;
+    const host = document.getElementById('hand-messages');
+    let banner = document.getElementById('remove-prompt-banner');
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = 'remove-prompt-banner';
+      host.appendChild(banner);
+    }
+    updateRemovePromptText();
+  }
+
+  function updateRemovePromptText() {
+    const banner = document.getElementById('remove-prompt-banner');
+    if (!banner) return;
+    banner.innerHTML = '';
+    const strong = document.createElement('strong');
+    strong.textContent = pendingRemovals > 0
+      ? `🔬 Remove ${pendingRemovals} card(s) from the game`
+      : '🔬 Finishing…';
+    const span = document.createElement('span');
+    span.textContent = pendingRemovals > 0
+      ? ' — tap hand cards to permanently remove them.'
+      : '';
+    banner.appendChild(strong);
+    banner.appendChild(span);
+  }
+
+  function clearRemovePrompt() {
+    pendingRemovals = 0;
+    document.getElementById('remove-prompt-banner')?.remove();
+  }
+
+  // Block 6: keep the desktop modal copy, but add the persistent banner +
+  // toast/log so boardless phones know hand taps now remove (not move).
+  function showRemovePromptWithModal(count) {
+    showRemovePrompt(count);
+    showModal(`Select ${count} card(s) to permanently remove from your deck.`);
+    log(`🔬 Remove ${count} card(s): tap hand cards to remove them permanently.`, 'system');
+    if (VIEW === 'phone') {
+      showToast(`Tap ${count} hand card(s) to remove.`, { icon: '🔬', type: 'accent', duration: 4000 });
     }
   }
 
@@ -531,6 +692,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     renderer.removeBlockade(blockadeId);
 
+    // Block 6: drop the broken entry from the phone list immediately so it
+    // can't be double-tapped while the server's follow-up
+    // valid_moves_updated / card_disposed is in flight.
+    currentBreakableBlockades = currentBreakableBlockades.filter(id => id !== blockadeId);
+    if (currentTurnPlayerId && currentTurnPlayerId === client.playerId && selectedCard) {
+      renderMoveList(selectedValidMoves, currentBreakableBlockades);
+    }
+
     const icon = BLOCKADE_TERRAIN_ICONS[terrainType] || '🚧';
     showToast(`${brokenByName} broke a ${terrainType} blockade!`, { icon, type: 'accent', duration: 4000 });
     log(`${brokenByName} broke the ${terrainType} blockade.`, 'blockade');
@@ -586,11 +755,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Phone list mirrors the TV highlights, but only for the acting player.
     // Opponents/TV keep highlights only (panel stays hidden there).
     if (currentTurnPlayerId && currentTurnPlayerId === client.playerId) {
-      renderMoveList(selectedValidMoves);
+      renderMoveList(selectedValidMoves, currentBreakableBlockades);
     } else if (!currentTurnPlayerId && client.playerId) {
       // Fallback before turn tracking is set (e.g. reconnect): show list only
       // when we just played a card this turn.
-      if (selectedCard) renderMoveList(selectedValidMoves);
+      if (selectedCard) renderMoveList(selectedValidMoves, currentBreakableBlockades);
       else clearMoveList();
     } else {
       clearMoveList();
@@ -607,12 +776,23 @@ document.addEventListener('DOMContentLoaded', () => {
     // moves clear via onCardDisposed. Clear here to avoid stale taps.
     clearMoveList();
 
+    // Block 6: camp has no board affordance on phones, so say what happened:
+    // the played card leaves the game instead of being discarded.
+    const landed = clientBoard.getTile(tileId);
+    const isCamp = landed?.terrainType === 'camp';
+
     if (playerId !== client.playerId) {
       const name = player?.name || 'Opponent';
       showToast(`${name} moved`, { icon: '👣', type: 'info' });
       log(`${name} moved to ${tileId}`, 'move');
+      if (isCamp) log(`⛺ ${name} camped — played card removed from the game.`, 'move');
     } else {
       log(`Moved to ${tileId}`, 'move');
+      if (isCamp) {
+        const msg = '⛺ Camp: that card is removed from the game.';
+        log(msg, 'move');
+        showToast(msg, { icon: '⛺', type: 'info', duration: 4000 });
+      }
     }
   };
 
@@ -624,6 +804,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderer.clearHighlights();
     renderer.setBreakableBlockades([], []);
     clearMoveList();
+    clearRemovePrompt();
     exitRubblePaymentMode();
   };
 
@@ -635,6 +816,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderer.clearHighlights();
     renderer.setBreakableBlockades([], []);
     clearMoveList();
+    clearRemovePrompt();
     // Block 5: never leave a stale purchase pool open on someone else's turn.
     if (nextPlayerId !== client.playerId) cardUI.closeMarket();
     currentTurnPlayerId = nextPlayerId;
@@ -799,7 +981,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (data.playerId && data.playerId !== client.playerId) return;
     cardUI.closeMarket();
   };
-  client.onPromptRemove = ({ count }) => showModal(`Select ${count} card(s) to permanently remove from your deck.`);
+  client.onPromptRemove = ({ count }) => showRemovePromptWithModal(count);
 
   client.onGameWon = ({ playerId, blockadeCounts = {} }) => {
     const winner = allPlayers.find(p => p.id === playerId);
@@ -864,6 +1046,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderer.clearHighlights();
     renderer.setBreakableBlockades([], []);
     clearMoveList();
+    clearRemovePrompt();
     exitRubblePaymentMode();
     log(`⚠ ${message}`, 'warn');
     showToast(message, { icon: '⚠️', type: 'warn' });
@@ -876,6 +1059,17 @@ document.addEventListener('DOMContentLoaded', () => {
   function selectCardForMove(instanceId) {
     const card = localHand.find(c => c.instanceId === instanceId);
     if (!card) return;
+
+    // Block 6: Scientist / Travel Log removal mode — every hand tap is a
+    // permanent removal (server-side selectingCardsToRemove), not a movement
+    // play. Skip move preview so no stale highlights/list appear; decrement
+    // the banner optimistically (server corrects via card_disposed/error).
+    if (pendingRemovals > 0) {
+      pendingRemovals = Math.max(0, pendingRemovals - 1);
+      updateRemovePromptText();
+      client.playCard(instanceId);
+      return;
+    }
 
     cardUI.updateSelectedCardForMovement(instanceId);
 

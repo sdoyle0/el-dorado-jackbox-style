@@ -919,12 +919,13 @@ class CardUI {
       <div class="rubble-prompt-actions">
         <button id="rubble-confirm-btn" disabled
           style="background:#e74c3c;color:#fff;border:none;border-radius:4px;
-                 padding:.35rem 1rem;cursor:not-allowed;opacity:.4;font-size:.8rem;font-weight:600;">
+                  padding:.6rem 1rem;cursor:not-allowed;opacity:.4;font-size:.9rem;font-weight:600;
+                  min-height:44px;flex:1 1 auto;">
           Cross Rubble
         </button>
         <button id="rubble-cancel-btn"
           style="background:#555;color:#fff;border:none;border-radius:4px;
-                 padding:.35rem .8rem;cursor:pointer;font-size:.8rem">
+                  padding:.6rem .9rem;cursor:pointer;font-size:.9rem;min-height:44px;">
           Cancel
         </button>
       </div>`;
