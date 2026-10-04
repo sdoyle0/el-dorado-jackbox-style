@@ -166,6 +166,187 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const BLOCKADE_TERRAIN_ICONS = { jungle: '🌿', water: '🌊', village: '🏘️', rubble: '🪨' };
 
+  // ── Block 4: phone move-selection list (no board nav on phones) ──────────
+  // Server payload for `valid_moves_updated` is { validMoves: [tileId], ... }.
+  // Terrain + cost are looked up locally via clientBoard.getTile(tileId).
+  // Number N = position in that array (1-based). HexRenderer draws the same
+  // N on the TV tile, so the phone list matches the board without tile IDs.
+  let currentTurnPlayerId = null;
+  const MOVE_TERRAIN_ICONS = {
+    jungle: '🌿', water: '🌊', village: '🏘️', rubble: '🪨',
+    camp: '⛺', mountain: '⛰️', start: '🏁', el_dorado: '🏆',
+    wild: '🧭', empty: '✨',
+  };
+
+  function ensureMoveListStyles() {
+    if (document.getElementById('move-list-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'move-list-styles';
+    style.textContent = `
+      #move-list-panel { display: flex; flex-direction: column; gap: 0.4rem;
+        padding: 0.55rem 0.6rem; background: rgba(13,17,23,0.6);
+        border: 1px solid var(--border-mid, rgba(201,162,39,0.32));
+        border-radius: 8px; margin-top: 0.4rem; }
+      #move-list-header { font-size: 0.78rem; font-weight: 700; color: #ffd700;
+        letter-spacing: 0.03em; }
+      #move-list-sub { font-size: 0.7rem; color: #9aabbf; }
+      #move-list { display: flex; flex-direction: column; gap: 0.4rem;
+        max-height: 220px; overflow-y: auto; }
+      .move-dest-btn { display: flex; align-items: center; gap: 0.5rem;
+        width: 100%; min-height: 44px; padding: 0.55rem 0.75rem;
+        border: 1px solid var(--border-mid, rgba(201,162,39,0.32));
+        background: rgba(22,39,61,0.9); color: #e8e0d0; border-radius: 6px;
+        cursor: pointer; font-size: 0.9rem; font-weight: 600; text-align: left; }
+      .move-dest-btn:hover { background: #1e3352; border-color: #c9a227; }
+      .move-dest-btn:active { transform: translateY(1px); }
+      .move-dest-num { display: inline-grid; place-items: center;
+        min-width: 28px; height: 28px; border-radius: 50%;
+        background: #000; color: #fff; border: 2px solid #fff;
+        font-size: 0.95rem; font-weight: 800; flex-shrink: 0; }
+      .move-dest-icon { font-size: 1.1rem; }
+      .move-dest-tile { font-variant-numeric: tabular-nums; font-size: 0.72rem;
+        color: #9aabbf; font-weight: 500; }
+      .move-dest-meta { margin-left: auto; font-size: 0.75rem; color: #9aabbf;
+        font-weight: 500; white-space: nowrap; }
+      .move-empty { font-size: 0.82rem; color: #ffaaaa; font-style: italic;
+        padding: 0.35rem 0.1rem; }
+      #move-list-cancel { min-height: 44px; padding: 0.5rem 1rem;
+        border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.06);
+        color: #e8e0d0; border-radius: 6px; cursor: pointer;
+        font-size: 0.85rem; font-weight: 600; }
+      #move-list-cancel:hover { background: rgba(255,255,255,0.12); }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function ensureMoveListPanel() {
+    ensureMoveListStyles();
+    let panel = document.getElementById('move-list-panel');
+    if (panel) return panel;
+    // Inside #player-hand-ui so ?view=tv (which hides the hand UI) stays display-only.
+    const host = document.getElementById('player-hand-ui') || document.getElementById('game-screen');
+    panel = document.createElement('div');
+    panel.id = 'move-list-panel';
+    panel.className = 'hidden';
+    panel.innerHTML = `
+      <div id="move-list-header">Choose destination</div>
+      <div id="move-list-sub"></div>
+      <div id="move-list"></div>
+      <button id="move-list-cancel" type="button">Cancel</button>`;
+    host.appendChild(panel);
+    panel.querySelector('#move-list-cancel').addEventListener('click', cancelMoveSelection);
+    return panel;
+  }
+
+  function moveLabelFor(tileId) {
+    const tile = clientBoard.getTile(tileId);
+    const terrain = tile?.terrainType || 'unknown';
+    const icon = MOVE_TERRAIN_ICONS[terrain] || '❓';
+    const cost = tile?.movementCost ?? '?';
+    return { terrain, icon, cost };
+  }
+
+  function renderMoveList(validMoves) {
+    const panel = ensureMoveListPanel();
+    const listEl = panel.querySelector('#move-list');
+    const subEl = panel.querySelector('#move-list-sub');
+    const cardName = selectedCard?.cardName || selectedCard?.key || 'card';
+    panel.querySelector('#move-list-header').textContent =
+      `Choose destination — ${cardName} (${validMoves.length})`;
+    listEl.innerHTML = '';
+    if (!validMoves || validMoves.length === 0) {
+      subEl.textContent = '';
+      const empty = document.createElement('div');
+      empty.className = 'move-empty';
+      empty.textContent = 'No valid moves';
+      listEl.appendChild(empty);
+    } else {
+      subEl.textContent = 'Match the number on the TV board, then tap.';
+      validMoves.forEach((tileId, i) => {
+        const num = i + 1; // must match HexRenderer badge: position in payload
+        const { terrain, icon, cost } = moveLabelFor(tileId);
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'move-dest-btn';
+        btn.dataset.tile = tileId;
+        const numSpan = document.createElement('span');
+        numSpan.className = 'move-dest-num';
+        numSpan.textContent = String(num);
+        const iconSpan = document.createElement('span');
+        iconSpan.className = 'move-dest-icon';
+        iconSpan.textContent = icon;
+        const tileSpan = document.createElement('span');
+        tileSpan.className = 'move-dest-tile';
+        tileSpan.textContent = tileId;
+        const metaSpan = document.createElement('span');
+        metaSpan.className = 'move-dest-meta';
+        metaSpan.textContent = `${terrain} ×${cost}`;
+        btn.appendChild(numSpan);
+        btn.appendChild(iconSpan);
+        btn.appendChild(tileSpan);
+        btn.appendChild(metaSpan);
+        btn.setAttribute('aria-label', `Option ${num}: ${terrain} cost ${cost} at ${tileId}`);
+        btn.addEventListener('click', () => attemptMoveToTile(tileId));
+        listEl.appendChild(btn);
+      });
+    }
+    panel.classList.remove('hidden');
+  }
+
+  function clearMoveList() {
+    const panel = document.getElementById('move-list-panel');
+    if (!panel) return;
+    panel.classList.add('hidden');
+    const listEl = panel.querySelector('#move-list');
+    if (listEl) listEl.innerHTML = '';
+  }
+
+  function cancelMoveSelection() {
+    const instanceId = selectedCard?.instanceId;
+    isMidMove = false;
+    selectedCard = null;
+    selectedValidMoves = [];
+    currentBreakableBlockades = [];
+    renderer.clearHighlights();
+    renderer.setBreakableBlockades([], []);
+    exitRubblePaymentMode();
+    cardUI.updateSelectedCardForMovement(null);
+    clearMoveList();
+    if (instanceId) client.cancelCard(instanceId);
+    else client.cancelCard();
+  }
+
+  // Shared destination tap: same rubble handling as board clicks, but works
+  // without board navigation. Normal tiles emit move_pawn; cost-2+ rubble
+  // goes through the existing move_to_rubble picker (Block 6 owns that flow).
+  function attemptMoveToTile(tileId) {
+    if (rubblePendingTileId) return;
+    if (!selectedValidMoves.includes(tileId)) return;
+    const tile = clientBoard.getTile(tileId);
+    if (tile?.terrainType === 'rubble' && tile.movementCost > 1) {
+      rubblePendingTileId = tileId;
+      rubbleCardsNeeded = tile.movementCost - 1;
+      cardUI.enterRubblePaymentMode(rubbleCardsNeeded, selectedCard?.instanceId, () => {
+        const cardIds = cardUI.getRubblePaymentCards();
+        client.moveToRubble(tileId, cardIds);
+        isMidMove = false;
+        selectedCard = null;
+        selectedValidMoves = [];
+        currentBreakableBlockades = [];
+        renderer.clearHighlights();
+        renderer.setBreakableBlockades([], []);
+        clearMoveList();
+        exitRubblePaymentMode();
+      }, () => {
+        exitRubblePaymentMode();
+      });
+      return;
+    }
+    if (isMidMove || selectedCard) {
+      client.movePawn(tileId);
+    }
+  }
+
   // Waiting-room state
   let waitingRoomState = { players: [], maxPlayers: 2, hostId: null, enableBlockades: true };
 
@@ -344,10 +525,12 @@ document.addEventListener('DOMContentLoaded', () => {
     renderer.renderBlockades(activeBlockades);
 
     cardUI.renderMarket(market);
+    currentTurnPlayerId = currentPlayerId;
     updateTurnLabel(currentPlayerId);
 
     selectedCard = null;
     selectedValidMoves = [];
+    clearMoveList();
 
     showToast('Expedition begun! Good luck.', { icon: '🗺️', type: 'accent' });
     log('Game started!', 'system');
@@ -374,35 +557,9 @@ document.addEventListener('DOMContentLoaded', () => {
     cardUI.exitRubblePaymentMode();
   }
 
-  renderer.onTileClick = (tileId) => {
-    if (rubblePendingTileId) return;
-    if (!selectedValidMoves.includes(tileId)) return;
-
-    const tile = clientBoard.getTile(tileId);
-    if (tile?.terrainType === 'rubble' && tile.movementCost > 1) {
-      rubblePendingTileId = tileId;
-      rubbleCardsNeeded = tile.movementCost - 1;
-      cardUI.enterRubblePaymentMode(rubbleCardsNeeded, selectedCard?.instanceId, () => {
-        const cardIds = cardUI.getRubblePaymentCards();
-        client.moveToRubble(tileId, cardIds);
-        isMidMove = false;
-        selectedCard = null;
-        selectedValidMoves = [];
-        currentBreakableBlockades = [];
-        renderer.clearHighlights();
-        renderer.setBreakableBlockades([], []);
-        exitRubblePaymentMode();
-      }, () => {
-        exitRubblePaymentMode();
-      });
-      return;
-    }
-
-    if (isMidMove || selectedCard) {
-      client.movePawn(tileId);
-      return;
-    }
-  };
+  // Board taps (desktop/TV-host) and phone list taps share one path so the
+  // server sees the same move_pawn / move_to_rubble events either way.
+  renderer.onTileClick = (tileId) => attemptMoveToTile(tileId);
 
   // ── Blockade click ────────────────────────────────────────────────────────
   renderer.onBlockadeClick = (blockadeId) => {
@@ -432,6 +589,18 @@ document.addEventListener('DOMContentLoaded', () => {
     currentBreakableBlockades = breakableBlockades;
     renderer.setValidMoves(selectedValidMoves);
     renderer.setBreakableBlockades(breakableBlockades, activeBlockades);
+    // Phone list mirrors the TV highlights, but only for the acting player.
+    // Opponents/TV keep highlights only (panel stays hidden there).
+    if (currentTurnPlayerId && currentTurnPlayerId === client.playerId) {
+      renderMoveList(selectedValidMoves);
+    } else if (!currentTurnPlayerId && client.playerId) {
+      // Fallback before turn tracking is set (e.g. reconnect): show list only
+      // when we just played a card this turn.
+      if (selectedCard) renderMoveList(selectedValidMoves);
+      else clearMoveList();
+    } else {
+      clearMoveList();
+    }
   };
 
   client.onPawnMoved = ({ playerId, tileId }) => {
@@ -440,6 +609,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (player) player.currentTileId = tileId;
     renderer.setPawnPosition(playerId, tileId, idx >= 0 ? idx : 0);
     renderer.clearHighlights();
+    // Chained moves re-render via the following valid_moves_updated; final
+    // moves clear via onCardDisposed. Clear here to avoid stale taps.
+    clearMoveList();
 
     if (playerId !== client.playerId) {
       const name = player?.name || 'Opponent';
@@ -457,6 +629,7 @@ document.addEventListener('DOMContentLoaded', () => {
     currentBreakableBlockades = [];
     renderer.clearHighlights();
     renderer.setBreakableBlockades([], []);
+    clearMoveList();
     exitRubblePaymentMode();
   };
 
@@ -467,6 +640,8 @@ document.addEventListener('DOMContentLoaded', () => {
     currentBreakableBlockades = [];
     renderer.clearHighlights();
     renderer.setBreakableBlockades([], []);
+    clearMoveList();
+    currentTurnPlayerId = nextPlayerId;
     updateTurnLabel(nextPlayerId);
     log(`${nextPlayerName}'s turn.`, 'turn');
 
@@ -546,6 +721,7 @@ document.addEventListener('DOMContentLoaded', () => {
     currentBreakableBlockades = [];
     renderer.clearHighlights();
     renderer.setBreakableBlockades([], []);
+    clearMoveList();
     exitRubblePaymentMode();
     log(`⚠ ${message}`, 'warn');
     showToast(message, { icon: '⚠️', type: 'warn' });
@@ -564,7 +740,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (selectedCard && selectedCard.instanceId === instanceId) {
       selectedCard = null;
       selectedValidMoves = [];
+      currentBreakableBlockades = [];
       renderer.clearHighlights();
+      renderer.setBreakableBlockades([], []);
+      clearMoveList();
+      exitRubblePaymentMode();
+      cardUI.updateSelectedCardForMovement(null);
       client.cancelCard(instanceId);
       return;
     }
@@ -623,6 +804,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function updateTurnLabel(currentPlayerId) {
+    currentTurnPlayerId = currentPlayerId;
     const isMe = client.isMyTurn(currentPlayerId);
     const idx = allPlayers.findIndex(p => p.id === currentPlayerId);
     const p = allPlayers.find(p => p.id === currentPlayerId);

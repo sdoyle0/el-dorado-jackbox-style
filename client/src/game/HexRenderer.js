@@ -370,10 +370,17 @@ class HexRenderer {
 
   // ── Valid move highlighting ───────────────────────────────────────────────
 
+  // Number badges map 1:1 to the phone tappable list (Block 4 fix).
+  // Number N = position in the tileIds array (1-based), so TV and phone agree
+  // without sorting as long as both use the same payload order.
   setValidMoves(tileIds) {
-    const validSet = new Set(tileIds);
+    const ids = Array.isArray(tileIds) ? tileIds : [];
+    const validSet = new Set(ids);
+    const numberById = new Map(ids.map((id, i) => [id, i + 1]));
+    const ns = 'http://www.w3.org/2000/svg';
 
     for (const [id, { poly, tile }] of this.tileEls) {
+      const entry = this.tileEls.get(id);
       const isValid = validSet.has(id);
       const style = TERRAIN[tile.terrainType] || {};
 
@@ -383,28 +390,56 @@ class HexRenderer {
         poly.style.filter = 'brightness(1.4)';
         poly.style.animation = 'hex-pulse 1.4s ease-in-out infinite';
 
-        let glowRing = this.tileEls.get(id)._glowRing;
+        let glowRing = entry._glowRing;
         if (!glowRing) {
           const { cx, cy } = this._center(tile.q, tile.r);
-          glowRing = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+          glowRing = document.createElementNS(ns, 'polygon');
           glowRing.setAttribute('points', this._hexPoints(cx, cy, HEX_R + 5));
           glowRing.setAttribute('fill', 'none');
           glowRing.setAttribute('stroke', 'rgba(255,238,0,0.45)');
           glowRing.setAttribute('stroke-width', '8');
           glowRing.setAttribute('pointer-events', 'none');
           glowRing.style.animation = 'glow-pulse 1.4s ease-in-out infinite';
-          this.tileEls.get(id)._glowRing = glowRing;
-          this.tileEls.get(id).g.insertBefore(glowRing, this.tileEls.get(id).g.firstChild);
+          entry._glowRing = glowRing;
+          entry.g.insertBefore(glowRing, entry.g.firstChild);
         }
         glowRing.style.display = '';
+
+        // ── Number badge (top-inside of hex, above terrain icon) ──────────
+        const { cx, cy } = this._center(tile.q, tile.r);
+        let badge = entry._moveBadge;
+        if (!badge) {
+          badge = document.createElementNS(ns, 'g');
+          badge.setAttribute('pointer-events', 'none');
+          const bg = document.createElementNS(ns, 'circle');
+          bg.setAttribute('r', '15');
+          bg.setAttribute('fill', 'rgba(0,0,0,0.88)');
+          bg.setAttribute('stroke', '#ffffff');
+          bg.setAttribute('stroke-width', '2.5');
+          const label = document.createElementNS(ns, 'text');
+          label.setAttribute('text-anchor', 'middle');
+          label.setAttribute('dominant-baseline', 'central');
+          label.setAttribute('font-size', '18');
+          label.setAttribute('font-weight', 'bold');
+          label.setAttribute('font-family', 'Inter, sans-serif');
+          label.setAttribute('fill', '#ffffff');
+          badge.appendChild(bg);
+          badge.appendChild(label);
+          entry._moveBadge = badge;
+          entry.g.appendChild(badge);
+        }
+        badge.setAttribute('transform', `translate(${cx},${cy - 26})`);
+        const labelEl = badge.querySelector('text');
+        if (labelEl) labelEl.textContent = String(numberById.get(id) ?? '');
+        badge.style.display = '';
       } else {
         poly.setAttribute('stroke', style.stroke || '#222');
         poly.setAttribute('stroke-width', tile.terrainType === 'el_dorado' ? '2.5' : '1.5');
         poly.style.filter = '';
         poly.style.animation = '';
 
-        const entry = this.tileEls.get(id);
         if (entry._glowRing) entry._glowRing.style.display = 'none';
+        if (entry._moveBadge) entry._moveBadge.style.display = 'none';
       }
     }
   }
