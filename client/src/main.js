@@ -701,17 +701,81 @@ document.addEventListener('DOMContentLoaded', () => {
     const style = document.createElement('style');
     style.id = 'market-phone-styles';
     style.textContent = `
+      /* Phone market = in-flow sticky sheet at the top of the game column:
+         it pushes the hand down instead of overlapping it (a fixed overlay
+         would cover the hand's name/value strips on small screens, and the
+         page isn't always scrollable so a scroll-nudge can't fix that).
+         Desktop keeps the centered fixed overlay. */
+      body.view-phone #card-market { position: sticky !important; top: 0 !important;
+        left: auto !important; right: auto !important; bottom: auto !important;
+        inset: auto !important; margin: 0 !important; width: auto !important;
+        height: auto !important; max-height: 42dvh !important;
+        flex: none !important;
+        display: flex; flex-direction: column; overflow-y: auto;
+        border-radius: 0 0 12px 12px !important;
+        border-top: none !important;
+        border-bottom: 2px solid var(--gold-dim) !important;
+        z-index: 30 !important;
+        -webkit-overflow-scrolling: touch; }
+      body.view-phone #market-header { position: sticky; top: 0; z-index: 2;
+        background: linear-gradient(180deg, #0d1e30 0%, #091525 100%);
+        padding-top: 0.7rem; }
       body.view-phone #purchase-total { font-size: 1.05rem; font-weight: 800;
         white-space: nowrap; }
-      body.view-phone #card-market { max-height: 82dvh; overflow-y: auto;
-        -webkit-overflow-scrolling: touch; }
-      body.view-phone .market-card { min-height: 44px; }
-      body.view-phone .market-card-wrapper { min-height: 44px; }
-      body.view-phone #market-header { position: sticky; top: 0; z-index: 2; }
+      body.view-phone #cancel-purchase-btn { min-height: 44px; padding: 0.5rem 1rem; }
+      body.view-phone #shop-slots { flex-direction: column; }
+      body.view-phone .market-reserve-section { border-left: none;
+        border-top: 1px solid var(--border); padding-left: 0; }
+      /* Compact rows replace card art on phone. */
+      body.view-phone .market-row-list { display: flex; flex-direction: column;
+        gap: 0.35rem; }
+      body.view-phone .market-row-item { display: flex; align-items: center;
+        gap: 0.5rem; min-height: 44px; padding: 0.35rem 0.55rem;
+        border: 1px solid var(--border-mid, rgba(201,162,39,0.32));
+        background: rgba(22,39,61,0.9); color: #e8e0d0; border-radius: 8px; }
+      body.view-phone .market-row-item.can-afford {
+        box-shadow: 0 0 0 2px #3adf3a, 0 2px 10px rgba(58,223,58,0.2); }
+      body.view-phone .market-row-item.cant-afford { opacity: 0.7; }
+      body.view-phone .market-row-name { font-weight: 700; font-size: 0.85rem;
+        white-space: nowrap; }
+      body.view-phone .market-row-effect { font-size: 0.7rem; color: #9aabbf;
+        flex: 1 1 auto; min-width: 0; }
+      body.view-phone .market-row-left { font-size: 0.68rem; color: #9aabbf;
+        white-space: nowrap; }
+      body.view-phone .market-row-cost { font-size: 0.8rem; font-weight: 800;
+        color: #ffd700; white-space: nowrap; }
+      /* .card-info-btn is absolute-positioned for full cards (main.css) —
+         rows need it back in normal flow, or it floats above its row. */
+      body.view-phone .market-row-info { position: static; min-width: 44px; min-height: 44px;
+        display: inline-grid; place-items: center; font-size: 1.1rem;
+        cursor: pointer; flex-shrink: 0; }
+      body.view-phone .market-row-buy { min-height: 44px; padding: 0.5rem 0.9rem;
+        border: 1px solid var(--gold-mid, #c9a227); background: #2a4a2a;
+        color: #fff; border-radius: 6px; font-size: 0.85rem; font-weight: 700;
+        cursor: pointer; flex-shrink: 0; }
+      body.view-phone .market-row-buy:disabled { opacity: 0.35; cursor: not-allowed; }
+      /* Pool audit chips under the header. */
+      body.view-phone #pool-chips { display: flex; flex-wrap: wrap; gap: 0.3rem;
+        padding: 0.35rem 0; }
+      body.view-phone #pool-chips.hidden { display: none; }
+      body.view-phone .pool-chip { display: inline-flex; align-items: center;
+        gap: 0.4rem; min-height: 44px; padding: 0.4rem 0.6rem;
+        border: 1px solid var(--gold-mid, #c9a227); border-radius: 999px;
+        background: rgba(201,162,39,0.15); color: #ffe066; font-size: 0.75rem;
+        font-weight: 600; cursor: pointer; }
+      body.view-phone .pool-chip-x { font-weight: 800; }
+      /* Pool-value badges on hand cards (market mode only). */
+      body.view-phone #hand-cards .card-btn { position: relative; }
+      body.view-phone .pool-value-badge { position: absolute; top: 2px; right: 2px;
+        z-index: 3; min-width: 44px; min-height: 28px; display: inline-grid;
+        place-items: center; padding: 0 0.4rem; border-radius: 999px;
+        background: #000; color: #ffd700; border: 2px solid #ffd700;
+        font-size: 0.8rem; font-weight: 800; pointer-events: none; }
       body.view-phone #reserve-picker-box { max-height: 86dvh; overflow-y: auto;
         -webkit-overflow-scrolling: touch; }
-      body.view-phone #reserve-cards .market-card-wrapper { min-height: 44px; }
-      body.view-phone #cancel-purchase-btn { min-height: 44px; padding: 0.5rem 1rem; }
+      body.view-phone #reserve-cards { flex-direction: column; }
+      body.view-phone #reserve-cards .market-row-item { width: 100%; }
+      body.view-phone .card-info-modal-close { min-height: 44px; }
     `;
     document.head.appendChild(style);
   }

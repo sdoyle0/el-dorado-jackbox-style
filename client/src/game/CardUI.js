@@ -17,6 +17,13 @@ class CardUI {
     this.totalEl  = document.getElementById('purchase-total');
     this.marketEl = document.getElementById('card-market');
 
+    // Phone compact-market pool chips (created once, shown only in phone
+    // market mode). Lets the buyer audit/un-pool without scrolling the hand.
+    this.poolChipsEl = document.createElement('div');
+    this.poolChipsEl.id = 'pool-chips';
+    this.poolChipsEl.className = 'hidden';
+    document.getElementById('market-header')?.after(this.poolChipsEl);
+
     // Callbacks — set by main.js
     this.onCardPlayed     = null; // (instanceId) — play for movement
     this.onMarketCard     = null; // ({ cardKey, handCardsUsed }) — purchase
@@ -49,6 +56,15 @@ class CardUI {
     this._bindHandDelegate();
     this._createInfoModal();
     this._bindInfoDelegates();
+  }
+
+  // ── View helpers ─────────────────────────────────────────────────────────
+
+  // Phone compact-market layout (rows, top sheet) vs desktop full cards.
+  // main.js sets body[data-view] from ?view=; class is the Block 2 fallback.
+  _isPhoneView() {
+    return document.body?.dataset?.view === 'phone'
+      || document.body?.classList?.contains('view-phone');
   }
 
   // ── Info modal for special card descriptions ────────────────────────────
@@ -209,12 +225,30 @@ class CardUI {
   }
 
   _syncHandState() {
+    const showValues = this._mode === 'market' && this._isPhoneView();
     for (const btn of this.handEl.querySelectorAll('.card-btn')) {
       const id = btn.dataset.instanceId;
 
       const excluded = this._mode === 'rubble' && id === this._rubbleExcludeId;
       btn.classList.toggle('rubble-excluded', excluded);
       btn.disabled = excluded;
+
+      // Phone market mode: badge each hand card with its pool value so the
+      // buyer isn't pooling blind (yellow face value vs 0.5). Display-only;
+      // the numbers come straight from the server-provided hand payload.
+      let badge = btn.querySelector('.pool-value-badge');
+      if (showValues) {
+        const card = this._currentHand.find(c => c.instanceId === id);
+        const val = card?.purchasingPower ?? 0;
+        if (!badge) {
+          badge = document.createElement('span');
+          badge.className = 'pool-value-badge';
+          btn.appendChild(badge);
+        }
+        badge.textContent = `+${val}`;
+      } else if (badge) {
+        badge.remove();
+      }
 
       if (this._mode === 'market') {
         btn.classList.toggle('in-pool', this._purchasePool.has(id));
@@ -305,6 +339,8 @@ class CardUI {
     this._transmitterBonus = 0;
     this._purchasePool.clear();
     this.marketEl.classList.add('hidden');
+    this.poolChipsEl.innerHTML = '';
+    this.poolChipsEl.classList.add('hidden');
     this._setMode('movement');
   }
 
@@ -365,6 +401,9 @@ class CardUI {
 
   renderMarket(market) {
     this._lastMarket = market;
+    // Phone: compact rows in a top sheet (hand stays visible below).
+    // Desktop/TV: full card art, unchanged.
+    if (this._isPhoneView()) return this._renderMarketCompact(market);
     this.shopEl.innerHTML = '';
 
     const isTransmitter = this._transmitterBonus > 0;
@@ -408,6 +447,114 @@ class CardUI {
     }
 
     if (this._mode === 'market') this._updateAffordability();
+  }
+
+  // ── Phone compact market (rows, no card art) ─────────────────────────────
+  // Same data, same events (purchase_card via Buy), same tabs — just rows so
+  // 6 shop cards + total + hand all fit a small screen. Purple cards keep
+  // their one-line effect inline and full text behind ℹ️ (existing modal).
+
+  _renderMarketCompact(market) {
+    this.shopEl.innerHTML = '';
+    const isTransmitter = this._transmitterBonus > 0;
+    this.shopEl.classList.toggle('transmitter-active', isTransmitter);
+
+    const shopAvailable = document.createElement('div');
+    shopAvailable.className = 'market-available-section';
+
+    const shopList = document.createElement('div');
+    shopList.className = 'market-row-list';
+    shopAvailable.appendChild(shopList);
+
+    for (const card of (market?.shop ?? [])) {
+      shopList.appendChild(this._makeMarketRowEl(card, false, isTransmitter));
+    }
+    this.shopEl.appendChild(shopAvailable);
+
+    const reserveCards = (market?.reserve ?? []).filter(c => c && c.remaining > 0);
+    if (reserveCards.length > 0) {
+      const shopReserve = document.createElement('div');
+      shopReserve.className = 'market-reserve-section';
+
+      const reserveHeader = document.createElement('div');
+      reserveHeader.className = 'market-section-header market-reserve-header';
+      reserveHeader.textContent = isTransmitter
+        ? 'Reserve (Transmitter: buyable)'
+        : 'Reserve (not yet available)';
+      shopReserve.appendChild(reserveHeader);
+
+      const reserveList = document.createElement('div');
+      reserveList.className = 'market-row-list';
+      shopReserve.appendChild(reserveList);
+
+      for (const card of reserveCards) {
+        reserveList.appendChild(this._makeMarketRowEl(card, true, isTransmitter));
+      }
+      this.shopEl.appendChild(shopReserve);
+    }
+
+    if (this._mode === 'market') this._updateAffordability();
+  }
+
+  _makeMarketRowEl(card, isReserve, transmitterActive = false) {
+    const locked = isReserve && !transmitterActive;
+    const row = document.createElement('div');
+    row.className = 'market-row-item' + (isReserve ? ' is-reserve' : '');
+    if (locked) row.classList.add('reserve-locked');
+    row.dataset.cardKey = card.key;
+
+    const effectDesc = this._specialDescription(card.specialEffect);
+    const lastCopy = !isReserve && card.remaining === 1;
+
+    const nameEl = document.createElement('span');
+    nameEl.className = 'market-row-name';
+    nameEl.textContent = card.cardName || card.key;
+    row.appendChild(nameEl);
+
+    if (effectDesc) {
+      const effEl = document.createElement('span');
+      effEl.className = 'market-row-effect';
+      effEl.textContent = effectDesc;
+      row.appendChild(effEl);
+    }
+
+    const leftEl = document.createElement('span');
+    leftEl.className = 'market-row-left';
+    // Last-copy hint: buying this empties the slot and earns a reserve pick.
+    leftEl.textContent = lastCopy
+      ? `×1 left · → reserve pick`
+      : `×${card.remaining} left`;
+    row.appendChild(leftEl);
+
+    const costEl = document.createElement('span');
+    costEl.className = 'market-row-cost';
+    costEl.textContent = transmitterActive ? 'FREE' : `💰 ${card.cost}`;
+    row.appendChild(costEl);
+
+    // ℹ️ opens the existing full-text modal (z-9999, above sheet + picker).
+    // It must not trigger a purchase — Buy is a separate button.
+    if (effectDesc) {
+      const info = document.createElement('span');
+      info.className = 'card-info-btn market-row-info';
+      info.dataset.effect = card.specialEffect;
+      info.title = 'Details';
+      info.setAttribute('role', 'button');
+      info.setAttribute('aria-label', `${card.cardName} details`);
+      info.textContent = 'ℹ️';
+      row.appendChild(info);
+    }
+
+    const buy = document.createElement('button');
+    buy.type = 'button';
+    buy.className = 'market-row-buy';
+    buy.textContent = transmitterActive ? 'Take' : 'Buy';
+    buy.disabled = locked;
+    if (!locked) {
+      buy.addEventListener('click', () => this._onMarketCardClicked(card));
+    }
+    row.appendChild(buy);
+
+    return row;
   }
 
   _makeCardShared(card, isMarket, isReserve, transmitterActive) {
@@ -526,11 +673,46 @@ class CardUI {
     // Live total + pooled count, e.g. "💰 2.5 · 3 pooled" — verifies yellow
     // (face value) + 0.5-value cards are both counted as tapped.
     if (this.totalEl) this.totalEl.textContent = `💰 ${power.toFixed(1)} · ${this._purchasePool.size} pooled`;
+    this._renderPoolChips();
     this._updateAffordability();
+  }
+
+  // Phone audit strip: pooled cards as removable chips (tap ✕ to un-pool).
+  // Desktop: no-op (container stays hidden).
+  _renderPoolChips() {
+    if (!this.poolChipsEl) return;
+    if (!(this._mode === 'market' && this._isPhoneView()) || this._purchasePool.size === 0) {
+      this.poolChipsEl.innerHTML = '';
+      this.poolChipsEl.classList.add('hidden');
+      return;
+    }
+    this.poolChipsEl.classList.remove('hidden');
+    this.poolChipsEl.innerHTML = '';
+    for (const [id, card] of this._purchasePool) {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'pool-chip';
+      chip.dataset.instanceId = id;
+      chip.setAttribute('aria-label', `Remove ${card.cardName || card.key} from pool`);
+      const label = document.createElement('span');
+      label.textContent = `${card.cardName || card.key} +${card.purchasingPower ?? 0}`;
+      const x = document.createElement('span');
+      x.className = 'pool-chip-x';
+      x.textContent = '✕';
+      chip.appendChild(label);
+      chip.appendChild(x);
+      chip.addEventListener('click', () => {
+        this._purchasePool.delete(id);
+        this._syncHandState();
+        this._updatePurchaseTotal();
+      });
+      this.poolChipsEl.appendChild(chip);
+    }
   }
 
   _updateAffordability() {
     const power = this._currentPurchasePower();
+    // Desktop full cards…
     this.shopEl.querySelectorAll('.market-card-wrapper:not(.empty):not(.reserve-locked)').forEach(wrapper => {
       const costEl = wrapper.querySelector('.cost-label');
       if (!costEl) return;
@@ -538,6 +720,17 @@ class CardUI {
       const affordable = power >= cost;
       wrapper.classList.toggle('cant-afford', !affordable);
       wrapper.classList.toggle('can-afford', affordable);
+    });
+    // …and phone compact rows (cost from .market-row-cost; FREE rows in
+    // Transmitter mode have no number and parse as NaN → always enabled).
+    this.shopEl.querySelectorAll('.market-row-item:not(.reserve-locked)').forEach(row => {
+      const costEl = row.querySelector('.market-row-cost');
+      const buyBtn = row.querySelector('.market-row-buy');
+      const cost = costEl ? parseFloat(costEl.textContent.replace(/[^0-9.]/g, '')) : NaN;
+      const affordable = Number.isNaN(cost) || power >= cost;
+      row.classList.toggle('cant-afford', !affordable);
+      row.classList.toggle('can-afford', affordable);
+      if (buyBtn) buyBtn.disabled = !affordable;
     });
   }
 
@@ -566,7 +759,15 @@ class CardUI {
     soldOutLbl.textContent = `Empty slot: ${soldOutKey.replace(/_/g, ' ')}`;
     container.innerHTML = '';
 
+    // Phone: compact rows (one-liner + ℹ️, same as market rows) — choosing
+    // the replacement is also a powers-informed decision. Desktop: cards.
+    const phone = this._isPhoneView();
+
     for (const card of reserveCards) {
+      if (phone) {
+        container.appendChild(this._makeReservePickRowEl(card, onChosen, overlay));
+        continue;
+      }
       const el    = this._makeMarketCardEl(card, true, true);
       const clean = el.cloneNode(true);
       clean.addEventListener('click', (e) => {
@@ -578,6 +779,50 @@ class CardUI {
     }
 
     overlay.classList.remove('hidden');
+  }
+
+  // Phone reserve-refill row: name + effect one-liner + ℹ️ (full modal) +
+  // Choose. Tapping ℹ️ must not choose — guarded like the desktop path.
+  _makeReservePickRowEl(card, onChosen, overlay) {
+    const row = document.createElement('div');
+    row.className = 'market-row-item reserve-pick-row';
+    row.dataset.cardKey = card.key;
+
+    const nameEl = document.createElement('span');
+    nameEl.className = 'market-row-name';
+    nameEl.textContent = card.cardName || card.key;
+    row.appendChild(nameEl);
+
+    const effectDesc = this._specialDescription(card.specialEffect);
+    if (effectDesc) {
+      const effEl = document.createElement('span');
+      effEl.className = 'market-row-effect';
+      effEl.textContent = effectDesc;
+      row.appendChild(effEl);
+    }
+
+    if (effectDesc) {
+      const info = document.createElement('span');
+      info.className = 'card-info-btn market-row-info';
+      info.dataset.effect = card.specialEffect;
+      info.title = 'Details';
+      info.setAttribute('role', 'button');
+      info.setAttribute('aria-label', `${card.cardName} details`);
+      info.textContent = 'ℹ️';
+      row.appendChild(info);
+    }
+
+    const choose = document.createElement('button');
+    choose.type = 'button';
+    choose.className = 'market-row-buy';
+    choose.textContent = 'Choose';
+    choose.addEventListener('click', () => {
+      onChosen(card.key);
+      overlay.classList.add('hidden');
+    });
+    row.appendChild(choose);
+
+    return row;
   }
 
   // ── Rubble payment mode ──────────────────────────────────────────────────
