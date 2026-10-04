@@ -104,6 +104,10 @@
         </div>
         <div id="hand-messages"></div>
       </div>
+      <!-- Toast notifications live inside the board pane so they can anchor
+           to the board's top-right corner (empty on this map) instead of
+           covering the middle tiles. See main.css #toast-container. -->
+      <div id="toast-container"></div>
     </div>
 
     <div id="hud">
@@ -169,9 +173,6 @@
     </div>
 
   </div>
-
-  <!-- Toast notification container -->
-  <div id="toast-container"></div>
 
   <div id="tutorial-screen" class="hidden">
     <div id="tutorial-backdrop"></div>

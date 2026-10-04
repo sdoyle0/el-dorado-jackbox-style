@@ -288,8 +288,11 @@ body.view-tv #zoom-controls {
   display: none;
 }
 
-/* TV toasts (turn changes, moves, purchases) read from the couch. */
+/* TV toasts (turn changes, moves, purchases) read from the couch. The board
+   pane is full-bleed here with no zoom controls, so pin to its top-right. */
 body.view-tv #toast-container {
+  top: 0.75rem;
+  right: 0.75rem;
   width: 560px;
 }
 
@@ -480,4 +483,16 @@ body.view-phone #hand-controls button {
 body.view-phone #end-turn-btn {
   border-color: var(--gold-mid);
   color: var(--gold-bright);
+}
+
+/* Phone has no board — the toast container lives inside the scrolling hand
+   pane, so re-pin it to the viewport top-right where it stays visible and
+   never covers the hand controls at the bottom. */
+body.view-phone #toast-container {
+  position: fixed;
+  top: 0.75rem;
+  right: 0.75rem;
+  left: 0.75rem;
+  width: auto;
+  max-width: none;
 }

@@ -1469,19 +1469,26 @@ body {
   50%       { stroke: rgba(255,238,0,0.75); stroke-width: 18; }
 }
 
-/* ── Toast notification system ───────────────────────────────────────────── */
+/* ── Toast notification system ─────────────────────────────────────────────
+   Anchored to the top-right corner of the board pane, which sits over empty
+   space on the current map — previously bottom-center, covering mid-board
+   tiles. #toast-container lives inside #board-and-hand-container
+   (position: relative), so `absolute` keeps it left of the HUD sidebar
+   regardless of HUD width. `top` clears the zoom controls row.
+   Future board configs: override per map, e.g.
+     body[data-board="next-map"] #toast-container { top: …; right: …; }
+   ───────────────────────────────────────────────────────────────────────── */
 #toast-container {
-  position: fixed;
-  bottom: 185px;
-  left: 50%;
-  transform: translateX(-50%);
+  position: absolute;
+  top: 3.5rem;
+  right: 0.75rem;
   display: flex;
   flex-direction: column-reverse;
   gap: 8px;
   z-index: 200;
   pointer-events: none;
   width: 380px;
-  max-width: 90vw;
+  max-width: calc(100% - 1.5rem);
 }
 
 .toast {
@@ -1497,7 +1504,7 @@ body {
   align-items: center;
   gap: 0.6rem;
   animation: toast-in 0.3s cubic-bezier(0.34,1.56,0.64,1) forwards;
-  transform-origin: bottom center;
+  transform-origin: top right;
 }
 
 .toast.toast-out {
@@ -1511,7 +1518,7 @@ body {
 .toast-info   { border-left-color: #3498db; border-left-width: 3px; }
 
 @keyframes toast-in {
-  from { opacity: 0; transform: translateY(12px) scale(0.94); }
+  from { opacity: 0; transform: translateY(-8px) scale(0.94); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 @keyframes toast-out {
