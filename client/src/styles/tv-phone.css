@@ -262,6 +262,15 @@ body.view-tv #final-round-banner {
   border-bottom-width: 3px;
 }
 
+/* Fixed banner would otherwise sit on top of the slim status strip.
+   Reserve its height while it exists, and push toasts below it. */
+body.view-tv:has(#final-round-banner) #game-screen.active {
+  padding-top: 4.4rem;
+}
+body.view-tv:has(#final-round-banner) #toast-container {
+  top: 5rem;
+}
+
 /* Game-won modal on TV: near-fullscreen card, huge result text. */
 body.view-tv #modal-box {
   max-width: 640px;
@@ -299,6 +308,12 @@ body.view-tv #toast-container {
 body.view-tv .toast {
   font-size: 1.2rem;
   padding: 1rem 1.25rem;
+}
+
+/* Phones have already joined via QR/scan — no need to show the join QR
+   again in the phone waiting room. TV + desktop keep it. */
+body.view-phone #join-qr-block {
+  display: none !important;
 }
 
 /* ── Phone: boardless hand terminal (board lives on TV) ───────────────────
@@ -515,4 +530,33 @@ body.view-phone:has(#final-round-banner) #game-screen.active {
 }
 body.view-phone:has(#final-round-banner) #toast-container {
   top: 2.9rem;
+}
+
+/* ── Phone persistent turn pill (HUD is hidden on phones) ────────────────
+   The "Your turn!" toast fades after a few seconds, so phones get a small
+   sticky pill pinned above the hand. JS updates its text/class in
+   updateTurnLabel(); hidden on TV/desktop. */
+#phone-turn-pill {
+  display: none;
+}
+body.view-phone #phone-turn-pill {
+  display: block;
+  order: -1;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 0.45rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-mid);
+  background: rgba(13, 17, 23, 0.9);
+  color: var(--text-mid);
+}
+body.view-phone #phone-turn-pill.is-my-turn {
+  border-color: var(--gold-mid);
+  color: var(--gold-bright);
+  background: rgba(255, 215, 0, 0.08);
 }

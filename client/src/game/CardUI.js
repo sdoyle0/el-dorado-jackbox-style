@@ -601,7 +601,7 @@ class CardUI {
     const oneTimeLine = card.oneTimeUse
       ? `<div class="card-onetime-line">❌</div>` : '';
 
-    const cardImage = `<img src="/shared/images/${card.key}.png" alt="${card.cardName}">`;
+    const cardImage = `<img src="/shared/images/${card.key}.png" alt="" loading="lazy" onerror="this.style.display='none'">`;
 
     const fullDesc = this._specialFullDescription(card.specialEffect);
 

@@ -88,6 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const logEl = document.getElementById('log-scroll');
   const boardEl = document.getElementById('hex-board');
   const handUI = document.getElementById('player-hand-ui');
+  const phoneTurnPill = document.getElementById('phone-turn-pill');
   const zoomInBtn = document.getElementById('zoom-in-btn');
   const zoomOutBtn = document.getElementById('zoom-out-btn');
 
@@ -1467,6 +1468,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const color = PAWN_COLORS[idx] || '#aaa';
 
     playerLabel.textContent = isMe ? '▶ Your turn' : `${p?.name || '?'}'s turn`;
+    if (phoneTurnPill) {
+      phoneTurnPill.textContent = isMe ? '▶ Your turn — play a card' : `Waiting for ${p?.name || '?'}…`;
+      phoneTurnPill.classList.toggle('is-my-turn', isMe);
+    }
     turnDot.style.background = color;
     turnBanner.style.color = color;
     turnBanner.style.borderColor = color;

@@ -383,18 +383,21 @@ class HexRenderer {
       g.appendChild(shimmerRing);
     }
 
-    g.addEventListener('click', () => this.onTileClick?.(tile.id));
+    if (!isMountain) g.addEventListener('click', () => this.onTileClick?.(tile.id));
     this.svg.appendChild(g);
     this.tileEls.set(tile.id, { g, poly, tile, badges });
   }
 
-  // Re-append every tile-badges group above everything else in the SVG, so
-  // cost/move numbers always paint over blockade planks. Called after any
-  // pass that appends planks (renderBlockades, setBreakableBlockades) and
-  // at the end of render().
+  // Re-append every tile-badges group above tile faces so cost/move numbers
+  // always paint over blockade planks — then re-append pawns so player
+  // tokens stay on top of the badges. Called after any pass that appends
+  // planks (renderBlockades, setBreakableBlockades) and at end of render().
   _raiseBadges() {
     for (const badges of this.svg.querySelectorAll('.tile-badges')) {
       this.svg.appendChild(badges);
+    }
+    for (const pawn of this.pawnEls.values()) {
+      if (pawn.isConnected) this.svg.appendChild(pawn);
     }
   }
 
@@ -446,7 +449,7 @@ class HexRenderer {
           badge = document.createElementNS(ns, 'g');
           badge.setAttribute('pointer-events', 'none');
           const bg = document.createElementNS(ns, 'circle');
-          bg.setAttribute('r', '24');
+          bg.setAttribute('r', '22');
           bg.setAttribute('fill', 'rgba(0,0,0,0.92)');
           bg.setAttribute('stroke', '#ffffff');
           bg.setAttribute('stroke-width', '3.5');
@@ -462,7 +465,7 @@ class HexRenderer {
           entry._moveBadge = badge;
           entry.badges.appendChild(badge);
         }
-        badge.setAttribute('transform', `translate(${cx},${cy - 30})`);
+        badge.setAttribute('transform', `translate(${cx},${cy - 34})`);
         const labelEl = badge.querySelector('text');
         if (labelEl) labelEl.textContent = String(numberById.get(id) ?? '');
         badge.style.display = '';
