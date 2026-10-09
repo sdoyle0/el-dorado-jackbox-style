@@ -713,6 +713,12 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   joinRoomBtn.addEventListener('click', () => {
+    // Same-tab double Join (first attempt looked dead, or a manual join
+    // racing Block 8 auto-rejoin) must not emit a second join_room.
+    if (client.roomId) {
+      showToast(`Already in room ${client.roomId} — waiting for the host to start.`, { icon: 'ℹ️', type: 'info' });
+      return;
+    }
     const name = getLobbyName();
     const code = roomCodeInput.value.trim().toUpperCase();
     if (!name) { setLobbyError('Enter your name first.'); return; }

@@ -426,6 +426,17 @@ class GameManager {
   joinRoom(socket, playerName, roomId, asSpectator = false) {
     const room = this.rooms.get(roomId.toUpperCase());
     if (!room) return { ok: false, error: 'Room not found' };
+    // Idempotent retry: the lobby re-enables Join after a response, so a
+    // second join_room from the same tab (first attempt looked dead, or a
+    // manual join racing Block 8 auto-rejoin) must not take a second seat.
+    // Reply success for the existing seat so the client lands in waiting.
+    if (!asSpectator) {
+      const existing = room.players.find(p => p.socketId === socket.id);
+      if (existing) {
+        this.playerRooms.set(socket.id, room.roomId);
+        return { ok: true, room, player: existing, duplicate: true };
+      }
+    }
     // Block 8: a refreshed phone reclaims its grace-held seat by name, even
     // mid-game. Spectators (e.g. a refreshed TV) may also join mid-game —
     // they hold no seat, so this is always safe.
