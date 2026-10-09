@@ -40,6 +40,12 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('create-room-section')?.style.setProperty('display', 'none');
     document.getElementById('lobby-divider-or')?.style.setProperty('display', 'none');
   }
+  // TV is host-only: it creates the room (as spectator-host), phones join by
+  // code/QR. The Join block is pointless here at best, confusing at worst.
+  if (VIEW === 'tv') {
+    document.getElementById('join-room-section')?.style.setProperty('display', 'none');
+    document.getElementById('lobby-divider-or')?.style.setProperty('display', 'none');
+  }
   // Phone is boardless: the board lives on the TV and is hidden on phones
   // via CSS (body.view-phone #board-container). Moves, blockades, and the
   // market all work through tappable lists, so there is no Show-board toggle.
