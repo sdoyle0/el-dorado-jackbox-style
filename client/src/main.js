@@ -127,6 +127,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // ── Toast ──────────────────────────────────────────────────────────────────
   function showToast(text, { icon = 'ℹ️', type = 'info', duration = 3500 } = {}) {
     const container = document.getElementById('toast-container');
+    // Cap stacked toasts: a flurry of events (or fast testing) shouldn't
+    // bury the UI. Oldest goes first; the rest fade on their own timers.
+    while (container.children.length >= 3) container.firstChild.remove();
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
     toast.innerHTML = `<span class="toast-icon">${icon}</span><span class="toast-text">${text}</span>`;
@@ -807,6 +810,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // but gets a new socket id; an expired seat vanishes. Merge by seat so the
   // TV legend + turn label track the server roster across refreshes.
   // (Pre-game allPlayers is empty — waiting-room flow above owns that.)
+  // Pawn tokens are keyed by socket id, so an id change or a removed seat
+  // orphans the old token — syncPawns drops ghosts and re-seats reclaimers
+  // (even when the tile is unchanged, e.g. still on the start tile).
   function syncRoster(players) {
     if (!players || allPlayers.length === 0) return;
     const bySeat = new Map(players.map(p => [p.playerNumber, p]));
@@ -825,6 +831,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return { ...p, ...fresh };
       });
+    renderer.syncPawns(allPlayers);
     if (turnIdChanged) updateTurnLabel(currentTurnPlayerId);
     else renderPlayerLegend(currentTurnPlayerId);
   }

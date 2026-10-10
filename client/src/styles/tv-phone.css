@@ -500,23 +500,45 @@ body.view-phone #end-turn-btn {
   color: var(--gold-bright);
 }
 
-/* Phone has no board — the toast container lives inside the scrolling hand
-   pane, so re-pin it to the viewport top-right where it stays visible and
-   never covers the hand controls at the bottom. */
+/* Phone toasts anchor to the viewport BOTTOM, not the top. Top-anchored
+   toasts sat on the sticky turn pill + first hand cards (the things you
+   need to read to act), and a couple stacked would bury several rows.
+   Bottom toasts still float over the action buttons briefly, but those
+   are tappable through (pointer-events:none on the container) and the
+   hand rows stay readable. pointer-events:none is inherited from main.css. */
 body.view-phone #toast-container {
   position: fixed;
-  top: 0.75rem;
+  top: auto;
+  bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
   right: 0.75rem;
   left: 0.75rem;
   width: auto;
   max-width: none;
+  flex-direction: column;
+}
+
+/* Bottom-anchored toasts slide up from the edge, not down from the top. */
+body.view-phone .toast {
+  transform-origin: bottom center;
+  animation: toast-in-bottom 0.3s cubic-bezier(0.34,1.56,0.64,1) forwards;
+}
+body.view-phone .toast.toast-out {
+  animation: toast-out-bottom 0.25s ease-in forwards;
+}
+@keyframes toast-in-bottom {
+  from { opacity: 0; transform: translateY(8px) scale(0.94); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes toast-out-bottom {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to   { opacity: 0; transform: translateY(8px) scale(0.96); }
 }
 
 /* Final-round banner on phones: compact single line + tap-to-dismiss (see
    main.js ensureFinalRoundBanner). The generic body:has() offset in main.css
    already pushes the game column down so the fixed banner never covers the
-   top hand card — here we just tighten the height to match the smaller text
-   and keep toasts below the banner instead of overlapping it. */
+   top hand card — here we just tighten the height to match the smaller text.
+   (Phone toasts live at the bottom, so the banner never overlaps them.) */
 body.view-phone #final-round-banner {
   font-size: 0.72rem;
   padding: 0.45rem 0.6rem;
@@ -528,9 +550,8 @@ body.view-phone #final-round-banner {
 body.view-phone:has(#final-round-banner) #game-screen.active {
   padding-top: 2.1rem;
 }
-body.view-phone:has(#final-round-banner) #toast-container {
-  top: 2.9rem;
-}
+/* Toasts live at the bottom on phones, so the top-fixed final-round banner
+   never overlaps them — no toast offset needed here. */
 
 /* ── Phone persistent turn pill (HUD is hidden on phones) ────────────────
    The "Your turn!" toast fades after a few seconds, so phones get a small

@@ -488,8 +488,12 @@ class HexRenderer {
   // ── Pawn rendering ───────────────────────────────────────────────────────
 
   setPawnPosition(playerId, tileId, colorIndex = 0) {
-    const existing = this.svg.querySelector(`[data-pawn="${CSS.escape(playerId)}"]`);
-    if (existing) existing.remove();
+    // Remove ALL existing tokens for this player (querySelector alone only
+    // drops the first match, so a past duplicate would leave a ghost behind).
+    for (const el of this.svg.querySelectorAll(`[data-pawn="${CSS.escape(playerId)}"]`)) {
+      el.remove();
+    }
+    this.pawnEls.delete(playerId);
 
     const entry = this.tileEls.get(tileId);
     if (!entry) return;
@@ -538,6 +542,38 @@ class HexRenderer {
 
     this.svg.appendChild(g);
     this.pawnEls.set(playerId, g);
+  }
+
+  // Remove one player's pawn token entirely (seat expired / removed).
+  removePawn(playerId) {
+    for (const el of this.svg.querySelectorAll(`[data-pawn="${CSS.escape(playerId)}"]`)) {
+      el.remove();
+    }
+    this.pawnEls.delete(playerId);
+  }
+
+  // Reconcile pawn tokens against the authoritative roster. Drops tokens for
+  // seats that are gone (expired disconnects) and (re)creates tokens for
+  // seats whose socket id changed on reclaim — a reclaim keeps the same
+  // playerNumber/tile but gets a NEW id, so the old token would otherwise
+  // sit on the start tile forever as a ghost while the new token moves.
+  // `players` is the roster in seat order (index = pawn colour).
+  syncPawns(players) {
+    const list = Array.isArray(players) ? players : [];
+    const wanted = new Set(list.map(p => p && p.id).filter(Boolean));
+    for (const el of [...this.svg.querySelectorAll('[data-pawn]')]) {
+      if (!wanted.has(el.getAttribute('data-pawn'))) el.remove();
+    }
+    for (const [key, el] of [...this.pawnEls]) {
+      if (!wanted.has(key) || !el.isConnected) this.pawnEls.delete(key);
+    }
+    list.forEach((p, i) => {
+      if (!p || !p.id || !p.currentTileId) return;
+      const known = this.pawnEls.get(p.id);
+      if (!known || !known.isConnected) {
+        this.setPawnPosition(p.id, p.currentTileId, i);
+      }
+    });
   }
 
   // ── Flash a tile briefly ─────────────────────────────────────────────────
