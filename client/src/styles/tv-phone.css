@@ -581,3 +581,42 @@ body.view-phone #phone-turn-pill.is-my-turn {
   color: var(--gold-bright);
   background: rgba(255, 215, 0, 0.08);
 }
+
+/* ── Phone market-open: reclaim hand chrome for market real estate ─────────
+   CardUI.openMarket()/closeMarket() toggles body.market-open. While buying,
+   the hand cards stay tappable for pooling, but everything else around them
+   is dead weight: the Market/End Turn/Discard buttons (Close in the market
+   header replaces Market; End Turn/Discard can't be used mid-pool — Discard
+   is already disabled in market mode, and End Turn with a pool open just
+   abandons it), the sticky turn pill (turn can't change mid-purchase — the
+   market closes on turn end), the move list (cleared on open), and the
+   message area (rubble/remove prompts are cancelled on open, so it sits
+   empty). Hiding them removes the blank stack below the hand that forced
+   the market sheet to scroll, and the flex:none kills the filler stretch.
+   Phone only — no bare .market-open selectors, so desktop/TV are untouched. */
+body.view-phone.market-open #hand-controls,
+body.view-phone.market-open #phone-turn-pill,
+body.view-phone.market-open #move-list-panel,
+body.view-phone.market-open #hand-messages {
+  display: none !important;
+}
+
+/* Sheet grows into the reclaimed space: ~6 shop rows + header + pool chips
+   fit without internal scrolling on most phones. Hand rows below stay on
+   the page scroll (market keeps its sticky pin). Must beat the injected
+   #market-phone-styles max-height:42dvh !important — same !important, later
+   stylesheet + higher specificity wins. */
+body.view-phone.market-open #card-market {
+  max-height: 72dvh !important;
+}
+
+/* Hand stops being a second nested scroller and just flows on the page. */
+body.view-phone.market-open #hand-cards {
+  max-height: none;
+  overflow-y: visible;
+}
+
+body.view-phone.market-open #board-and-hand-container,
+body.view-phone.market-open #player-hand-ui {
+  flex: none;
+}

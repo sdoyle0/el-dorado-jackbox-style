@@ -354,6 +354,10 @@ class CardUI {
     this._transmitterBonus = transmitterBonus;
     this._purchasePool.clear();
     this.marketEl.classList.remove('hidden');
+    // Phone reclaim: body.market-open lets view-phone CSS hide the hand
+    // chrome (buttons/pill/messages) and grow the sheet while buying.
+    // Scoped to phones via body.view-phone.market-open selectors — desktop/TV unaffected.
+    document.body?.classList?.add('market-open');
     this._setMode('market');
     // Transmitter forces the stacked combined view (Market + Reserve both
     // visible, tabs locked) — don't reset to the shop tab, that would hide
@@ -379,6 +383,7 @@ class CardUI {
     this._transmitterBonus = 0;
     this._purchasePool.clear();
     this.marketEl.classList.add('hidden');
+    document.body?.classList?.remove('market-open');
     this.poolChipsEl.innerHTML = '';
     this.poolChipsEl.classList.add('hidden');
     this._syncTransmitterChrome();
