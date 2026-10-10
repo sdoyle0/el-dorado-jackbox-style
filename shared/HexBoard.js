@@ -89,6 +89,20 @@ class HexBoard {
           handSize,
         });
       })
+      // Sort clockwise starting at north so move numbers read predictably
+      // around the pawn (1 = north, then clockwise). Previously the order
+      // followed AXIAL_DIRS ([1,0], [-1,0], …), which put 1 and 2 on
+      // opposite sides of the pawn and looked random.
+      // Pixel deltas match HexRenderer._center: cx = 75*q, cy = 43.3*q + 86.6*r.
+      .sort((a, b) => {
+        const angleFor = (n) => {
+          const dx = 75 * (n.q - tile.q);
+          const dy = 43.3 * (n.q - tile.q) + 86.6 * (n.r - tile.r);
+          const angle = Math.atan2(dx, -dy); // 0 = north, clockwise positive
+          return (angle + Math.PI * 2) % (Math.PI * 2);
+        };
+        return angleFor(a) - angleFor(b);
+      })
       .map((neighbor) => neighbor.id);
   }
 
