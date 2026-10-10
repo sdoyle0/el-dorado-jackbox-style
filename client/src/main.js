@@ -213,24 +213,23 @@ document.addEventListener('DOMContentLoaded', () => {
       #move-list-header { font-size: 0.78rem; font-weight: 700; color: #ffd700;
         letter-spacing: 0.03em; }
       #move-list-sub { font-size: 0.7rem; color: #9aabbf; }
-      #move-list { display: flex; flex-direction: column; gap: 0.4rem;
-        max-height: 220px; overflow-y: auto; }
-      .move-dest-btn { display: flex; align-items: center; gap: 0.5rem;
-        width: 100%; min-height: 44px; padding: 0.55rem 0.75rem;
+      #move-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+        gap: 0.5rem; max-height: 240px; overflow-y: auto; }
+      .move-dest-btn { display: flex; flex-direction: column; align-items: center;
+        justify-content: center; gap: 0.15rem;
+        width: 100%; min-height: 68px; padding: 0.5rem 0.4rem;
         border: 1px solid var(--border-mid, rgba(201,162,39,0.32));
-        background: rgba(22,39,61,0.9); color: #e8e0d0; border-radius: 6px;
-        cursor: pointer; font-size: 0.9rem; font-weight: 600; text-align: left; }
+        background: rgba(22,39,61,0.9); color: #e8e0d0; border-radius: 10px;
+        cursor: pointer; font-weight: 600; text-align: center; }
       .move-dest-btn:hover { background: #1e3352; border-color: #c9a227; }
       .move-dest-btn:active { transform: translateY(1px); }
       .move-dest-num { display: inline-grid; place-items: center;
-        min-width: 28px; height: 28px; border-radius: 50%;
+        min-width: 40px; height: 40px; border-radius: 50%;
         background: #000; color: #fff; border: 2px solid #fff;
-        font-size: 0.95rem; font-weight: 800; flex-shrink: 0; }
-      .move-dest-icon { font-size: 1.1rem; }
-      .move-dest-tile { font-variant-numeric: tabular-nums; font-size: 0.72rem;
-        color: #9aabbf; font-weight: 500; }
-      .move-dest-meta { margin-left: auto; font-size: 0.75rem; color: #9aabbf;
-        font-weight: 500; white-space: nowrap; }
+        font-size: 1.35rem; font-weight: 800; flex-shrink: 0; }
+      .move-dest-hint { font-size: 0.7rem; color: #9aabbf;
+        font-weight: 600; white-space: nowrap; line-height: 1.1; }
+      .move-dest-hint.is-warn { color: #ffcf9e; }
       .move-empty { font-size: 0.82rem; color: #ffaaaa; font-style: italic;
         padding: 0.35rem 0.1rem; }
       /* Block 6: breakable blockades share the move-list panel so the
@@ -318,11 +317,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const cardName = selectedCard?.cardName || selectedCard?.key || 'card';
     const moveCount = validMoves ? validMoves.length : 0;
     const blockadeCount = breakableIds ? breakableIds.length : 0;
-    const parts = [];
-    if (moveCount > 0) parts.push(`${moveCount} move${moveCount === 1 ? '' : 's'}`);
-    if (blockadeCount > 0) parts.push(`${blockadeCount} blockade${blockadeCount === 1 ? '' : 's'}`);
-    panel.querySelector('#move-list-header').textContent =
-      parts.length > 0 ? `Choose — ${cardName} (${parts.join(', ')})` : `Choose — ${cardName}`;
+    // Budget tells a Jungle ×3 → ×1 question at a glance: header shows what
+    // is left, each button's tiny hint shows what that option costs.
+    const budget = (moveMovementTotal > 0 && typeof moveMovesRemaining === 'number')
+      ? ` · ${moveMovesRemaining} left`
+      : '';
+    panel.querySelector('#move-list-header').textContent = `Choose — ${cardName}${budget}`;
     listEl.innerHTML = '';
     blockadeListEl.innerHTML = '';
     if (!validMoves || validMoves.length === 0) {
@@ -332,7 +332,7 @@ document.addEventListener('DOMContentLoaded', () => {
       empty.textContent = 'No valid moves';
       listEl.appendChild(empty);
     } else {
-      subEl.textContent = 'Match the number on the TV board, then tap.';
+      subEl.textContent = `Match the number on the TV, then tap.`;
       validMoves.forEach((tileId, i) => {
         const num = i + 1; // must match HexRenderer badge: position in payload
         const { terrain, icon, cost } = moveLabelFor(tileId);
@@ -343,27 +343,24 @@ document.addEventListener('DOMContentLoaded', () => {
         const numSpan = document.createElement('span');
         numSpan.className = 'move-dest-num';
         numSpan.textContent = String(num);
-        const iconSpan = document.createElement('span');
-        iconSpan.className = 'move-dest-icon';
-        iconSpan.textContent = icon;
-        const tileSpan = document.createElement('span');
-        tileSpan.className = 'move-dest-tile';
-        tileSpan.textContent = tileId;
-        const metaSpan = document.createElement('span');
-        metaSpan.className = 'move-dest-meta';
-        // Block 6: camp/rubble hints so boardless phones know the toll.
+        const hintSpan = document.createElement('span');
+        hintSpan.className = 'move-dest-hint';
+        // Tiny hint only — full "Jungle ×1" text and hex IDs are gone.
         // Camp removes the played card; cost-2+ rubble needs extra cards.
         if (terrain === 'camp') {
-          metaSpan.textContent = '⛺ camp · removes card';
+          hintSpan.textContent = '⛺ camp';
+          hintSpan.classList.add('is-warn');
+          hintSpan.title = 'Camp removes the played card';
         } else if (terrain === 'rubble' && Number(cost) > 1) {
-          metaSpan.textContent = `rubble ×${cost} +${Number(cost) - 1} toll`;
+          hintSpan.textContent = `🪨 ×${cost} +${Number(cost) - 1}`;
+          hintSpan.classList.add('is-warn');
+          hintSpan.title = `Rubble needs ${Number(cost) - 1} extra card(s)`;
         } else {
-          metaSpan.textContent = `${terrain} ×${cost}`;
+          hintSpan.textContent = `${icon} ×${cost}`;
+          hintSpan.title = `${terrain} cost ${cost}`;
         }
         btn.appendChild(numSpan);
-        btn.appendChild(iconSpan);
-        btn.appendChild(tileSpan);
-        btn.appendChild(metaSpan);
+        btn.appendChild(hintSpan);
         btn.setAttribute('aria-label', `Option ${num}: ${terrain} cost ${cost} at ${tileId}`);
         btn.addEventListener('click', () => attemptMoveToTile(tileId));
         listEl.appendChild(btn);
