@@ -1281,6 +1281,9 @@ document.addEventListener('DOMContentLoaded', () => {
     snapshotReceived = true;
     if (rejoinFallbackTimer) { clearTimeout(rejoinFallbackTimer); rejoinFallbackTimer = null; }
     showScreen('game');
+    // Refresh/reconnect path (not game_started): re-ensure the debug panel
+    // so ?debug testers keep it after a phone refresh. No-op if present.
+    if (DEBUG) appendDebugPanel();
     allPlayers = snap.players || [];
     clientBoard.loadMap({ tiles: snap.tiles || [] });
 
@@ -1793,12 +1796,18 @@ document.addEventListener('DOMContentLoaded', () => {
   })();
 
   // ── Debug mode ─────────────────────────────────────────────────────────────
+  // The panel is permanent + in-flow (see CSS): created on boot when ?debug
+  // is present so it survives refresh/reconnect (game_snapshot path), not
+  // just the first game_started. appendDebugPanel() is idempotent — safe to
+  // call from all three sites.
+  const DEBUG_COLLAPSE_KEY = 'eldorado.debug-collapsed';
   if (DEBUG) {
     const _origOnGameStarted = client.onGameStarted;
     client.onGameStarted = (data) => {
       _origOnGameStarted(data);
       appendDebugPanel();
     };
+    appendDebugPanel();
   }
 
   function appendDebugPanel() {
@@ -1806,32 +1815,54 @@ document.addEventListener('DOMContentLoaded', () => {
     const panel = document.createElement('div');
     panel.id = 'debug-panel';
     panel.innerHTML = `
-      <button id="debug-toggle-btn" title="Minimize debug panel">—</button>
-      <div class="debug-row">
-        <input id="debug-hand-input" placeholder="explorer,scout,transmitter" />
-        <button id="debug-set-hand-btn">Set Hand</button>
+      <div class="debug-header">
+        <span class="debug-title">🛠 DEBUG</span>
+        <button id="debug-toggle-btn" title="Minimize debug panel">—</button>
       </div>
-      <div class="debug-row">
-        <input id="debug-tile-input" placeholder="tile id e.g. 5_-11" />
-        <button id="debug-teleport-btn">Teleport</button>
-      </div>
-      <div class="debug-row">
-        <span class="debug-presets-label">Presets:</span>
-        <button class="debug-preset" data-hand="transmitter,scout,scout,explorer">Transmitter</button>
-        <button class="debug-preset" data-hand="pioneer,giant_machete,adventurer,prop_plane">Speed run</button>
-        <button class="debug-preset" data-hand="scientist,travel_log,cartographer,compass">Purple hand</button>
-      </div>
-      <div>
-        <button id="debug-btn">Debug State</button>
+      <div class="debug-body">
+        <div class="debug-row">
+          <input id="debug-hand-input" placeholder="explorer,scout,transmitter" />
+          <button id="debug-set-hand-btn">Set Hand</button>
+        </div>
+        <div class="debug-row">
+          <input id="debug-tile-input" placeholder="tile id e.g. 5_-11" />
+          <button id="debug-teleport-btn">Teleport</button>
+        </div>
+        <div class="debug-row">
+          <span class="debug-presets-label">Presets:</span>
+          <button class="debug-preset" data-hand="transmitter,scout,scout,explorer">Transmitter</button>
+          <button class="debug-preset" data-hand="pioneer,giant_machete,adventurer,prop_plane">Speed run</button>
+          <button class="debug-preset" data-hand="scientist,travel_log,cartographer,compass">Purple hand</button>
+        </div>
+        <div>
+          <button id="debug-btn">Debug State</button>
+        </div>
       </div>`;
-    document.getElementById('game-screen').appendChild(panel);
+    // Prepend (not append) so the sticky-top phone bar docks above the hand
+    // instead of after the modals. Fixed-position desktop is unaffected
+    // (out of flow either way).
+    const gameScreen = document.getElementById('game-screen');
+    gameScreen.prepend(panel);
 
     const toggleBtn = document.getElementById('debug-toggle-btn');
-    toggleBtn.addEventListener('click', () => {
-      const collapsed = panel.classList.toggle('collapsed');
-      toggleBtn.textContent = collapsed ? '▲' : '—';
+    const applyCollapsed = (collapsed) => {
+      panel.classList.toggle('collapsed', collapsed);
+      toggleBtn.textContent = collapsed ? '+' : '—';
       toggleBtn.title = collapsed ? 'Expand debug panel' : 'Minimize debug panel';
+      try { sessionStorage.setItem(DEBUG_COLLAPSE_KEY, collapsed ? '1' : '0'); } catch (e) {}
+    };
+    toggleBtn.addEventListener('click', () => {
+      applyCollapsed(!panel.classList.contains('collapsed'));
     });
+    // Restore last state; default collapsed on phones (small screen), open
+    // elsewhere so desktop testers see it immediately.
+    let startCollapsed = VIEW === 'phone';
+    try {
+      const saved = sessionStorage.getItem(DEBUG_COLLAPSE_KEY);
+      if (saved === '1') startCollapsed = true;
+      else if (saved === '0') startCollapsed = false;
+    } catch (e) {}
+    applyCollapsed(startCollapsed);
 
     document.getElementById('debug-set-hand-btn').addEventListener('click', () => {
       const val = document.getElementById('debug-hand-input').value.trim();
@@ -1850,10 +1881,16 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     document.getElementById('debug-btn').addEventListener('click', () => client.debugState());
 
-    const _origTileClick = renderer.onTileClick;
-    renderer.onTileClick = (tileId, event) => {
-      if (event?.shiftKey) { client.debugTeleport(tileId); return; }
-      _origTileClick?.(tileId);
-    };
+    // Shift-click a tile to teleport there. Wrap once: appendDebugPanel() is
+    // idempotent so this normally runs a single time, but the flag keeps a
+    // future re-entry from double-wrapping and swallowing clicks.
+    if (!renderer._debugTileClickWrapped) {
+      renderer._debugTileClickWrapped = true;
+      const _origTileClick = renderer.onTileClick;
+      renderer.onTileClick = (tileId, event) => {
+        if (event?.shiftKey) { client.debugTeleport(tileId); return; }
+        _origTileClick?.(tileId);
+      };
+    }
   }
 });

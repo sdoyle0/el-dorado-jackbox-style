@@ -1487,34 +1487,14 @@ body.view-phone .market-onetime-pill {
 .reserve-card-btn:hover { transform: translateY(-2px); }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   DEBUG PANEL
+   DEBUG PANEL — permanent in-flow bar, not a floating overlay
+   Lives as the first child of #game-screen (prepended by main.js). Desktop
+   keeps it as a small fixed corner card; phones override it to a sticky
+   top bar in tv-phone.css so it pushes content down instead of covering
+   the hand. Collapsed = slim labeled bar (header only), never an empty
+   red-bordered sliver.
 ───────────────────────────────────────────────────────────────────────────── */
-#debug-toggle-btn {
-  position: absolute;
-  top: 0;
-  right: -30px;
-  background: rgba(192,57,43,0.8);
-  border: 1px solid #c0392b;
-  border-radius: 0 var(--radius-md) 0 var(--radius-sm);
-  color: #e74c3c;
-  cursor: pointer;
-  font-size: 0.65rem;
-  font-family: 'Inter', sans-serif;
-  padding: 2px 6px;
-  line-height: 1.4;
-  transition: background 0.15s;
-}
-#debug-toggle-btn:hover { background: rgba(192,57,43,1); color: #fff; }
-
-#debug-panel.collapsed .debug-row,
-#debug-panel.collapsed > div:last-child { display: none; }
-
-#debug-panel.collapsed {
-  padding: 0;
-}
-
 #debug-panel {
-  display: none;
   position: fixed;
   top: 50px;
   left: 5px;
@@ -1528,6 +1508,46 @@ body.view-phone .market-onetime-pill {
   gap: 0.4rem;
   font-size: 0.72rem;
   backdrop-filter: blur(8px);
+  box-sizing: border-box;
+}
+.debug-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.debug-title {
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #e74c3c;
+  font-size: 0.7rem;
+}
+.debug-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+#debug-toggle-btn {
+  background: rgba(192,57,43,0.8);
+  border: 1px solid #c0392b;
+  border-radius: var(--radius-sm);
+  color: #ffd9d4;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 800;
+  font-family: 'Inter', sans-serif;
+  padding: 2px 10px;
+  line-height: 1.4;
+  min-width: 36px;
+  min-height: 28px;
+  transition: background 0.15s;
+}
+#debug-toggle-btn:hover { background: rgba(192,57,43,1); color: #fff; }
+
+#debug-panel.collapsed .debug-body { display: none; }
+
+#debug-panel.collapsed {
+  padding: 0.3rem 0.5rem;
 }
 .debug-row { display: flex; gap: 0.4rem; align-items: center; }
 #debug-panel input {

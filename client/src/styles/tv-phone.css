@@ -642,3 +642,40 @@ body.view-phone.market-open #hand-cards {
   overflow-y: auto;
   overflow-x: hidden;
 }
+
+/* ── Phone debug bar: permanent in-flow sticky strip, not an overlay ─────
+   Desktop keeps the small fixed corner card (main.css). On phones the
+   fixed card covered the hand/market rows, so here it docks as the first
+   in-flow item of the column game screen: sticky to the top, full width,
+   pushing content down instead of floating over it. Collapsed (the phone
+   default — see main.js) it's one slim 🛠 DEBUG bar; expand for inputs. */
+body.view-phone #debug-panel {
+  position: sticky;
+  top: 0;
+  left: auto;
+  order: -1;
+  flex: none;
+  width: auto;
+  margin: 0;
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  z-index: 30;
+}
+body.view-phone #debug-panel .debug-row {
+  flex-wrap: wrap;
+}
+body.view-phone #debug-panel input {
+  flex: 1 1 140px;
+  width: auto;
+  min-height: 44px;
+  font-size: 0.85rem;
+}
+body.view-phone #debug-panel button {
+  min-height: 44px;
+  font-size: 0.85rem;
+}
+body.view-phone #debug-toggle-btn {
+  min-width: 44px;
+}
