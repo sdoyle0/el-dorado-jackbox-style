@@ -1011,7 +1011,26 @@ body.view-phone .market-onetime-pill {
 .card-effect-line {
   font-size: 0.65rem;
   line-height: 1.3;
-  opacity: 0.85;
+  opacity: 0.95;
+  padding: 3px 7px 4px;
+  text-align: left;
+}
+.card-btn.terrain-jungle .card-effect-line,
+.market-card.terrain-jungle .card-effect-line   { background: #163d16; color: #b0deb0; }
+.card-btn.terrain-water .card-effect-line,
+.market-card.terrain-water .card-effect-line     { background: #0e3a6e; color: #b0ceee; }
+.card-btn.terrain-village .card-effect-line,
+.market-card.terrain-village .card-effect-line   { background: #7a5e00; color: #ffd966; }
+.card-btn.terrain-wild .card-effect-line,
+.market-card.terrain-wild .card-effect-line       { background: #1e1e1e; color: #b0b0b0; }
+.card-btn.terrain-empty .card-effect-line,
+.market-card.terrain-empty .card-effect-line     { background: #180630; color: #b8a0e0; }
+
+/* Inline reminder inside the header strip — phone hand rows only (enabled
+   in tv-phone.css). Hidden everywhere else so desktop art cards keep the
+   block line below the header. */
+.card-effect-inline {
+  display: none;
 }
 
 /* ── Terrain colour themes ────────────────────────────────────────────────── */

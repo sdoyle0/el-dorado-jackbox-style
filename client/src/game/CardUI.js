@@ -679,6 +679,11 @@ class CardUI {
     const effectDesc = this._specialDescription(card.specialEffect);
     const effectLine = effectDesc
       ? `<div class="card-effect-line">${effectDesc}</div>` : '';
+    // Phone hand rows are single-line: the same one-liner lives inside the
+    // header strip (right of the name) so the card doesn't grow taller.
+    // Desktop keeps the block line below the header (hidden on phone).
+    const effectInline = effectDesc
+      ? `<span class="card-effect-inline">${effectDesc}</span>` : '';
 
     // One-time-use indicator — explicit text pill, not just an icon, so it
     // reads at a glance in the hand, the market, and the reserve picker
@@ -707,9 +712,11 @@ class CardUI {
       ${infoBtn}
       <div class="card-header-strip">
         <span class="card-name">${card.cardName}</span>
+        ${effectInline}
         ${oneTimePill}
         ${movesLine}
       </div>
+      ${effectLine}
       <div class="card-body-area">
         ${cardImage}
         ${oneTimeLine}

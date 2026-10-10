@@ -425,6 +425,26 @@ body.view-phone #hand-cards .card-stat-line {
   white-space: nowrap;
 }
 
+/* Purple reminder lives inside the header row (right of the name) so the
+   row keeps its 60px height. It inherits the header's purple background —
+   no separate band. The block line below the header is desktop-only. */
+body.view-phone #hand-cards .card-effect-line {
+  display: none;
+}
+body.view-phone #hand-cards .card-effect-inline {
+  display: inline;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.25;
+  opacity: 0.75;
+}
+
 /* ℹ️ stays tappable without covering the movement stat: vertically centred
    in a reserved gutter, only on cards that have one. The reservation lives
    on the header strip (the terrain-coloured surface) rather than the button
