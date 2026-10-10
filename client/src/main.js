@@ -1229,13 +1229,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     showToast('Final round! Someone reached El Dorado.', { icon: '🏆', type: 'accent', duration: 6000 });
 
+    // No modal: nobody is at the TV/laptop to click OK once play has started,
+    // the banner already announces the final round, and a modal would block
+    // the acting player's final turn on phones until dismissed.
     if (client.playerId === triggeredByPlayerId) {
       const msg = '🏆 You reached El Dorado! Other players take their final turn.';
-      showModal(msg);
       log(msg, 'win');
     } else {
       const msg = `${triggerName} reached El Dorado! Take your final turn.`;
-      showModal(msg);
       log(msg, 'warn');
     }
   };
