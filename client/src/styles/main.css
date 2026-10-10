@@ -1161,6 +1161,73 @@ body {
   display: none;
 }
 
+/* ── Transmitter combined view: Market + Reserve stacked, tabs locked ──────
+   Normal purchases keep the tab-gated single-section layout above (less
+   scrolling). Transmitter makes BOTH sections buyable, so hiding one behind
+   a tab left players unaware the reserve was also a free pick. While
+   .transmitter-active is set, force both sections visible and stacked —
+   same pattern the TV sidebar already uses. The #card-market prefix outranks
+   the tab-gating selectors above regardless of .show-reserve state. */
+#card-market #shop-slots.transmitter-active {
+  flex-direction: column;
+  overflow-y: auto;
+}
+#card-market #shop-slots.transmitter-active:not(.show-reserve) .market-reserve-section,
+#card-market #shop-slots.transmitter-active.show-reserve .market-reserve-section,
+#card-market #shop-slots.transmitter-active.show-reserve .market-available-section {
+  display: block;
+}
+#card-market #shop-slots.transmitter-active .market-available-section {
+  flex: none;
+}
+#card-market #shop-slots.transmitter-active .market-reserve-section {
+  flex: none;
+  border-left: none;
+  border-top: 1px solid var(--border);
+  padding-left: 0;
+  padding-top: 0.25rem;
+  background: none;
+  max-width: none;
+}
+.market-tab.transmitter-hidden { display: none; }
+
+#transmitter-banner {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #ffe066;
+  background: rgba(201,162,39,0.15);
+  border: 1px solid var(--gold-mid, #c9a227);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.7rem;
+  margin: 0.1rem 0 0.5rem;
+  text-align: center;
+  line-height: 1.4;
+}
+#transmitter-banner.hidden { display: none; }
+
+/* Transmitter section headers read as free-pick signposts, not dim labels. */
+#shop-slots.transmitter-active .market-section-header {
+  color: #ffe066;
+  justify-content: flex-start;
+}
+
+/* Desktop FREE price tag + free-pick outline (the normal can-afford green
+   is explicitly disabled for .transmitter-active, so give free picks their
+   own gold treatment instead of leaving them unmarked). */
+.cost-label.free {
+  color: #ffe066;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+#shop-slots.transmitter-active .market-card-wrapper {
+  box-shadow: 0 0 0 2px rgba(255,224,102,0.85), 0 2px 10px rgba(255,224,102,0.2);
+  border-radius: var(--radius-sm);
+}
+#shop-slots.transmitter-active .market-card-wrapper:hover {
+  box-shadow: 0 0 0 2px #ffe066, 0 4px 14px rgba(255,224,102,0.35);
+}
+
 .market-card-info {
     display: flex;
     justify-content: space-between;

@@ -24,6 +24,18 @@ class CardUI {
     this.poolChipsEl.className = 'hidden';
     document.getElementById('market-header')?.after(this.poolChipsEl);
 
+    // Transmitter free-pick banner (created once, shown only when the
+    // Transmitter bonus is active). Makes it explicit that BOTH the market
+    // and the reserve below are free picks — previously the reserve was
+    // hidden behind a tab with no indication it was also selectable.
+    this.transmitterBannerEl = document.createElement('div');
+    this.transmitterBannerEl.id = 'transmitter-banner';
+    this.transmitterBannerEl.className = 'hidden';
+    this.transmitterBannerEl.setAttribute('role', 'status');
+    this.transmitterBannerEl.textContent =
+      '📡 Transmitter — pick ANY card FREE, Market + Reserve below';
+    this.poolChipsEl?.before(this.transmitterBannerEl);
+
     // Callbacks — set by main.js
     this.onCardPlayed     = null; // (instanceId) — play for movement
     this.onMarketCard     = null; // ({ cardKey, handCardsUsed }) — purchase
@@ -343,7 +355,18 @@ class CardUI {
     this._purchasePool.clear();
     this.marketEl.classList.remove('hidden');
     this._setMode('market');
-    this._changeMarketView(false);
+    // Transmitter forces the stacked combined view (Market + Reserve both
+    // visible, tabs locked) — don't reset to the shop tab, that would hide
+    // the reserve again. Normal opens keep the tab behaviour.
+    if (!(transmitterBonus > 0)) {
+      this._changeMarketView(false);
+    } else {
+      this._setMarketView('shop');
+      this._getMarketShopButton().classList.add('active');
+      this._getMarketReserveButton().classList.remove('active');
+      this.shopEl.classList.remove('show-reserve');
+    }
+    this._syncTransmitterChrome();
     if (this._lastMarket) this.renderMarket(this._lastMarket);
     this._updatePurchaseTotal();
     // Bonus > 0 is the server-driven Transmitter free pick (the played card
@@ -358,6 +381,7 @@ class CardUI {
     this.marketEl.classList.add('hidden');
     this.poolChipsEl.innerHTML = '';
     this.poolChipsEl.classList.add('hidden');
+    this._syncTransmitterChrome();
     this._setMode('movement');
     this.onMarketClosed?.();
   }
@@ -367,6 +391,9 @@ class CardUI {
   }
 
   _changeMarketView(isReserve) {
+    // Transmitter locks the stacked combined view — tab taps must not hide
+    // either section while the free pick is pending.
+    if (this._transmitterBonus > 0) return;
     if (this._marketView === (isReserve ? 'reserve' : 'shop')) return;
     
     this._setMarketView(isReserve);
@@ -374,6 +401,16 @@ class CardUI {
     this._getMarketReserveButton().classList.toggle('active', isReserve);
 
     this.shopEl.classList.toggle('show-reserve', isReserve);
+  }
+
+  // Show/hide the Transmitter banner + lock/hide the Market/Reserve tabs.
+  // Called from openMarket/closeMarket/renderMarket so re-renders can't
+  // desync the chrome from the bonus state.
+  _syncTransmitterChrome() {
+    const active = this._transmitterBonus > 0;
+    this.transmitterBannerEl?.classList.toggle('hidden', !active);
+    this._getMarketShopButton()?.classList.toggle('transmitter-hidden', active);
+    this._getMarketReserveButton()?.classList.toggle('transmitter-hidden', active);
   }
 
   _getMarketShopButton() {
@@ -427,16 +464,27 @@ class CardUI {
     const isTransmitter = this._transmitterBonus > 0;
 
     this.shopEl.classList.toggle('transmitter-active', isTransmitter);
+    this._syncTransmitterChrome();
 
     const shopAvailable = document.createElement('div');
     shopAvailable.className = 'market-available-section';
+
+    // In Transmitter combined view both sections are visible at once, so
+    // label the market half explicitly — otherwise the reserve header is
+    // the only signpost on screen.
+    if (isTransmitter) {
+      const shopHeader = document.createElement('div');
+      shopHeader.className = 'market-section-header market-shop-header';
+      shopHeader.textContent = 'Market — FREE pick';
+      shopAvailable.appendChild(shopHeader);
+    }
 
     const shopRow = document.createElement('div');
     shopRow.className = 'market-row';
     shopAvailable.appendChild(shopRow);
     
     for (const card of (market?.shop ?? [])) {
-      shopRow.appendChild(this._makeMarketCardEl(card, false));
+      shopRow.appendChild(this._makeMarketCardEl(card, false, isTransmitter));
     }
     
     this.shopEl.appendChild(shopAvailable);
@@ -449,7 +497,7 @@ class CardUI {
       const reserveHeader = document.createElement('div');
       reserveHeader.className = 'market-section-header market-reserve-header';
       reserveHeader.textContent = isTransmitter
-        ? 'Reserve (Transmitter: buyable)'
+        ? 'Reserve — also FREE pick'
         : 'Reserve (not yet available)';
       shopReserve.appendChild(reserveHeader);
 
@@ -476,9 +524,17 @@ class CardUI {
     this.shopEl.innerHTML = '';
     const isTransmitter = this._transmitterBonus > 0;
     this.shopEl.classList.toggle('transmitter-active', isTransmitter);
+    this._syncTransmitterChrome();
 
     const shopAvailable = document.createElement('div');
     shopAvailable.className = 'market-available-section';
+
+    if (isTransmitter) {
+      const shopHeader = document.createElement('div');
+      shopHeader.className = 'market-section-header market-shop-header';
+      shopHeader.textContent = 'Market — FREE pick';
+      shopAvailable.appendChild(shopHeader);
+    }
 
     const shopList = document.createElement('div');
     shopList.className = 'market-row-list';
@@ -497,7 +553,7 @@ class CardUI {
       const reserveHeader = document.createElement('div');
       reserveHeader.className = 'market-section-header market-reserve-header';
       reserveHeader.textContent = isTransmitter
-        ? 'Reserve (Transmitter: buyable)'
+        ? 'Reserve — also FREE pick'
         : 'Reserve (not yet available)';
       shopReserve.appendChild(reserveHeader);
 
@@ -635,8 +691,8 @@ class CardUI {
       wrapperElem.className = 'market-card-wrapper';
       
       const costElem = document.createElement('div');
-      costElem.className = 'cost-label';
-      costElem.textContent = `💰 ${card.cost}`;
+      costElem.className = 'cost-label' + (transmitterActive ? ' free' : '');
+      costElem.textContent = transmitterActive ? 'FREE' : `💰 ${card.cost}`;
 
       const remainingElem = document.createElement('div');
       remainingElem.className = 'cards-remaining';
@@ -769,6 +825,8 @@ class CardUI {
 
   updatePurchaseTotal(total) {
     this._transmitterBonus = total;
+    this._syncTransmitterChrome();
+    if (this._lastMarket) this.renderMarket(this._lastMarket);
     this._updatePurchaseTotal();
   }
 

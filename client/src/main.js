@@ -1351,9 +1351,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // TV (spectator) and opponent phones ignore it and stay display-only.
     if (!isMyActingTurn()) return;
     cardUI.openMarketWithBonus(totalPurchasePower);
-    if (VIEW === 'phone') {
-      showToast('Transmitter: pick any market card FREE.', { icon: '📡', type: 'accent' });
-    }
+    showToast('Transmitter: pick ANY card FREE — Market + Reserve below.', { icon: '📡', type: 'accent' });
   };
   client.onPurchaseClosed = (data = {}) => {
     // Only the buyer closes; opponent/TV overlays (if any) are untouched.
