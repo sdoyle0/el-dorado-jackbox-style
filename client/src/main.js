@@ -1370,11 +1370,14 @@ document.addEventListener('DOMContentLoaded', () => {
       /* Compact rows replace card art on phone. */
       body.view-phone .market-row-list { display: flex; flex-direction: column;
         gap: 0.35rem; }
-      body.view-phone .market-row-item { display: flex; align-items: center;
-        flex-wrap: wrap; row-gap: 0.2rem; gap: 0.5rem; min-height: 44px; padding: 0.35rem 0.55rem;
+      body.view-phone .market-row-item { display: flex; flex-direction: column;
+        align-items: stretch; gap: 0.2rem; min-height: 44px; padding: 0.35rem 0.55rem;
         border: 1px solid var(--border-mid, rgba(201,162,39,0.32));
         border-left-width: 4px;
         background: rgba(22,39,61,0.9); color: #e8e0d0; border-radius: 8px; }
+      /* Line 1: same slots for every card (dot · name · [moves] · left · cost · Buy).
+         Line 2 (specials only): ℹ️ + effect one-liner grouped on the left,
+         clear of the Buy button above. */
       /* Terrain colour reference: dot + left border per card terrain. */
       body.view-phone .market-row-item.terrain-jungle { border-left-color: #4cff4c; }
       body.view-phone .market-row-item.terrain-water { border-left-color: #4a9ae8; }
@@ -1388,6 +1391,11 @@ document.addEventListener('DOMContentLoaded', () => {
       body.view-phone .market-row-item.terrain-village .market-row-dot { background: #ffd700; }
       body.view-phone .market-row-item.terrain-wild .market-row-dot { background: #888888; }
       body.view-phone .market-row-item.terrain-empty .market-row-dot { background: #9050e0; }
+      body.view-phone .market-row-main { display: flex; align-items: center;
+        gap: 0.5rem; width: 100%; }
+      body.view-phone .market-row-sub { display: flex; align-items: center;
+        gap: 0.5rem; width: 100%; padding-left: 0; }
+      body.view-phone .market-row-sub .market-row-effect { flex: 1 1 auto; min-width: 0; }
       /* Movement value: what the card does for green/blue/yellow. */
       body.view-phone .market-row-moves { font-weight: 800; font-size: 0.9rem;
         white-space: nowrap; flex-shrink: 0; }
@@ -1395,17 +1403,21 @@ document.addEventListener('DOMContentLoaded', () => {
         box-shadow: 0 0 0 2px #3adf3a, 0 2px 10px rgba(58,223,58,0.2); }
       body.view-phone .market-row-item.cant-afford { opacity: 0.7; }
       body.view-phone .market-row-name { font-weight: 700; font-size: 0.85rem;
-        white-space: nowrap; }
-      body.view-phone .market-row-effect { font-size: 0.7rem; color: #9aabbf;
-        flex: 1 1 auto; min-width: 0; }
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      body.view-phone .market-row-effect { font-size: 0.7rem; color: #9aabbf; }
+      /* Push amount-left/cost/Buy to the right so line 1 lines up whether or
+         not the card has a moves value or a line-2 effect. */
       body.view-phone .market-row-left { font-size: 0.68rem; color: #9aabbf;
-        white-space: nowrap; }
+        white-space: nowrap; margin-left: auto; flex-shrink: 0; }
       body.view-phone .market-row-cost { font-size: 0.8rem; font-weight: 800;
-        color: #ffd700; white-space: nowrap; }
+        color: #ffd700; white-space: nowrap; flex-shrink: 0; }
       /* .card-info-btn is absolute-positioned for full cards (main.css) —
-         rows need it back in normal flow, or it floats above its row. */
-      body.view-phone .market-row-info { position: static; min-width: 44px; min-height: 44px;
-        display: inline-grid; place-items: center; font-size: 1.1rem;
+         rows need it back in normal flow, or it floats above its row.
+         On line 2 it stays compact so the extra-info row doesn't bloat. */
+      body.view-phone .market-row-main .market-row-buy { margin-left: 0; }
+      body.view-phone .reserve-pick-row .market-row-main .market-row-buy { margin-left: auto; }
+      body.view-phone .market-row-sub .market-row-info { position: static; min-width: 32px; min-height: 32px;
+        display: inline-grid; place-items: center; font-size: 1rem;
         cursor: pointer; flex-shrink: 0; }
       body.view-phone .market-row-buy { min-height: 44px; padding: 0.5rem 0.9rem;
         border: 1px solid var(--gold-mid, #c9a227); background: #2a4a2a;

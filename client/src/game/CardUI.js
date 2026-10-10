@@ -299,12 +299,12 @@ class CardUI {
 
   _specialDescription(effect) {
     switch (effect) {
-      case 'transmitter':  return '📡 Free card from market';
-      case 'cartographer': return '🗺️ Draw 2 extra cards';
-      case 'compass':      return '🧭 Draw 3 cards';
-      case 'scientist':    return '🔬 Draw 1 & remove a card';
-      case 'travel_log':   return '📖 Draw 2 & remove up to 2';
-      case 'native':       return '🏹 Move 1 space';
+      case 'transmitter':  return 'Free card from market';
+      case 'cartographer': return 'Draw 2 extra cards';
+      case 'compass':      return 'Draw 3 cards';
+      case 'scientist':    return 'Draw 1 & remove a card';
+      case 'travel_log':   return 'Draw 2 & remove up to 2';
+      case 'native':       return 'Move 1 space';
       default:             return '';
     }
   }
@@ -585,31 +585,31 @@ class CardUI {
     const effectDesc = this._specialDescription(card.specialEffect);
     const lastCopy = !isReserve && card.remaining === 1;
 
+    // Line 1 — identical structure for every card (normal + purple special):
+    // dot · name · [moves] · amount-left · cost · Buy. This keeps name/left/
+    // cost/Buy in the same spots so special rows line up with normal rows.
+    const main = document.createElement('div');
+    main.className = 'market-row-main';
+    row.appendChild(main);
+
     // Terrain colour reference (dot + left border via CSS): movement cards
     // read green/blue/gold at a glance, purple vs grey stays distinct.
     const dot = document.createElement('span');
     dot.className = 'market-row-dot';
     dot.setAttribute('aria-hidden', 'true');
-    row.appendChild(dot);
+    main.appendChild(dot);
 
     const nameEl = document.createElement('span');
     nameEl.className = 'market-row-name';
     nameEl.textContent = card.cardName || card.key;
-    row.appendChild(nameEl);
+    main.appendChild(nameEl);
 
     // What you're buying: movement value for green/blue/yellow cards.
     if (card.movementTotal > 0) {
       const mvEl = document.createElement('span');
       mvEl.className = 'market-row-moves';
       mvEl.textContent = `${this._terrainIcon(card.movementTerrain)} ${card.movementTotal}`;
-      row.appendChild(mvEl);
-    }
-
-    if (effectDesc) {
-      const effEl = document.createElement('span');
-      effEl.className = 'market-row-effect';
-      effEl.textContent = effectDesc;
-      row.appendChild(effEl);
+      main.appendChild(mvEl);
     }
 
     const leftEl = document.createElement('span');
@@ -618,25 +618,12 @@ class CardUI {
     leftEl.textContent = lastCopy
       ? `×1 left · → reserve pick`
       : `×${card.remaining} left`;
-    row.appendChild(leftEl);
+    main.appendChild(leftEl);
 
     const costEl = document.createElement('span');
     costEl.className = 'market-row-cost';
     costEl.textContent = transmitterActive ? 'FREE' : `💰 ${card.cost}`;
-    row.appendChild(costEl);
-
-    // ℹ️ opens the existing full-text modal (z-9999, above sheet + picker).
-    // It must not trigger a purchase — Buy is a separate button.
-    if (effectDesc) {
-      const info = document.createElement('span');
-      info.className = 'card-info-btn market-row-info';
-      info.dataset.effect = card.specialEffect;
-      info.title = 'Details';
-      info.setAttribute('role', 'button');
-      info.setAttribute('aria-label', `${card.cardName} details`);
-      info.textContent = 'ℹ️';
-      row.appendChild(info);
-    }
+    main.appendChild(costEl);
 
     const buy = document.createElement('button');
     buy.type = 'button';
@@ -646,7 +633,34 @@ class CardUI {
     if (!locked) {
       buy.addEventListener('click', () => this._onMarketCardClicked(card));
     }
-    row.appendChild(buy);
+    main.appendChild(buy);
+
+    // Line 2 — only for purple specials: ℹ️ tucked right beside the short
+    // effect text on the left, far from Buy on line 1, so a fat-finger tap
+    // on details can't accidentally buy. The ℹ️ takes the slot the old
+    // leading emoji used to occupy.
+    if (effectDesc) {
+      const sub = document.createElement('div');
+      sub.className = 'market-row-sub';
+
+      // ℹ️ opens the existing full-text modal (z-9999, above sheet + picker).
+      // It must not trigger a purchase — Buy is a separate button.
+      const info = document.createElement('span');
+      info.className = 'card-info-btn market-row-info';
+      info.dataset.effect = card.specialEffect;
+      info.title = 'Details';
+      info.setAttribute('role', 'button');
+      info.setAttribute('aria-label', `${card.cardName} details`);
+      info.textContent = 'ℹ️';
+      sub.appendChild(info);
+
+      const effEl = document.createElement('span');
+      effEl.className = 'market-row-effect';
+      effEl.textContent = effectDesc;
+      sub.appendChild(effEl);
+
+      row.appendChild(sub);
+    }
 
     return row;
   }
@@ -885,47 +899,33 @@ class CardUI {
     overlay.classList.remove('hidden');
   }
 
-  // Phone reserve-refill row: name + effect one-liner + ℹ️ (full modal) +
-  // Choose. Tapping ℹ️ must not choose — guarded like the desktop path.
+  // Phone reserve-refill row: same two-line pattern as market rows — line 1
+  // is name (+ moves) + Choose, line 2 groups ℹ️ + the effect one-liner
+  // (full modal). Tapping ℹ️ must not choose — guarded like the desktop path.
   _makeReservePickRowEl(card, onChosen, overlay) {
     const row = document.createElement('div');
     row.className = `market-row-item reserve-pick-row terrain-${card.movementTerrain || 'empty'}`;
     row.dataset.cardKey = card.key;
 
+    const main = document.createElement('div');
+    main.className = 'market-row-main';
+    row.appendChild(main);
+
     const dot = document.createElement('span');
     dot.className = 'market-row-dot';
     dot.setAttribute('aria-hidden', 'true');
-    row.appendChild(dot);
+    main.appendChild(dot);
 
     const nameEl = document.createElement('span');
     nameEl.className = 'market-row-name';
     nameEl.textContent = card.cardName || card.key;
-    row.appendChild(nameEl);
+    main.appendChild(nameEl);
 
     if (card.movementTotal > 0) {
       const mvEl = document.createElement('span');
       mvEl.className = 'market-row-moves';
       mvEl.textContent = `${this._terrainIcon(card.movementTerrain)} ${card.movementTotal}`;
-      row.appendChild(mvEl);
-    }
-
-    const effectDesc = this._specialDescription(card.specialEffect);
-    if (effectDesc) {
-      const effEl = document.createElement('span');
-      effEl.className = 'market-row-effect';
-      effEl.textContent = effectDesc;
-      row.appendChild(effEl);
-    }
-
-    if (effectDesc) {
-      const info = document.createElement('span');
-      info.className = 'card-info-btn market-row-info';
-      info.dataset.effect = card.specialEffect;
-      info.title = 'Details';
-      info.setAttribute('role', 'button');
-      info.setAttribute('aria-label', `${card.cardName} details`);
-      info.textContent = 'ℹ️';
-      row.appendChild(info);
+      main.appendChild(mvEl);
     }
 
     const choose = document.createElement('button');
@@ -936,7 +936,29 @@ class CardUI {
       onChosen(card.key);
       overlay.classList.add('hidden');
     });
-    row.appendChild(choose);
+    main.appendChild(choose);
+
+    const effectDesc = this._specialDescription(card.specialEffect);
+    if (effectDesc) {
+      const sub = document.createElement('div');
+      sub.className = 'market-row-sub';
+
+      const info = document.createElement('span');
+      info.className = 'card-info-btn market-row-info';
+      info.dataset.effect = card.specialEffect;
+      info.title = 'Details';
+      info.setAttribute('role', 'button');
+      info.setAttribute('aria-label', `${card.cardName} details`);
+      info.textContent = 'ℹ️';
+      sub.appendChild(info);
+
+      const effEl = document.createElement('span');
+      effEl.className = 'market-row-effect';
+      effEl.textContent = effectDesc;
+      sub.appendChild(effEl);
+
+      row.appendChild(sub);
+    }
 
     return row;
   }
