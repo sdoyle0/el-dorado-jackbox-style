@@ -1612,7 +1612,9 @@ body {
 /* Zoom controls need to sit above the board vignette */
 #zoom-controls { z-index: 5; }
 
-/* ── Market overlay — sits above the hand, never covers it ──────────────── */
+/* ── Market overlay — sits above the hand, never covers it ────────────────
+   Header (pooled total) is normal in-flow content, always visible. Only
+   #shop-slots scrolls, so the header never floats over the cards. */
 #card-market {
   position: fixed !important;
   inset: 0;
@@ -1626,11 +1628,24 @@ body {
   border-top: 2px solid var(--gold-dim) !important;
   border-left: 1px solid var(--border) !important;
   border-right: 1px solid var(--border) !important;
-  overflow-y: auto;
+  overflow: hidden;
   /* animation: market-slide-up 0.25s cubic-bezier(0.34,1.2,0.64,1) forwards; */
   backdrop-filter: blur(2px);
   /* Ensure it's above the board but below modals */
   z-index: 20 !important;
+}
+
+/* Header + banners stay put in normal flow; the card list scrolls below. */
+#card-market #market-header,
+#card-market #transmitter-banner,
+#card-market #pool-chips {
+  flex: none;
+}
+#card-market #shop-slots {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 #card-market.hidden { animation: none; }

@@ -1347,15 +1347,20 @@ document.addEventListener('DOMContentLoaded', () => {
         inset: auto !important; margin: 0 !important; width: auto !important;
         height: auto !important; max-height: 42dvh !important;
         flex: none !important;
-        display: flex; flex-direction: column; overflow-y: auto;
+        display: flex; flex-direction: column; overflow: hidden;
         border-radius: 0 0 12px 12px !important;
         border-top: none !important;
         border-bottom: 2px solid var(--gold-dim) !important;
         z-index: 30 !important;
         -webkit-overflow-scrolling: touch; }
-      body.view-phone #market-header { position: sticky; top: 0; z-index: 2;
+      /* Header is normal in-flow content (not sticky/overlay) so it never
+         covers the rows. Only #shop-slots scrolls; header + chips stay visible. */
+      body.view-phone #market-header { position: static; flex: none;
         background: linear-gradient(180deg, #0d1e30 0%, #091525 100%);
         padding-top: 0.7rem; }
+      body.view-phone #transmitter-banner, body.view-phone #pool-chips { flex: none; }
+      body.view-phone #shop-slots { flex: 1 1 auto; min-height: 0; overflow-y: auto;
+        -webkit-overflow-scrolling: touch; }
       body.view-phone #purchase-total { font-size: 1.05rem; font-weight: 800;
         white-space: nowrap; }
       body.view-phone #cancel-purchase-btn { min-height: 44px; padding: 0.5rem 1rem; }
