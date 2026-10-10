@@ -237,23 +237,30 @@ document.addEventListener('DOMContentLoaded', () => {
         padding: 0.35rem 0.1rem; }
       /* Block 6: breakable blockades share the move-list panel so the
          boardless phone can break without board taps (renderer.onBlockadeClick
-         needs the TV board). Same 44px tappable-row pattern as Block 4. */
+         needs the TV board). Same grid + 68px button shape as moves above,
+         kept orange-tinted so it's obvious this breaks a wall, not a move. */
       #blockade-list-header { font-size: 0.78rem; font-weight: 700; color: #ff9f43;
         letter-spacing: 0.03em; margin-top: 0.35rem; }
-      #blockade-list { display: flex; flex-direction: column; gap: 0.4rem; }
-      .blockade-break-btn { display: flex; align-items: center; gap: 0.5rem;
-        width: 100%; min-height: 44px; padding: 0.55rem 0.75rem;
+      #blockade-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+        gap: 0.5rem; }
+      .blockade-break-btn { display: flex; flex-direction: column; align-items: center;
+        justify-content: center; gap: 0.15rem;
+        width: 100%; min-height: 68px; padding: 0.5rem 0.4rem;
         border: 1px solid rgba(255,159,67,0.65);
-        background: rgba(61,39,22,0.92); color: #e8e0d0; border-radius: 6px;
-        cursor: pointer; font-size: 0.9rem; font-weight: 600; text-align: left; }
+        background: rgba(61,39,22,0.92); color: #e8e0d0; border-radius: 10px;
+        cursor: pointer; font-weight: 600; text-align: center; }
       .blockade-break-btn:hover { background: #53341c; border-color: #ff9f43; }
       .blockade-break-btn:active { transform: translateY(1px); }
       .blockade-break-btn:disabled { opacity: 0.5; cursor: wait; }
-      .blockade-break-icon { font-size: 1.1rem; }
-      .blockade-break-label { font-variant-numeric: tabular-nums; font-size: 0.8rem;
-        font-weight: 700; }
-      .blockade-break-meta { margin-left: auto; font-size: 0.75rem; color: #ffcf9e;
-        font-weight: 500; white-space: nowrap; }
+      .blockade-break-icon { display: inline-grid; place-items: center;
+        width: 40px; height: 40px; border-radius: 50%;
+        background: #1a0e04; color: #fff; border: 2px solid #ff9f43;
+        font-size: 1.25rem; font-weight: 800; flex-shrink: 0; }
+      .blockade-break-label { font-size: 0.7rem; color: #ffd9b3;
+        font-weight: 700; white-space: nowrap; line-height: 1.1;
+        max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+      .blockade-break-meta { font-size: 0.65rem; color: #ffcf9e;
+        font-weight: 500; white-space: nowrap; line-height: 1.1; }
       /* Block 6: persistent Scientist/Travel Log remove prompt. The modal
          alone dismisses; this banner stays in #hand-messages until the server
          disposes the card, so it's clear hand taps remove (not move). */
@@ -386,10 +393,13 @@ document.addEventListener('DOMContentLoaded', () => {
         iconSpan.textContent = '🚧';
         const labelSpan = document.createElement('span');
         labelSpan.className = 'blockade-break-label';
-        labelSpan.textContent = `${icon} ${label} · ${terrain}`;
+        // Compact hint mirroring move buttons (`🌿 ×1`): terrain icon +
+        // seam label only — full terrain name stays in the aria-label.
+        labelSpan.textContent = `${icon} ${label}`;
+        labelSpan.title = `${terrain} blockade ${label}`;
         const metaSpan = document.createElement('span');
         metaSpan.className = 'blockade-break-meta';
-        metaSpan.textContent = 'Break · 1 move';
+        metaSpan.textContent = 'Break ×1';
         btn.appendChild(iconSpan);
         btn.appendChild(labelSpan);
         btn.appendChild(metaSpan);
@@ -772,6 +782,15 @@ document.addEventListener('DOMContentLoaded', () => {
       enableBlockades: data.enableBlockades ?? true,
     };
     storeSession(data.roomId, pendingIdentity || nameInput.value.trim(), data.isSpectator);
+    // Keep ?room= in sync with the room actually joined. A stale ?room=
+    // (e.g. scanned for a previous game, then joined a new code manually)
+    // would otherwise block the next refresh's auto-rejoin and show the old
+    // code with a blank name.
+    try {
+      const url = new URL(window.location.href);
+      if (data.roomId) url.searchParams.set('room', String(data.roomId).toUpperCase());
+      window.history.replaceState(null, '', url.pathname + url.search);
+    } catch (e) { /* non-fatal — rejoin still works via sessionStorage */ }
     if (rejoinPending) {
       // Block 8: boot auto-rejoin after a refresh — skip the waiting room.
       // A mid-game server follows up with game_snapshot; otherwise (fresh
@@ -794,7 +813,14 @@ document.addEventListener('DOMContentLoaded', () => {
   client.onJoinError = ({ message }) => {
     createRoomBtn.disabled = false;
     joinRoomBtn.disabled = false;
-    setLobbyError(message || 'Could not join room.');
+    // Mid-game reclaim fails only when no grace-held seat matches: wrong
+    // name, seat expired (>2 min), or never joined before start (no late
+    // joins). Say so directly instead of the bare server text.
+    if (message === 'Game already in progress') {
+      setLobbyError('Game already in progress — rejoin with the exact same name within ~2 min, or start a new room. New players cannot join mid-game.');
+    } else {
+      setLobbyError(message || 'Could not join room.');
+    }
   };
 
   client.onRoomUpdated = (data) => {
@@ -1574,6 +1600,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!sess || !sess.roomId || sess.view !== VIEW) return;
     if (!sess.playerName && VIEW !== 'tv') return;
     if (DEEP_LINK_ROOM && String(sess.roomId).toUpperCase() !== DEEP_LINK_ROOM) {
+      // Scanned room wins for the code box (already set above); keep the
+      // last-used name so the user only needs to tap Join. No extra label —
+      // the boxes themselves show what will be tried.
+      if (sess.playerName) nameInput.value = sess.playerName;
       pendingIdentity = null;
       rejoinPending = false;
       setLobbyInfo('');

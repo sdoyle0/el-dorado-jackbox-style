@@ -216,6 +216,24 @@ when landing on `isFinishing`; winner screen shows on all views.
 Session starter prompt:
 > Read TV_PHONE_PLAN.md Block 8. Harden disconnects + final-round/game-over across TV and phones. Prefer minimal changes in server/game/GameManager.js and client/src/main.js. Verify: phone refresh behavior, final_round_started on all views, game_won with blockade counts.
 
+### Block 9 — QR-code join (scan, no typing)
+Scope: `server/server.js` (LAN URL and/or QR-image endpoint), `client/index.html`,
+`client/src/main.js` (room-code deep link + QR display), one QR dependency
+(new — vendored single-file or npm, no internet CDN since the LAN party may be offline).
+Do: waiting room (and TV) shows a QR encoding
+`http://<host-lan-ip>:<PORT>/?view=phone&room=<CODE>`; a phone opening that
+link lands in phone view with the room code prefilled (name still typed once;
+auto-join only when a name is already known, e.g. Block 8 session rejoin).
+Server determines its own LAN IPv4 via `os.networkInterfaces()` (first
+non-internal address), never localhost, since the QR is scanned by other devices.
+Do not: change the manual code-entry flow, game logic, or turn/hand code.
+Acceptance: phone camera scan opens phone view with the code filled; entering
+a name + Join reaches the waiting room; QR is per-room (code embedded); manual
+entry still works; works with the laptop disconnected from the internet.
+
+Session starter prompt:
+> Read TV_PHONE_PLAN.md Block 9. Implement QR-code join so players scan and play without typing anything. Prefer minimal changes in server/server.js, client/index.html, and client/src/main.js plus one QR dependency (vendored or npm — no internet CDN). The waiting room and TV must show a QR encoding http://<host-lan-ip>:<PORT>/?view=phone&room=<CODE> with the server's real LAN IP, and opening that link must land in phone view with the room code prefilled. Show the diff and how to verify with a phone camera (or a second browser tab using the encoded URL).
+
 ## Other considerations
 
 - Same-WiFi only for MVP; `cors: { origin: '*' }` is fine locally. Don't
