@@ -452,6 +452,7 @@ document.addEventListener('DOMContentLoaded', () => {
     clearRemovePrompt();
     cardUI.updateSelectedCardForMovement(null);
     clearMoveList();
+    syncDiscardButton();
     if (instanceId) client.cancelCard(instanceId);
     else client.cancelCard();
     if (wasPartial) {
@@ -459,6 +460,20 @@ document.addEventListener('DOMContentLoaded', () => {
       log(msg, 'move');
       showToast(msg, { icon: '🃏', type: 'info', duration: 4000 });
     }
+  }
+
+  // Discard needs a selected movement card on your turn — otherwise the
+  // button stays disabled so it can't be tapped with nothing to discard.
+  function syncDiscardButton() {
+    const btn = document.getElementById('discard-btn');
+    if (!btn) return;
+    const isMe = !!(currentTurnPlayerId && client.playerId
+      && currentTurnPlayerId === client.playerId);
+    const marketOpen = typeof cardUI.isMarketOpen === 'function'
+      ? cardUI.isMarketOpen()
+      : false;
+    const busy = pendingRemovals > 0 || !!rubblePendingTileId;
+    btn.disabled = !(isMe && selectedCard?.instanceId && !marketOpen && !busy);
   }
 
   // Shared destination tap: same rubble handling as board clicks, but works
@@ -482,8 +497,10 @@ document.addEventListener('DOMContentLoaded', () => {
         renderer.setBreakableBlockades([], []);
         clearMoveList();
         exitRubblePaymentMode();
+        syncDiscardButton();
       }, () => {
         exitRubblePaymentMode();
+        syncDiscardButton();
       });
       // Block 6: boardless phones get no board highlight for the toll, so say
       // it outright (desktop sees the same prompt in #hand-messages).
@@ -491,6 +508,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (VIEW === 'phone') {
         showToast(`Rubble toll: pick ${rubbleCardsNeeded} extra card(s).`, { icon: '🪨', type: 'info', duration: 4000 });
       }
+      syncDiscardButton();
       return;
     }
     if (isMidMove || selectedCard) {
@@ -527,6 +545,7 @@ document.addEventListener('DOMContentLoaded', () => {
       host.appendChild(banner);
     }
     updateRemovePromptText();
+    syncDiscardButton();
   }
 
   function updateRemovePromptText() {
@@ -548,6 +567,9 @@ document.addEventListener('DOMContentLoaded', () => {
   function clearRemovePrompt() {
     pendingRemovals = 0;
     document.getElementById('remove-prompt-banner')?.remove();
+    if (typeof syncDiscardButton === 'function') {
+      try { syncDiscardButton(); } catch (e) { /* early boot — button not ready */ }
+    }
   }
 
   // Block 6: keep the desktop modal copy, but add the persistent banner +
@@ -904,6 +926,7 @@ document.addEventListener('DOMContentLoaded', () => {
     selectedCard = null;
     selectedValidMoves = [];
     clearMoveList();
+    syncDiscardButton();
 
     showToast('Expedition begun! Good luck.', { icon: '🗺️', type: 'accent' });
     log('Game started!', 'system');
@@ -954,6 +977,7 @@ document.addEventListener('DOMContentLoaded', () => {
   cardUI.onDiscardClicked = () => {
     // Guard: Discard with no movement card selected (e.g. while pooling for
     // the market) must be a no-op, not a TypeError on null.instanceId.
+    // The button is also disabled in that state — this is just a safety net.
     if (!selectedCard?.instanceId) {
       showToast('Select a card first.', { icon: '🃏', type: 'info', duration: 2000 });
       return;
@@ -961,6 +985,46 @@ document.addEventListener('DOMContentLoaded', () => {
     client.discardCard(selectedCard.instanceId);
   };
   cardUI.onMarketCard = ({ cardKey, handCardsUsed }) => client.purchaseCard(cardKey, handCardsUsed);
+  cardUI.onMarketOpened = (transmitterBonus = 0) => {
+    // Intention changed movement → buying: drop the movement panel so it
+    // doesn't linger under the market, and cancel the played card so a
+    // later move needs a fresh select.
+    const hadSelection = !!selectedCard
+      || selectedValidMoves.length > 0
+      || currentBreakableBlockades.length > 0
+      || !!rubblePendingTileId;
+    if (!hadSelection) {
+      clearMoveList();
+      renderer.clearHighlights();
+      renderer.setBreakableBlockades([], []);
+      syncDiscardButton();
+      return;
+    }
+    if (transmitterBonus > 0) {
+      // Server-driven Transmitter free pick: the played card is already
+      // disposed server-side — clear UI state only, never emit a cancel
+      // (there is nothing to cancel, and the error toast would misfire).
+      isMidMove = false;
+      selectedCard = null;
+      selectedValidMoves = [];
+      currentBreakableBlockades = [];
+      moveMovesRemaining = null;
+      moveMovementTotal = 0;
+      renderer.clearHighlights();
+      renderer.setBreakableBlockades([], []);
+      exitRubblePaymentMode();
+      clearRemovePrompt();
+      cardUI.updateSelectedCardForMovement(null);
+      clearMoveList();
+      syncDiscardButton();
+      return;
+    }
+    cancelMoveSelection();
+    syncDiscardButton();
+  };
+  cardUI.onMarketClosed = () => {
+    syncDiscardButton();
+  };
 
   // ── Server → UI ────────────────────────────────────────────────────────────
   client.onHandUpdated = ({ hand }) => {
@@ -970,6 +1034,7 @@ document.addEventListener('DOMContentLoaded', () => {
       selectedCard = null;
       selectedValidMoves = [];
     }
+    syncDiscardButton();
   };
 
   client.onValidMoves = ({ validMoves, breakableBlockades = [], movesRemaining, movementTotal }) => {
@@ -1036,6 +1101,7 @@ document.addEventListener('DOMContentLoaded', () => {
     clearMoveList();
     clearRemovePrompt();
     exitRubblePaymentMode();
+    syncDiscardButton();
   };
 
   client.onTurnEnded = ({ nextPlayerId, nextPlayerName }) => {
@@ -1149,6 +1215,7 @@ document.addEventListener('DOMContentLoaded', () => {
     moveMovementTotal = 0;
     clearMoveList();
     updateTurnLabel(currentTurnPlayerId);
+    syncDiscardButton();
 
     if (snap.finalRound && snap.finalRound.triggered) ensureFinalRoundBanner();
 
@@ -1409,6 +1476,7 @@ document.addEventListener('DOMContentLoaded', () => {
     clearMoveList();
     clearRemovePrompt();
     exitRubblePaymentMode();
+    syncDiscardButton();
     log(`⚠ ${message}`, 'warn');
     showToast(message, { icon: '⚠️', type: 'warn' });
     const handEl = document.getElementById('player-hand-ui');
@@ -1445,6 +1513,7 @@ document.addEventListener('DOMContentLoaded', () => {
       clearMoveList();
       exitRubblePaymentMode();
       cardUI.updateSelectedCardForMovement(null);
+      syncDiscardButton();
       client.cancelCard(instanceId);
       return;
     }
@@ -1491,6 +1560,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
+    syncDiscardButton();
     client.playCard(instanceId);
   }
 
@@ -1533,6 +1603,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     renderPlayerLegend(currentPlayerId);
     cardUI.setControlsEnabled(isMe);
+    syncDiscardButton();
   }
 
   function renderPlayerLegend(currentPlayerId) {

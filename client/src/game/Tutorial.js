@@ -308,6 +308,8 @@ class Tutorial {
       onEndTurn: this.cardUI.onEndTurn,
       onCancelPurchase: this.cardUI.onCancelPurchase,
       onDiscardClicked: this.cardUI.onDiscardClicked,
+      onMarketOpened: this.cardUI.onMarketOpened,
+      onMarketClosed: this.cardUI.onMarketClosed,
     };
   }
 

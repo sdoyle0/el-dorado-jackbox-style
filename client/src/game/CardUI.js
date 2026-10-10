@@ -30,6 +30,8 @@ class CardUI {
     this.onEndTurn        = null;
     this.onCancelPurchase = null;
     this.onDiscardClicked = null;
+    this.onMarketOpened   = null; // () — movement selection should be dropped
+    this.onMarketClosed   = null; // () — resync action buttons
 
     // ── Mode ────────────────────────────────────────────────────────────────
     // 'movement' | 'market' | 'rubble'
@@ -56,6 +58,8 @@ class CardUI {
     this._bindHandDelegate();
     this._createInfoModal();
     this._bindInfoDelegates();
+    // Discard needs a selection first — never start enabled.
+    this.setDiscardEnabled(false);
   }
 
   // ── View helpers ─────────────────────────────────────────────────────────
@@ -342,6 +346,10 @@ class CardUI {
     this._changeMarketView(false);
     if (this._lastMarket) this.renderMarket(this._lastMarket);
     this._updatePurchaseTotal();
+    // Bonus > 0 is the server-driven Transmitter free pick (the played card
+    // is already disposed server-side) — the handler clears UI only and must
+    // not emit a cancel. Plain opens are the buyer changing intention.
+    this.onMarketOpened?.(transmitterBonus);
   }
 
   closeMarket() {
@@ -351,6 +359,7 @@ class CardUI {
     this.poolChipsEl.innerHTML = '';
     this.poolChipsEl.classList.add('hidden');
     this._setMode('movement');
+    this.onMarketClosed?.();
   }
 
   openMarketWithBonus(totalPurchasePower) {
@@ -773,6 +782,14 @@ class CardUI {
   setControlsEnabled(enabled) {
     document.getElementById('end-turn-btn').disabled    = !enabled;
     document.getElementById('open-market-btn').disabled = !enabled;
+    // Discard also needs your turn — and a selected card (synced separately
+    // via setDiscardEnabled). Never leave it enabled on someone else's turn.
+    if (!enabled) this.setDiscardEnabled(false);
+  }
+
+  setDiscardEnabled(enabled) {
+    const btn = document.getElementById('discard-btn');
+    if (btn) btn.disabled = !enabled;
   }
 
   showReservePicker(soldOutKey, reserveCards, onChosen) {
@@ -885,7 +902,12 @@ class CardUI {
     this._rubbleExcludeId   = null;
     this._rubbleExcludeName = null;
     document.getElementById('hand-messages').innerHTML = '';
-    this._setMode('movement');
+    // Opening the market mid-toll cancels the toll via onMarketOpened →
+    // cancelMoveSelection → here. The market overlay is already visible at
+    // that point, so stay in market mode instead of dropping back to
+    // movement (which would route hand taps to the wrong handler).
+    const marketOpen = !this.marketEl.classList.contains('hidden');
+    this._setMode(marketOpen ? 'market' : 'movement');
   }
 
   getRubblePaymentCards() {
