@@ -99,6 +99,7 @@ class GameClient {
 
   playCard(instanceId) { this.socket.emit('play_card', { instanceId }); }
   cancelCard() { this.socket.emit('cancel_card'); }
+  finishRemove() { this.socket.emit('finish_remove'); }
   movePawn(tileId) { this.socket.emit('move_pawn', { tileId }); }
   moveToRubble(tileId, extraCardIds) { this.socket.emit('move_to_rubble', { tileId, extraCardIds }); }
   endTurn() { this.socket.emit('end_turn'); }

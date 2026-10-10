@@ -50,8 +50,10 @@ class GameStateManager {
     const player = this.currentPlayer;
 
     if (this.selectingCardsToRemove > 0) {
+      const target = player.hand.find(c => c.instanceId === instanceId || c.key === instanceId);
+      if (!target) return { ok: false, error: 'card not in hand' };
       this.selectingCardsToRemove--;
-      player.removeCardPermanently(instanceId);
+      player.removeCardPermanently(target.instanceId);
       this.emit('hand_updated', { playerId, hand: player.hand });
       if (this.selectingCardsToRemove === 0 && this.playedCardData) {
         this._disposeFinishedCard(player);
@@ -101,6 +103,27 @@ class GameStateManager {
       return { ok: true };
     }
 
+    return { ok: true };
+  }
+
+  // ── Finish a Scientist / Travel Log removal early ("up to N") ──────────
+  // Rulebook: Scientist = "up to 1", Travel Log = "up to 2" — the player may
+  // remove fewer (including zero) and keep the rest. The client banner's
+  // Done button emits `finish_remove`; this clears the pending count and
+  // disposes the played card so the turn can continue.
+  finishCardRemoval(playerId) {
+    if (!this._isCurrentPlayer(playerId)) return { ok: false, error: 'not your turn' };
+    if (this.selectingCardsToRemove <= 0) return { ok: false, error: 'nothing to finish' };
+    this.selectingCardsToRemove = 0;
+    const player = this.currentPlayer;
+    if (this.playedCardData) {
+      this._disposeFinishedCard(player);
+    } else {
+      this.state = GS.AWAITING_CARD;
+      this.movesRemaining = 0;
+      this.validMoves = [];
+      this.breakableBlockades = [];
+    }
     return { ok: true };
   }
 
@@ -297,6 +320,13 @@ class GameStateManager {
     }
 
     const player = this.currentPlayer;
+
+    // Ending the turn with a Scientist / Travel Log removal pending treats
+    // it as "remove none more" (rulebook: "up to N"). Without this the
+    // pending count would leak into the next player's turn.
+    if (this.selectingCardsToRemove > 0) {
+      this.selectingCardsToRemove = 0;
+    }
 
     if (this.state === GS.AWAITING_MOVE && this.playedCardData) {
       player.playCard(this.playedCardData.instanceId, this.playedCardData.oneTimeUse);
@@ -542,6 +572,11 @@ class GameStateManager {
   cancelCard(playerId) {
     if (!this._isCurrentPlayer(playerId)) return { ok: false, error: 'not your turn' };
     if (this.state !== GS.AWAITING_MOVE) return { ok: false, error: 'nothing to cancel' };
+    // Removal mode has its own Done button (finish_remove) — Cancel must not
+    // return the Scientist / Travel Log to hand mid-removal.
+    if (this.selectingCardsToRemove > 0) {
+      return { ok: false, error: 'finish or skip card removal first' };
+    }
 
     const player = this.currentPlayer;
     const hadPartialMove = this.playedCardData &&

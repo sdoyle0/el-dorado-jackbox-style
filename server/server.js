@@ -147,6 +147,11 @@ io.on('connection', (socket) => {
     if (room) room.handleCancelCard(socket.id);
   });
 
+  socket.on('finish_remove', () => {
+    const room = gameManager.getRoomForSocket(socket.id);
+    if (room) room.handleFinishRemove(socket.id);
+  });
+
   socket.on('move_pawn', ({ tileId }) => {
     const room = gameManager.getRoomForSocket(socket.id);
     if (room) room.handleMovePawn(socket.id, tileId);

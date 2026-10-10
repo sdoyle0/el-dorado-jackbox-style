@@ -291,7 +291,7 @@ class CardUI {
       case 'transmitter':  return 'Free card from market';
       case 'cartographer': return 'Draw 2 extra cards';
       case 'compass':      return 'Draw 3 cards';
-      case 'scientist':    return 'Draw 1 & remove a card';
+      case 'scientist':    return 'Draw 1 & remove up to 1';
       case 'travel_log':   return 'Draw 2 & remove up to 2';
       case 'native':       return 'Move 1 space';
       default:             return '';

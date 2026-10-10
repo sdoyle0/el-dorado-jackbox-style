@@ -60,6 +60,17 @@ class GameRoom {
           return;
         }
       }
+      // Scientist / Travel Log removal is private to the acting player —
+      // the TV and opponents must not see the dialog/banner (same pattern
+      // as hand_updated / prompt_reserve_choice above).
+      if (event === 'prompt_remove_cards' && data.playerId) {
+        const owner = this.players.find(p => p.id === data.playerId);
+        if (owner) {
+          if (!owner.socketId) return;
+          this.io.to(owner.socketId).emit('prompt_remove_cards', data);
+          return;
+        }
+      }
       this._broadcast(event, data);
     };
   }
@@ -376,6 +387,11 @@ class GameRoom {
 
   handleCancelCard(socketId) {
     const result = this.gameState.cancelCard(socketId);
+    if (!result.ok) this.io.to(socketId).emit('action_error', { message: result.error });
+  }
+
+  handleFinishRemove(socketId) {
+    const result = this.gameState.finishCardRemoval(socketId);
     if (!result.ok) this.io.to(socketId).emit('action_error', { message: result.error });
   }
 

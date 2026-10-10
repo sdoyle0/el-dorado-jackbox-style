@@ -584,16 +584,24 @@ document.addEventListener('DOMContentLoaded', () => {
     client.breakBlockade(blockadeId);
   }
 
-  // Block 6: Scientist / Travel Log remove prompt. Server emits
-  // prompt_remove_cards once with the count; each subsequent hand tap is a
-  // removal (GameState.playCard treats it as removeCardPermanently while
-  // selectingCardsToRemove > 0). The modal alone dismisses, so keep a
-  // persistent banner in #hand-messages until the server disposes the card —
-  // that makes clear that hand taps remove instead of moving.
+  // Scientist / Travel Log remove prompt. Server DMs prompt_remove_cards to
+  // the acting player only (TV + opponents never see it). Each subsequent
+  // hand tap is a removal while selectingCardsToRemove > 0. Rulebook says
+  // "up to N", so the banner carries a Done button that emits finish_remove
+  // to keep 0..N-1 removals and continue the turn. The modal alone
+  // dismisses, so the banner persists in #hand-messages until the server
+  // disposes the card — that makes clear hand taps remove instead of moving.
   let pendingRemovals = 0;
+  let pendingRemovalsTotal = 0;
 
   function showRemovePrompt(count) {
     pendingRemovals = count;
+    pendingRemovalsTotal = count;
+    // Scientist/Travel Log have no movement — drop any stale move list so
+    // its Cancel ("return card to hand") can't fire mid-removal.
+    clearMoveList();
+    renderer.clearHighlights();
+    renderer.setBreakableBlockades([], []);
     const host = document.getElementById('hand-messages');
     let banner = document.getElementById('remove-prompt-banner');
     if (!banner) {
@@ -609,34 +617,64 @@ document.addEventListener('DOMContentLoaded', () => {
     const banner = document.getElementById('remove-prompt-banner');
     if (!banner) return;
     banner.innerHTML = '';
+    const removed = Math.max(0, pendingRemovalsTotal - pendingRemovals);
     const strong = document.createElement('strong');
     strong.textContent = pendingRemovals > 0
-      ? `🔬 Remove ${pendingRemovals} card(s) from the game`
+      ? `🔬 Remove up to ${pendingRemovalsTotal} card(s) — ${pendingRemovals} left`
       : '🔬 Finishing…';
     const span = document.createElement('span');
     span.textContent = pendingRemovals > 0
-      ? ' — tap hand cards to permanently remove them.'
+      ? ` — tap hand cards to permanently remove them (${removed}/${pendingRemovalsTotal} removed).`
       : '';
     banner.appendChild(strong);
     banner.appendChild(span);
+    if (pendingRemovals > 0) {
+      const done = document.createElement('button');
+      done.type = 'button';
+      done.id = 'remove-prompt-done';
+      done.textContent = removed === 0
+        ? `Skip — remove none ✓`
+        : `Done ✓ (keep the rest, ${removed} removed)`;
+      done.title = 'Finish removing — keep the remaining cards and continue your turn.';
+      done.setAttribute('aria-label', 'Done removing cards, keep the rest');
+      done.style.cssText = 'display:flex;align-items:center;justify-content:center;'
+        + 'width:100%;min-height:44px;margin-top:0.45rem;padding:0.5rem 0.6rem;'
+        + 'border-radius:8px;border:1px solid rgba(76,255,76,0.55);'
+        + 'background:rgba(24,61,32,0.9);color:#eaffea;'
+        + 'font-weight:700;font-size:0.85rem;cursor:pointer;';
+      done.addEventListener('click', () => {
+        done.disabled = true;
+        done.style.opacity = '0.5';
+        client.finishRemove();
+      });
+      banner.appendChild(done);
+    }
   }
 
   function clearRemovePrompt() {
     pendingRemovals = 0;
+    pendingRemovalsTotal = 0;
     document.getElementById('remove-prompt-banner')?.remove();
     if (typeof syncDiscardButton === 'function') {
       try { syncDiscardButton(); } catch (e) { /* early boot — button not ready */ }
     }
   }
 
-  // Block 6: keep the desktop modal copy, but add the persistent banner +
-  // toast/log so boardless phones know hand taps now remove (not move).
-  function showRemovePromptWithModal(count) {
+  // Keep the desktop modal copy, but add the persistent banner + toast/log
+  // so boardless phones know hand taps now remove (not move). Gated to the
+  // acting player — TV/spectators and opponents ignore the DM'd event even
+  // if a broadcast ever arrives (defence in depth with the server DM).
+  function showRemovePromptWithModal(count, playerId) {
+    // Server DMs prompt_remove_cards to the acting player only. Gate anyway
+    // so a broadcast (or a stale snapshot) never pops the dialog on the TV
+    // (spectator, playerId null) or on opponent phones.
+    if (!client.playerId) return;
+    if (playerId && playerId !== client.playerId) return;
     showRemovePrompt(count);
-    showModal(`Select ${count} card(s) to permanently remove from your deck.`);
-    log(`🔬 Remove ${count} card(s): tap hand cards to remove them permanently.`, 'system');
+    showModal(`Remove up to ${count} card(s) from your hand permanently (Done keeps the rest).`);
+    log(`🔬 Remove up to ${count}: tap hand cards to remove, or Done to keep the rest.`, 'system');
     if (VIEW === 'phone') {
-      showToast(`Tap ${count} hand card(s) to remove.`, { icon: '🔬', type: 'accent', duration: 4000 });
+      showToast(`Tap up to ${count} card(s) to remove — or Done to skip.`, { icon: '🔬', type: 'accent', duration: 4000 });
     }
   }
 
@@ -1126,6 +1164,19 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   client.onValidMoves = ({ validMoves, breakableBlockades = [], movesRemaining, movementTotal }) => {
+    // Scientist / Travel Log have no movement — the removal banner owns the
+    // hand. Never render the move list (and its Cancel) on top of it.
+    if (pendingRemovals > 0 || pendingRemovalsTotal > 0) {
+      isMidMove = false;
+      selectedValidMoves = [];
+      currentBreakableBlockades = [];
+      moveMovesRemaining = null;
+      moveMovementTotal = 0;
+      renderer.clearHighlights();
+      renderer.setBreakableBlockades([], []);
+      clearMoveList();
+      return;
+    }
     isMidMove = true;
     selectedValidMoves = validMoves || [];
     moveMovesRemaining = (typeof movesRemaining === 'number') ? movesRemaining : null;
@@ -1465,7 +1516,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (data.playerId && data.playerId !== client.playerId) return;
     cardUI.closeMarket();
   };
-  client.onPromptRemove = ({ count }) => showRemovePromptWithModal(count);
+  client.onPromptRemove = ({ count, playerId }) => showRemovePromptWithModal(count, playerId);
 
   client.onGameWon = ({ playerId, blockadeCounts = {}, finishers = [], firstFinisherId = null }) => {
     const winner = allPlayers.find(p => p.id === playerId);
@@ -1570,6 +1621,18 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   client.onActionError = ({ message }) => {
+    // Removal taps decrement the banner optimistically. If the server
+    // rejects a tap (stale card), undo one step instead of nuking the whole
+    // removal session — the server count is unchanged.
+    if (pendingRemovalsTotal > 0 && message === 'card not in hand'
+      && pendingRemovals < pendingRemovalsTotal) {
+      pendingRemovals = Math.min(pendingRemovalsTotal, pendingRemovals + 1);
+      updateRemovePromptText();
+      syncDiscardButton();
+      log(`⚠ ${message}`, 'warn');
+      showToast(message, { icon: '⚠️', type: 'warn' });
+      return;
+    }
     isMidMove = false;
     selectedCard = null;
     selectedValidMoves = [];
@@ -1594,10 +1657,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const card = localHand.find(c => c.instanceId === instanceId);
     if (!card) return;
 
-    // Block 6: Scientist / Travel Log removal mode — every hand tap is a
-    // permanent removal (server-side selectingCardsToRemove), not a movement
-    // play. Skip move preview so no stale highlights/list appear; decrement
-    // the banner optimistically (server corrects via card_disposed/error).
+    // Scientist / Travel Log removal mode — every hand tap is a permanent
+    // removal (server-side selectingCardsToRemove), not a movement play.
+    // Skip move preview so no stale highlights/list appear; decrement the
+    // banner optimistically (server corrects via card_disposed/error).
+    // "Up to N" skips go through the banner's Done button (finish_remove).
     if (pendingRemovals > 0) {
       pendingRemovals = Math.max(0, pendingRemovals - 1);
       updateRemovePromptText();
