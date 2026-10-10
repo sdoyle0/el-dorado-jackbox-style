@@ -917,12 +917,96 @@ body {
 }
 .card-onetime-line {
   position: absolute;
-  left: 10px;
-  bottom: 10px;
-  font-size: 1.1rem;
-  background-color: #ffffffaa;
-  border-radius: 8px;
-  padding: 3px;
+  left: 8px;
+  bottom: 8px;
+  z-index: 1;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  white-space: nowrap;
+  color: #fff;
+  background: rgba(192, 57, 43, 0.94);
+  border: 1px solid #ff8a7a;
+  border-radius: 4px;
+  padding: 4px 7px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+/* ── One-time-use header pill (hand + market + reserve full cards) ─────────
+   Lives in .card-header-strip so it survives layouts that hide
+   .card-body-area (phone hand rows). Compact by design: the header also
+   carries the name + movement stat, so the pill never grows or wraps. */
+.card-onetime-pill {
+  flex-shrink: 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  line-height: 1;
+  white-space: nowrap;
+  color: #fff;
+  background: #c0392b;
+  border: 1px solid #ff8a7a;
+  border-radius: 999px;
+  padding: 3px 7px;
+  margin: 0 2px;
+  cursor: help;
+}
+/* Extra glanceability: single-use full cards get a thin red edge. Outlines
+   (not borders) so selected / in-pool border colours still win. */
+.card-btn.is-onetime {
+  outline: 2px solid rgba(231, 76, 60, 0.75);
+  outline-offset: -2px;
+}
+.market-card-wrapper.is-onetime {
+  outline: 2px solid rgba(231, 76, 60, 0.75);
+  outline-offset: -1px;
+  border-radius: var(--radius-sm);
+}
+/* ── One-time-use pill for phone compact rows (market + reserve picker) ───
+   Generic rules first (rows only render on phones today, but keep them
+   working if that ever changes), then phone-specific sizing. */
+.market-onetime-pill {
+  flex-shrink: 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  white-space: nowrap;
+  color: #fff;
+  background: #c0392b;
+  border: 1px solid #ff8a7a;
+  border-radius: 999px;
+  padding: 3px 7px;
+  cursor: help;
+}
+body.view-phone .market-onetime-pill {
+  font-size: 0.62rem;
+  padding: 4px 8px;
+}
+/* Single-use rows keep their terrain left-border; add a soft red wash so
+   they group visually with the red full-card edge above. */
+.market-row-item.is-onetime {
+  box-shadow: inset 0 0 0 1px rgba(231, 76, 60, 0.45);
+}
+/* Header strip must absorb the extra pill without squeezing the movement
+   stat off the 140px card: name shrinks with ellipsis, pill + stat pin. */
+.card-header-strip {
+  gap: 4px;
+}
+.card-header-strip .card-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.card-header-strip .card-stat-line {
+  flex-shrink: 0;
+  margin-left: auto;
 }
 .card-effect-line {
   font-size: 0.65rem;
