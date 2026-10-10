@@ -601,22 +601,41 @@ body.view-phone.market-open #hand-messages {
   display: none !important;
 }
 
-/* Sheet grows into the reclaimed space: ~6 shop rows + header + pool chips
-   fit without internal scrolling on most phones. Hand rows below stay on
-   the page scroll (market keeps its sticky pin). Must beat the injected
-   #market-phone-styles max-height:42dvh !important — same !important, later
-   stylesheet + higher specificity wins. */
+/* Sheet + hand share the viewport with no page scroll: the market header
+   (tabs + pooled total + Close) stays static at the top, #shop-slots scrolls
+   internally, and the hand stays content-sized below — the sheet claims any
+   leftover space when the hand is short (4 cards = no gap below them), and
+   the hand caps + scrolls internally when long. Must beat the injected
+   #market-phone-styles rules — same !important, later stylesheet + higher
+   specificity wins. */
+body.view-phone.market-open #game-screen.active {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 body.view-phone.market-open #card-market {
+  flex: 1 1 0 !important;
+  min-height: 28dvh !important;
   max-height: 72dvh !important;
 }
 
-/* Hand stops being a second nested scroller and just flows on the page. */
-body.view-phone.market-open #hand-cards {
-  max-height: none;
-  overflow-y: visible;
-}
-
+/* Hand containers stay content-sized (no stretching = no empty gap below
+   short hands), but can shrink so a long hand scrolls instead of pushing
+   the sheet off-screen. */
 body.view-phone.market-open #board-and-hand-container,
 body.view-phone.market-open #player-hand-ui {
-  flex: none;
+  flex: 0 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Hand sizes to its cards up to the cap, then scrolls inside it. */
+body.view-phone.market-open #hand-cards {
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: 50dvh;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
