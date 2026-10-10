@@ -272,11 +272,31 @@ document.addEventListener('DOMContentLoaded', () => {
          keeps the same sizes (harmless) — no separate phone stylesheet. */
       .rubble-prompt-actions button { min-height: 44px; font-size: 0.9rem !important; }
       .rubble-prompt-actions { display: flex; gap: 0.5rem; margin-top: 0.35rem; }
-      #move-list-cancel { min-height: 44px; padding: 0.5rem 1rem;
-        border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.06);
-        color: #e8e0d0; border-radius: 6px; cursor: pointer;
-        font-size: 0.85rem; font-weight: 600; }
-      #move-list-cancel:hover { background: rgba(255,255,255,0.12); }
+      #move-list-cancel { display: flex; align-items: center; gap: 0.6rem;
+        width: 100%; min-height: 56px; padding: 0.5rem 0.6rem;
+        border-radius: 10px; cursor: pointer; font-weight: 700; text-align: left; }
+      #move-list-cancel.is-cancel { border: 1px solid rgba(255,255,255,0.15);
+        background: rgba(255,255,255,0.06); color: #e8e0d0; }
+      #move-list-cancel.is-cancel:hover { background: rgba(255,255,255,0.12); }
+      #move-list-cancel.is-done { border: 1px solid rgba(76,255,76,0.55);
+        background: rgba(24,61,32,0.9); color: #eaffea; }
+      #move-list-cancel.is-done:hover { background: #1e4d27; border-color: #4cff4c; }
+      #move-list-cancel:active { transform: translateY(1px); }
+      .move-cancel-icon { display: inline-grid; place-items: center;
+        width: 40px; height: 40px; border-radius: 50%;
+        font-size: 1.2rem; font-weight: 800; flex-shrink: 0; }
+      #move-list-cancel.is-cancel .move-cancel-icon { background: #1c2530; color: #fff;
+        border: 2px solid rgba(255,255,255,0.35); }
+      #move-list-cancel.is-done .move-cancel-icon { background: #0d2812; color: #fff;
+        border: 2px solid #4cff4c; }
+      .move-cancel-text { display: flex; flex-direction: column; min-width: 0;
+        line-height: 1.15; flex: 1 1 auto; }
+      .move-cancel-label { font-size: 0.85rem; font-weight: 800;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .move-cancel-meta { font-size: 0.7rem; font-weight: 500;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      #move-list-cancel.is-cancel .move-cancel-meta { color: #9aabbf; }
+      #move-list-cancel.is-done .move-cancel-meta { color: #b8f5b8; }
     `;
     document.head.appendChild(style);
   }
@@ -296,7 +316,13 @@ document.addEventListener('DOMContentLoaded', () => {
       <div id="move-list"></div>
       <div id="blockade-list-header" class="hidden">🚧 Break blockade</div>
       <div id="blockade-list"></div>
-      <button id="move-list-cancel" type="button">Cancel</button>`;
+      <button id="move-list-cancel" type="button" class="is-cancel">
+        <span class="move-cancel-icon" aria-hidden="true">↩</span>
+        <span class="move-cancel-text">
+          <span class="move-cancel-label">Cancel</span>
+          <span class="move-cancel-meta">return card to hand</span>
+        </span>
+      </button>`;
     host.appendChild(panel);
     panel.querySelector('#move-list-cancel').addEventListener('click', cancelMoveSelection);
     return panel;
@@ -412,14 +438,45 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     // "Cancel" returns the card to hand only while no moves are spent —
     // afterwards the server discards it, so label the button honestly.
+    // Full-width action row in the same icon-circle + label/meta language as
+    // the move/blockade buttons above — two lines solve the long-text problem
+    // (`Done moving ✓ (discards Long Card Name)`) via ellipsis on the meta.
     const cancelBtn = panel.querySelector('#move-list-cancel');
     if (cancelBtn) {
+      // Self-heal panels built by older code (plain-text button, no spans).
+      if (!cancelBtn.querySelector('.move-cancel-label')) {
+        cancelBtn.innerHTML = `
+          <span class="move-cancel-icon" aria-hidden="true">↩</span>
+          <span class="move-cancel-text">
+            <span class="move-cancel-label">Cancel</span>
+            <span class="move-cancel-meta">return card to hand</span>
+          </span>`;
+      }
+      const iconEl = cancelBtn.querySelector('.move-cancel-icon');
+      const labelEl = cancelBtn.querySelector('.move-cancel-label');
+      const metaEl = cancelBtn.querySelector('.move-cancel-meta');
       if (moveMovementTotal > 0 && (moveMovesRemaining ?? moveMovementTotal) < moveMovementTotal) {
-        cancelBtn.textContent = `Done moving ✓ (discards ${cardName})`;
+        cancelBtn.classList.remove('is-cancel');
+        cancelBtn.classList.add('is-done');
+        if (iconEl) iconEl.textContent = '✓';
+        if (labelEl) labelEl.textContent = 'Done moving ✓';
+        if (metaEl) {
+          metaEl.textContent = `discards ${cardName} · ${moveMovesRemaining} left`;
+          metaEl.title = `Forfeit remaining moves; ${cardName} is discarded.`;
+        }
         cancelBtn.title = 'Forfeit remaining moves; the card is discarded.';
+        cancelBtn.setAttribute('aria-label', `Done moving, discards ${cardName}`);
       } else {
-        cancelBtn.textContent = 'Cancel';
+        cancelBtn.classList.remove('is-done');
+        cancelBtn.classList.add('is-cancel');
+        if (iconEl) iconEl.textContent = '↩';
+        if (labelEl) labelEl.textContent = 'Cancel';
+        if (metaEl) {
+          metaEl.textContent = 'return card to hand';
+          metaEl.title = 'Return the card to your hand.';
+        }
         cancelBtn.title = 'Return the card to your hand.';
+        cancelBtn.setAttribute('aria-label', 'Cancel, return card to hand');
       }
     }
     panel.classList.remove('hidden');
