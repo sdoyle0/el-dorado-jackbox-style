@@ -426,8 +426,11 @@ body.view-phone #hand-cards .card-stat-line {
 }
 
 /* ℹ️ stays tappable without covering the movement stat: vertically centred
-   in a reserved gutter, only on cards that have one. */
-body.view-phone #hand-cards .card-btn:has(.card-info-btn) {
+   in a reserved gutter, only on cards that have one. The reservation lives
+   on the header strip (the terrain-coloured surface) rather than the button
+   itself — .card-btn is transparent, so button-level padding opened an
+   unpainted gutter around the icon on purple/info cards. */
+body.view-phone #hand-cards .card-btn:has(.card-info-btn) .card-header-strip {
   padding-right: 52px;
 }
 
