@@ -647,6 +647,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const SESSION_KEY = 'eldorado.session';
   let pendingIdentity = null;
   let rejoinPending = false;
+  let rejoinRoomId = null;
   let rejoinFallbackTimer = null;
 
   function storeSession(roomId, playerName, isSpectator) {
@@ -760,19 +761,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const isHost = client.isHost;
-    const canStart = isHost && (players.length >= 2 || (DEBUG && players.length >= 1));
+    // Any seated player (phone) or the host (TV) may start once the minimum
+    // is met, so nobody walks back to the laptop after joining by phone.
+    const canStartAs = isHost || !client.isSpectator;
+    const enoughPlayers = players.length >= 2 || (DEBUG && players.length >= 1);
+    const canStart = canStartAs && enoughPlayers;
     startGameBtn.disabled = !canStart;
     startGameBtn.style.opacity = canStart ? '1' : '0.4';
     startGameBtn.style.cursor = canStart ? 'pointer' : 'not-allowed';
 
-    if (!isHost) {
-      waitingHint.textContent = 'Waiting for the host to start…';
-    } else if (players.length < 2 && !DEBUG) {
+    if (!enoughPlayers && !DEBUG) {
       waitingHint.textContent = 'Need at least 2 players to start.';
-    } else if (players.length < 2 && DEBUG) {
+    } else if (!enoughPlayers && DEBUG) {
       waitingHint.textContent = 'Debug mode: you can start solo or wait for others.';
     } else if (players.length < maxPlayers) {
-      waitingHint.textContent = `You can start now, or wait for ${maxPlayers - players.length} more.`;
+      waitingHint.textContent = isHost || !client.isSpectator
+        ? `You can start now, or wait for ${maxPlayers - players.length} more.`
+        : 'Waiting for the host to start…';
     } else {
       waitingHint.textContent = 'All players connected — ready to start!';
     }
@@ -796,6 +801,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!name) { setLobbyError('Enter your name first.'); return; }
     setLobbyInfo('Creating room…');
     createRoomBtn.disabled = true;
+    // Manual intent wins over a stale Block 8 auto-rejoin (e.g. server
+    // restarted, old room gone, auto-rejoin failed but left rejoinPending
+    // set). Without this the next joined_room is swallowed by the rejoin
+    // path and the lobby never advances to waiting.
+    rejoinPending = false;
+    rejoinRoomId = null;
     pendingIdentity = name; // Block 8: refresh-safe session
     const enableBlockades = blockadesToggle?.checked ?? true;
     client.createRoom(name, selectedPlayerCount, DEBUG, enableBlockades, VIEW === 'tv');
@@ -814,6 +825,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!code) { setLobbyError('Enter a room code.'); return; }
     setLobbyInfo('Joining…');
     joinRoomBtn.disabled = true;
+    // Manual intent wins over a stale Block 8 auto-rejoin — see above.
+    rejoinPending = false;
+    rejoinRoomId = null;
     pendingIdentity = name; // Block 8: refresh-safe session
     client.joinRoom(name, code, VIEW === 'tv');
   });
@@ -870,11 +884,19 @@ document.addEventListener('DOMContentLoaded', () => {
       if (data.roomId) url.searchParams.set('room', String(data.roomId).toUpperCase());
       window.history.replaceState(null, '', url.pathname + url.search);
     } catch (e) { /* non-fatal — rejoin still works via sessionStorage */ }
-    if (rejoinPending) {
+    // Only the boot auto-rejoin reply takes the rejoin path — and only when
+    // it matches the room we actually tried to rejoin. A stale rejoinPending
+    // (e.g. auto-rejoin failed after a server restart, then the user manually
+    // joined a NEW code) must fall through to the waiting room immediately.
+    // Otherwise the lobby sits dead for 6s while the TV already shows the join.
+    const isRejoinReply = rejoinPending && rejoinRoomId && data.roomId
+      && String(data.roomId).toUpperCase() === String(rejoinRoomId).toUpperCase();
+    if (isRejoinReply) {
       // Block 8: boot auto-rejoin after a refresh — skip the waiting room.
       // A mid-game server follows up with game_snapshot; otherwise (fresh
       // seat pre-game, or reclaim failed) fall back to the waiting room.
       rejoinPending = false;
+      rejoinRoomId = null;
       showToast('Reconnected — syncing game state…', { icon: '🔄', type: 'info' });
       if (rejoinFallbackTimer) clearTimeout(rejoinFallbackTimer);
       rejoinFallbackTimer = setTimeout(() => {
@@ -885,6 +907,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }, 6000);
       return;
     }
+    rejoinPending = false;
+    rejoinRoomId = null;
+    if (rejoinFallbackTimer) { clearTimeout(rejoinFallbackTimer); rejoinFallbackTimer = null; }
     showScreen('waiting');
     renderWaitingRoom();
   };
@@ -892,6 +917,12 @@ document.addEventListener('DOMContentLoaded', () => {
   client.onJoinError = ({ message }) => {
     createRoomBtn.disabled = false;
     joinRoomBtn.disabled = false;
+    // A failed boot auto-rejoin (stale room after a server restart, wrong
+    // code, etc.) must not leave rejoinPending set — otherwise the NEXT
+    // manual join/create is swallowed by the rejoin path and the lobby
+    // appears stuck even though the server accepted the join.
+    rejoinPending = false;
+    rejoinRoomId = null;
     // Mid-game reclaim fails only when no grace-held seat matches: wrong
     // name, seat expired (>2 min), or never joined before start (no late
     // joins). Say so directly instead of the bare server text.
@@ -1733,6 +1764,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (sess.playerName) nameInput.value = sess.playerName;
       pendingIdentity = null;
       rejoinPending = false;
+      rejoinRoomId = null;
       setLobbyInfo('');
       return;
     }
@@ -1740,6 +1772,7 @@ document.addEventListener('DOMContentLoaded', () => {
     roomCodeInput.value = sess.roomId;
     pendingIdentity = sess.playerName || getLobbyName();
     rejoinPending = true;
+    rejoinRoomId = String(sess.roomId).toUpperCase();
     setLobbyInfo('Reconnecting…');
     client.joinRoom(pendingIdentity, sess.roomId, VIEW === 'tv');
   })();

@@ -294,7 +294,10 @@ class GameRoom {
   }
 
   tryStartGame(socketId) {
-    if (socketId !== this.hostId) return { ok: false, error: 'only the host can start the game' };
+    // Any seated player (phone) or the host (TV spectator-host) may start,
+    // so nobody has to walk back to the laptop once phones are in hand.
+    const isPlayer = this.players.some(p => p.socketId === socketId);
+    if (socketId !== this.hostId && !isPlayer) return { ok: false, error: 'only players in this room can start the game' };
     if (this.started) return { ok: false, error: 'game already started' };
     const minPlayers = this.debugMode ? 1 : 2;
     if (this.players.length < minPlayers) return { ok: false, error: 'need at least 2 players' };
