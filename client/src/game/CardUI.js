@@ -286,17 +286,6 @@ class CardUI {
     return this._makeCardShared(card, false, false, false);
   }
 
-  _terrainIcon(terrain) {
-    switch (terrain) {
-      case 'jungle':  return '🌿';
-      case 'water':   return '🌊';
-      case 'village': return '🏘️';
-      case 'wild':    return '🧭';
-      case 'empty':   return '✨';
-      default:        return '';
-    }
-  }
-
   _specialDescription(effect) {
     switch (effect) {
       case 'transmitter':  return 'Free card from market';
@@ -588,18 +577,13 @@ class CardUI {
     const lastCopy = !isReserve && card.remaining === 1;
 
     // Line 1 — identical structure for every card (normal + purple special):
-    // dot · name · [moves] · amount-left · cost · Buy. This keeps name/left/
+    // name · [moves] · amount-left · cost · Buy. This keeps name/left/
     // cost/Buy in the same spots so special rows line up with normal rows.
+    // Terrain reads from the row's left border (see market-phone-styles in
+    // main.js) — the old leading dot duplicated it in the same colour.
     const main = document.createElement('div');
     main.className = 'market-row-main';
     row.appendChild(main);
-
-    // Terrain colour reference (dot + left border via CSS): movement cards
-    // read green/blue/gold at a glance, purple vs grey stays distinct.
-    const dot = document.createElement('span');
-    dot.className = 'market-row-dot';
-    dot.setAttribute('aria-hidden', 'true');
-    main.appendChild(dot);
 
     const nameEl = document.createElement('span');
     nameEl.className = 'market-row-name';
@@ -616,11 +600,13 @@ class CardUI {
       main.appendChild(onceEl);
     }
 
-    // What you're buying: movement value for green/blue/yellow cards.
+    // What you're buying: movement value. Number only — the terrain emoji
+    // used to mirror the board watermark, which no longer exists (Option A);
+    // the card's terrain colour (header bar / row border) carries the link now.
     if (card.movementTotal > 0) {
       const mvEl = document.createElement('span');
       mvEl.className = 'market-row-moves';
-      mvEl.textContent = `${this._terrainIcon(card.movementTerrain)} ${card.movementTotal}`;
+      mvEl.textContent = `${card.movementTotal}`;
       main.appendChild(mvEl);
     }
 
@@ -684,10 +670,10 @@ class CardUI {
     btn.dataset.instanceId = card.instanceId;
     btn.dataset.cardKey = card.key;
 
-    const terrainIcon = this._terrainIcon(card.movementTerrain);
+    // Movement stat: number only (see market-row-moves note above).
     const movesLine = card.movementTotal > 0
       ? `<div class="card-stat-line">
-           <span>${terrainIcon} ${card.movementTotal}</span>
+           <span>${card.movementTotal}</span>
          </div>` : '';
 
     const effectDesc = this._specialDescription(card.specialEffect);
@@ -939,11 +925,6 @@ class CardUI {
     main.className = 'market-row-main';
     row.appendChild(main);
 
-    const dot = document.createElement('span');
-    dot.className = 'market-row-dot';
-    dot.setAttribute('aria-hidden', 'true');
-    main.appendChild(dot);
-
     const nameEl = document.createElement('span');
     nameEl.className = 'market-row-name';
     nameEl.textContent = card.cardName || card.key;
@@ -960,7 +941,7 @@ class CardUI {
     if (card.movementTotal > 0) {
       const mvEl = document.createElement('span');
       mvEl.className = 'market-row-moves';
-      mvEl.textContent = `${this._terrainIcon(card.movementTerrain)} ${card.movementTotal}`;
+      mvEl.textContent = `${card.movementTotal}`;
       main.appendChild(mvEl);
     }
 

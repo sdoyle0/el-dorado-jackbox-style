@@ -301,33 +301,34 @@ class HexRenderer {
     badges.setAttribute('class', 'tile-badges');
     badges.setAttribute('pointer-events', 'none');
 
-    // ── Terrain icon (watermark style) ──────────────────────────────────────
-    // Physical-board density: one large faint icon behind the cost numeral
-    // instead of a small solid one beside it. Tile color already says the
-    // terrain at a glance; the watermark keeps the board from looking empty
-    // without fighting the number for attention.
-    const iconSize = isElDorado ? 44 : 40;
-    const iconY = (tile.movementCost > 1 && !isMountain) ? cy - 14 : cy + 2;
+    // ── Terrain icon: only functional/special terrains show one — mountain
+    // (impassable), camp, start, el_dorado. Movement + toll terrains
+    // (jungle/water/village/rubble) show NO icon: tile color already says the
+    // terrain, and the icons added nothing — the rubble one only forced its
+    // ×2 pill off-center with no readability gain.
+    const NO_ICON_TERRAINS = new Set(['jungle', 'water', 'village', 'rubble']);
+    if (!NO_ICON_TERRAINS.has(tile.terrainType)) {
+      const iconSize = isElDorado ? 44 : 40;
 
-    const icon = mk('text');
-    icon.setAttribute('x', cx);
-    icon.setAttribute('y', iconY);
-    icon.setAttribute('text-anchor', 'middle');
-    icon.setAttribute('dominant-baseline', 'middle');
-    icon.setAttribute('font-size', iconSize);
-    icon.setAttribute('opacity', '0.22');
-    icon.setAttribute('pointer-events', 'none');
-    if (style.textColor) icon.setAttribute('fill', style.textColor);
-    icon.textContent = style.icon;
-    badges.appendChild(icon);
+      const icon = mk('text');
+      icon.setAttribute('x', cx);
+      icon.setAttribute('y', cy + 2);
+      icon.setAttribute('text-anchor', 'middle');
+      icon.setAttribute('dominant-baseline', 'middle');
+      icon.setAttribute('font-size', iconSize);
+      icon.setAttribute('opacity', '0.92');
+      icon.setAttribute('pointer-events', 'none');
+      if (style.textColor) icon.setAttribute('fill', style.textColor);
+      icon.textContent = style.icon;
+      badges.appendChild(icon);
+    }
 
     // ── Movement cost badge ───────────────────────────────────────────────────
-    // The prominent number on the tile: what it costs to enter. Larger than
-    // the terrain icon above it by design.
+    // Always centered — no icon shares the hex on badged tiles anymore.
     if (tile.movementCost > 1 && !isMountain) {
       const badgeBg = mk('rect');
       badgeBg.setAttribute('x', cx - 26);
-      badgeBg.setAttribute('y', cy + 8);
+      badgeBg.setAttribute('y', cy - 14);
       badgeBg.setAttribute('width', 52);
       badgeBg.setAttribute('height', 28);
       badgeBg.setAttribute('rx', '14');
@@ -337,7 +338,7 @@ class HexRenderer {
 
       const badge = mk('text');
       badge.setAttribute('x', cx);
-      badge.setAttribute('y', cy + 23);
+      badge.setAttribute('y', cy + 1);
       badge.setAttribute('text-anchor', 'middle');
       badge.setAttribute('dominant-baseline', 'middle');
       badge.setAttribute('font-size', '22');

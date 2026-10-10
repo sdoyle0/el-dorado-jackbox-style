@@ -1058,6 +1058,21 @@ body.view-phone .market-onetime-pill {
 .market-card.terrain-empty .card-terrain-pip         { background: #9050e0; }
 .card-btn.terrain-empty .card-gold-badge             { color: #c8a0f0; }
 
+/* ── Board↔card hue link (Option A companion) ───────────────────────────────
+   Headers stay dark for text contrast — a full-header exact match would put
+   light text on bright saturated fills (yellow-on-gold is unreadable) and
+   fight the card art. Instead the 4px leading bar uses the tile's exact
+   inner-face fill, so the match is hue-exact, not just same-family.
+   Tile fills live in HexRenderer.js TERRAIN (innerFill). Phone market rows
+   carry the same signal via their left border (see market-phone-styles in
+   main.js) — no dot, it only duplicated the border in the same colour. */
+.card-btn.terrain-jungle .card-header-strip,
+.market-card.terrain-jungle .card-header-strip   { border-left: 4px solid #347a20; }
+.card-btn.terrain-water .card-header-strip,
+.market-card.terrain-water .card-header-strip    { border-left: 4px solid #2068b0; }
+.card-btn.terrain-village .card-header-strip,
+.market-card.terrain-village .card-header-strip  { border-left: 4px solid #c08828; }
+
 /* In-pool (market / rubble selection) */
 .card-btn.in-pool {
   border-color: #ff1493;

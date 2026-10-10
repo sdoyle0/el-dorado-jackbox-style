@@ -1375,22 +1375,20 @@ document.addEventListener('DOMContentLoaded', () => {
         border: 1px solid var(--border-mid, rgba(201,162,39,0.32));
         border-left-width: 4px;
         background: rgba(22,39,61,0.9); color: #e8e0d0; border-radius: 8px; }
-      /* Line 1: same slots for every card (dot · name · [moves] · left · cost · Buy).
+      /* Line 1: same slots for every card (name · [moves] · left · cost · Buy).
          Line 2 (specials only): ℹ️ + effect one-liner grouped on the left,
          clear of the Buy button above. */
-      /* Terrain colour reference: dot + left border per card terrain. */
-      body.view-phone .market-row-item.terrain-jungle { border-left-color: #4cff4c; }
-      body.view-phone .market-row-item.terrain-water { border-left-color: #4a9ae8; }
-      body.view-phone .market-row-item.terrain-village { border-left-color: #ffd700; }
-      body.view-phone .market-row-item.terrain-wild { border-left-color: #888888; }
+      /* Terrain colour reference: left border per card terrain (matches the
+         header-strip bars on hand/full cards). Hues are the HexRenderer
+         TERRAIN inner-face fills, not neon — one consistent mapping
+         everywhere. Wild gets a transparent edge:
+         it matches ANY terrain, so any single colour would imply the wrong
+         tile — grey read as rubble-grey. */
+      body.view-phone .market-row-item.terrain-jungle { border-left-color: #347a20; }
+      body.view-phone .market-row-item.terrain-water { border-left-color: #2068b0; }
+      body.view-phone .market-row-item.terrain-village { border-left-color: #c08828; }
+      body.view-phone .market-row-item.terrain-wild { border-left-color: transparent; }
       body.view-phone .market-row-item.terrain-empty { border-left-color: #9050e0; }
-      body.view-phone .market-row-dot { width: 12px; height: 12px; border-radius: 50%;
-        flex-shrink: 0; background: #888888; }
-      body.view-phone .market-row-item.terrain-jungle .market-row-dot { background: #4cff4c; }
-      body.view-phone .market-row-item.terrain-water .market-row-dot { background: #4a9ae8; }
-      body.view-phone .market-row-item.terrain-village .market-row-dot { background: #ffd700; }
-      body.view-phone .market-row-item.terrain-wild .market-row-dot { background: #888888; }
-      body.view-phone .market-row-item.terrain-empty .market-row-dot { background: #9050e0; }
       body.view-phone .market-row-main { display: flex; align-items: center;
         gap: 0.5rem; width: 100%; }
       body.view-phone .market-row-sub { display: flex; align-items: center;
