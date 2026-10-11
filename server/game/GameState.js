@@ -376,6 +376,10 @@ class GameStateManager {
 
     const player = this.currentPlayer;
 
+    if (new Set(handCardsUsed).size !== handCardsUsed.length) {
+      return { ok: false, error: 'invalid hand cards' };
+    }
+
     const spentCards = handCardsUsed
       .map(id => player.hand.find(c => c.instanceId === id))
       .filter(Boolean);
