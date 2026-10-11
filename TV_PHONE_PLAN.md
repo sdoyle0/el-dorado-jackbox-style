@@ -16,6 +16,13 @@ Rules for every session:
 - Only touch the files listed in "Scope".
 - Do not refactor unrelated code.
 - End with manual verification steps from "Acceptance".
+- Any client change must also be checked on a narrow phone viewport
+  (~360–390px wide: DevTools device toolbar, plus a real phone when handy).
+  Code review won't catch phone-only layout breaks — e.g. a long header
+  string once pushed ✕ Close off-screen with no way to dismiss the overlay.
+  On the phone layout verify: every overlay's close/cancel stays reachable,
+  new text sits on its own wrapped line (never inside a flex header row),
+  and touch targets stay ≥44px.
 
 ## Verified architecture snapshot (Oct 2026)
 
