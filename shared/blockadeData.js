@@ -43,7 +43,9 @@ const BLOCKADE_SEAMS = [
   {
     id: 'BLK_CG',
     label: 'C↔G',
-    // q=3 (section C) adjacent to q=4 (section G)
+    // Diagonal seam spanning q=3–q=7 (section C to section G).
+    // Last edge touches mountain 7_-11 (impassable — never crossable, but
+    // the seam must still be broken to use the other edges).
     edges: [
       ['3_-10', '4_-11'],
 
@@ -60,7 +62,9 @@ const BLOCKADE_SEAMS = [
   {
     id: 'BLK_GK',
     label: 'G↔K',
-    // q=6 (section G) adjacent to q=7 (section K)
+    // Diagonal seam spanning q=7–q=11 (section G to section K).
+    // First edge touches mountain 7_-11 (impassable — never crossable, but
+    // the seam must still be broken to use the other edges).
     edges: [
       ['10_-14', '11_-14'],
       ['10_-14', '10_-13'],
@@ -77,7 +81,7 @@ const BLOCKADE_SEAMS = [
   {
     id: 'BLK_KJ',
     label: 'K↔J',
-    // q=8 (section K) adjacent to q=9 (section J)
+    // Diagonal seam spanning q=11–q=15 (section K to section J).
     edges: [
       ['14_-11', '15_-11'],
       ['14_-11', '14_-10'],
