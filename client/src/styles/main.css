@@ -1882,8 +1882,18 @@ body.view-phone .market-onetime-pill {
 #card-market #market-header,
 #card-market #transmitter-banner,
 #card-market #purchase-locked-banner,
+#card-market #pool-rule,
 #card-market #pool-chips {
   flex: none;
+}
+/* Pooling rule reminder: one static dim line (replaces per-card badges —
+   yellow pools at face value, everything else +0.5, pooled cards audit as
+   chips with their values). Own wrapped line, never inside #purchase-total. */
+#card-market #pool-rule {
+  font-size: 0.72rem;
+  color: var(--gold-bright);
+  text-align: center;
+  padding: 0.1rem 0.5rem 0.25rem;
 }
 #card-market #shop-slots {
   flex: 1 1 auto;

@@ -234,6 +234,13 @@ document.addEventListener('DOMContentLoaded', () => {
          which tile the picks are paying for (tap another tile to retarget). */
       .move-dest-btn.is-pending { border-color: #e74c3c; border-width: 2px;
         background: rgba(61,22,22,0.92); }
+      /* Slice 6b (phones): destination number rings tinted by terrain, so
+         the list rhymes with the TV board's terrain colours. */
+      .move-dest-btn.terrain-jungle .move-dest-num { border-color: #4cff4c; }
+      .move-dest-btn.terrain-water .move-dest-num { border-color: #4ab8f0; }
+      .move-dest-btn.terrain-village .move-dest-num { border-color: #ffd700; }
+      .move-dest-btn.terrain-rubble .move-dest-num { border-color: #c9a227; }
+      .move-dest-btn.terrain-camp .move-dest-num { border-color: #ff9f43; }
       .move-dest-num { display: inline-grid; place-items: center;
         min-width: 40px; height: 40px; border-radius: 50%;
         background: #000; color: #fff; border: 2px solid #fff;
@@ -385,11 +392,14 @@ document.addEventListener('DOMContentLoaded', () => {
       subEl.textContent = `Match the number on the TV, then tap.`;
       validMoves.forEach((tileId, i) => {
         const num = i + 1; // must match HexRenderer badge: position in payload
-        const { terrain, icon, cost } = moveLabelFor(tileId);
+        const { terrain, cost } = moveLabelFor(tileId);
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'move-dest-btn';
         btn.dataset.tile = tileId;
+        // Slice 6b (phones): tint the number ring by destination terrain so
+        // the list rhymes with the TV board's terrain colours.
+        if (terrain && terrain !== 'unknown') btn.classList.add(`terrain-${terrain}`);
         const numSpan = document.createElement('span');
         numSpan.className = 'move-dest-num';
         numSpan.textContent = String(num);
@@ -397,6 +407,9 @@ document.addEventListener('DOMContentLoaded', () => {
         hintSpan.className = 'move-dest-hint';
         // Tiny hint only — full "Jungle ×1" text and hex IDs are gone.
         // Camp removes the played card; cost-2+ rubble needs extra cards.
+        // Terrain icons are gone too (tile/ring colour carries the terrain —
+        // same call as the board watermark removal); 🪨/⛺ stay as warning
+        // glyphs, not terrain decoration.
         if (terrain === 'camp') {
           hintSpan.textContent = '⛺ camp';
           hintSpan.classList.add('is-warn');
@@ -406,12 +419,12 @@ document.addEventListener('DOMContentLoaded', () => {
           hintSpan.classList.add('is-warn');
           hintSpan.title = `Rubble needs ${Number(cost) - 1} extra card(s)`;
         } else {
-          hintSpan.textContent = `${icon} ×${cost}`;
+          hintSpan.textContent = `×${cost}`;
           hintSpan.title = `${terrain} cost ${cost}`;
         }
         btn.appendChild(numSpan);
         btn.appendChild(hintSpan);
-        btn.setAttribute('aria-label', `Option ${num}: ${terrain} cost ${cost} at ${tileId}`);
+        btn.setAttribute('aria-label', `Option ${num}: ${terrain} cost ${cost}`);
         btn.addEventListener('click', () => attemptMoveToTile(tileId));
         listEl.appendChild(btn);
       });
@@ -1664,13 +1677,14 @@ document.addEventListener('DOMContentLoaded', () => {
         background: rgba(201,162,39,0.15); color: #ffe066; font-size: 0.75rem;
         font-weight: 600; cursor: pointer; }
       body.view-phone .pool-chip-x { font-weight: 800; }
-      /* Pool-value badges on hand cards (market mode only). */
-      body.view-phone #hand-cards .card-btn { position: relative; }
-      body.view-phone .pool-value-badge { position: absolute; top: 2px; right: 2px;
-        z-index: 3; min-width: 44px; min-height: 28px; display: inline-grid;
-        place-items: center; padding: 0 0.4rem; border-radius: 999px;
-        background: #000; color: #ffd700; border: 2px solid #ffd700;
-        font-size: 0.8rem; font-weight: 800; pointer-events: none; }
+      /* Market/reserve row thumbnails: same PNG art as hand rows, cropped
+         to the 44px row height. */
+      body.view-phone .market-row-thumb { width: 40px; height: 40px; flex: none;
+        border-radius: 8px; object-fit: cover;
+        border: 1px solid rgba(255,255,255,0.18);
+        background: rgba(0,0,0,0.3); }
+      /* Pooling rule reminder under the header (one static line). */
+      body.view-phone #pool-rule { flex: none; }
       body.view-phone #reserve-picker-box { max-height: 86dvh; overflow-y: auto;
         -webkit-overflow-scrolling: touch; }
       body.view-phone #reserve-cards { flex-direction: column; }

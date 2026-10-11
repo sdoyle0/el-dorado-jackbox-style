@@ -24,6 +24,18 @@ class CardUI {
     this.poolChipsEl.className = 'hidden';
     document.getElementById('market-header')?.after(this.poolChipsEl);
 
+    // Pooling rule reminder (replaces the old per-card pool-value badges:
+    // yellow always pools at face value — already on the row — and every
+    // other card is always +0.5, so per-card badges taught nothing new).
+    // Static line under the market header; pooled cards audit themselves
+    // as removable chips with their +values (see _renderPoolChips).
+    this.poolRuleEl = document.createElement('div');
+    this.poolRuleEl.id = 'pool-rule';
+    this.poolRuleEl.className = 'hidden';
+    this.poolRuleEl.setAttribute('role', 'note');
+    this.poolRuleEl.textContent = 'Yellow cards pool at face value · all others +0.5';
+    this.poolChipsEl?.after(this.poolRuleEl);
+
     // Transmitter free-pick banner (created once, shown only when the
     // Transmitter bonus is active). Makes it explicit that BOTH the market
     // and the reserve below are free picks — previously the reserve was
@@ -271,30 +283,12 @@ class CardUI {
   }
 
   _syncHandState() {
-    const showValues = this._mode === 'market' && this._isPhoneView();
     for (const btn of this.handEl.querySelectorAll('.card-btn')) {
       const id = btn.dataset.instanceId;
 
       const excluded = this._mode === 'rubble' && id === this._rubbleExcludeId;
       btn.classList.toggle('rubble-excluded', excluded);
       btn.disabled = excluded;
-
-      // Phone market mode: badge each hand card with its pool value so the
-      // buyer isn't pooling blind (yellow face value vs 0.5). Display-only;
-      // the numbers come straight from the server-provided hand payload.
-      let badge = btn.querySelector('.pool-value-badge');
-      if (showValues) {
-        const card = this._currentHand.find(c => c.instanceId === id);
-        const val = card?.purchasingPower ?? 0;
-        if (!badge) {
-          badge = document.createElement('span');
-          badge.className = 'pool-value-badge';
-          btn.appendChild(badge);
-        }
-        badge.textContent = `+${val}`;
-      } else if (badge) {
-        badge.remove();
-      }
 
       if (this._mode === 'market') {
         btn.classList.toggle('in-pool', this._purchasePool.has(id));
@@ -351,15 +345,6 @@ class CardUI {
 
   _setMode(mode) {
     this._mode = mode;
-    // Phone pooling gutter: while pooling, hand rows reserve a left gutter
-    // for the coin badge (absolute overlay, no layout growth). Off in
-    // movement/rubble modes so headers use the full width.
-    if (this.handEl) {
-      this.handEl.classList.toggle(
-        'market-pooling',
-        mode === 'market' && this._isPhoneView()
-      );
-    }
     this._syncHandState();
   }
 
@@ -390,6 +375,9 @@ class CardUI {
       this.shopEl.classList.remove('show-reserve');
     }
     this._syncTransmitterChrome();
+    // Pooling rule reminder (not during a Transmitter free pick — nothing
+    // pools there). Hidden again in closeMarket.
+    this.poolRuleEl?.classList.toggle('hidden', transmitterBonus > 0);
     if (this._lastMarket) this.renderMarket(this._lastMarket);
     this._updatePurchaseTotal();
     // Bonus > 0 is the server-driven Transmitter free pick (the played card
@@ -405,6 +393,7 @@ class CardUI {
     document.body?.classList?.remove('market-open');
     this.poolChipsEl.innerHTML = '';
     this.poolChipsEl.classList.add('hidden');
+    this.poolRuleEl?.classList.add('hidden');
     this._syncTransmitterChrome();
     this._setMode('movement');
     this.onMarketClosed?.();
@@ -609,8 +598,20 @@ class CardUI {
     if (this._mode === 'market') this._updateAffordability();
   }
 
-  _makeMarketRowEl(card, isReserve, transmitterActive = false) {
-    const locked = isReserve && !transmitterActive;
+  // Phone row thumbnail: the same PNG art hand rows show (desktop full
+  // cards render it large). 40px fits the 44px row height; missing art
+  // removes itself so rows never show a broken icon.
+  _makeRowThumb(card) {
+    const thumb = document.createElement('img');
+    thumb.className = 'market-row-thumb';
+    thumb.src = `/shared/images/${card.key}.png`;
+    thumb.alt = '';
+    thumb.loading = 'lazy';
+    thumb.addEventListener('error', () => thumb.remove());
+    return thumb;
+  }
+
+  _makeMarketRowEl(card, isReserve, transmitterActive = false) {    const locked = isReserve && !transmitterActive;
     const row = document.createElement('div');
     row.className = `market-row-item terrain-${card.movementTerrain || 'empty'}` + (isReserve ? ' is-reserve' : '');
     if (locked) row.classList.add('reserve-locked');
@@ -629,6 +630,7 @@ class CardUI {
     const main = document.createElement('div');
     main.className = 'market-row-main';
     row.appendChild(main);
+    main.appendChild(this._makeRowThumb(card));
 
     const nameEl = document.createElement('span');
     nameEl.className = 'market-row-name';
@@ -756,6 +758,7 @@ class CardUI {
     btn.innerHTML = `
       ${infoBtn}
       <div class="card-header-strip">
+        <img class="card-thumb" src="/shared/images/${card.key}.png" alt="" loading="lazy" onerror="this.style.display='none'">
         <span class="card-name">${card.cardName}</span>
         ${effectInline}
         ${oneTimePill}
@@ -1013,6 +1016,7 @@ class CardUI {
     const main = document.createElement('div');
     main.className = 'market-row-main';
     row.appendChild(main);
+    main.appendChild(this._makeRowThumb(card));
 
     const nameEl = document.createElement('span');
     nameEl.className = 'market-row-name';
