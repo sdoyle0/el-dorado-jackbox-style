@@ -26,6 +26,13 @@
   let muted = false;
   let musicOn = false;
   let musicTimer = null;
+  // Music loop state: PARKED for now — the generative loop wasn't landing
+  // (retune 1 read as "drawn-out tones", arguably worse than the organ).
+  // Blind timbre iteration (no ears on the output) converges too slowly, so
+  // the loop is off while SFX stay live. Come back with either vendored
+  // royalty-free loops or a better generative design; everything below is
+  // intact — setMusicEnabled(true) brings it back.
+  let MUSIC_ENABLED = false;
 
   try {
     muted = localStorage.getItem(MUTE_KEY) === '1';
@@ -113,10 +120,13 @@
     } catch (_) { /* sound must never break gameplay */ }
   }
 
-  // ── Generative music: jungle-ambient loop ─────────────────────────────────
-  // Slow Am – F – C – G pads (detuned triangles through a lowpass, 8s swell)
-  // plus 2–4 sparse pentatonic plucks per chord. Quiet, endless, no two
-  // loops identical. Pads are fire-and-forget oscillators (stop themselves).
+  // ── Generative music: expedition-ambient loop ─────────────────────────────
+  // Slow Am – F – C – G swells (soft sine stacks through an airy lowpass,
+  // root drone an octave down), a quiet frame-drum heartbeat (3 soft thumps
+  // per 8s), plus 2–4 sparse pentatonic plucks per chord on a loose rhythm.
+  // Quiet, endless, no two loops identical. Pads are fire-and-forget
+  // oscillators (stop themselves). Retuned away from triangle-pad organ
+  // territory: sines + drone + drum carry the expedition feel.
   const CHORDS = [
     [220.0, 261.6, 329.6], // Am
     [174.6, 220.0, 261.6], // F
@@ -133,7 +143,7 @@
     const t = c.currentTime;
     const filt = c.createBiquadFilter();
     filt.type = 'lowpass';
-    filt.frequency.value = 900;
+    filt.frequency.value = 1200;
     const g = c.createGain();
     g.gain.setValueAtTime(0.0001, t);
     g.gain.linearRampToValueAtTime(0.5, t + 2.5);
@@ -142,15 +152,30 @@
     filt.connect(g);
     g.connect(musicBus);
     freqs.forEach((f) => {
-      [-4, 4].forEach((det) => {
+      [-5, 5].forEach((det) => {
         const o = c.createOscillator();
-        o.type = 'triangle';
+        o.type = 'sine';
         o.frequency.value = f;
         o.detune.value = det;
         o.connect(filt);
         o.start(t);
         o.stop(t + CHORD_SECS + 1.2);
       });
+    });
+    // Expedition drone: chord root an octave down, same swell.
+    const drone = c.createOscillator();
+    drone.type = 'sine';
+    drone.frequency.value = freqs[0] / 2;
+    drone.connect(filt);
+    drone.start(t);
+    drone.stop(t + CHORD_SECS + 1.2);
+  }
+
+  // Frame-drum heartbeat: soft low thumps, same pattern every loop so the
+  // ear has something steady to hold (pads + plucks drift around it).
+  function drumbeats() {
+    [0, 3, 5.5].forEach((w) => {
+      tone({ freq: 72, freqEnd: 44, dur: 0.28, gain: 0.22, when: w, bus: musicBus });
     });
   }
 
@@ -159,14 +184,19 @@
     if (!ac()) return;
     padChord(CHORDS[chordIdx % CHORDS.length]);
     chordIdx += 1;
+    drumbeats();
+    // Plucks on a loose rhythm (even-ish spacing + human jitter) instead of
+    // fully random scatter — reads as melody, not stray notes.
     const n = 2 + Math.floor(Math.random() * 3);
     for (let i = 0; i < n; i++) {
       const f = PENTA[Math.floor(Math.random() * PENTA.length)];
-      tone({ freq: f, dur: 1.4, gain: 0.16, when: 1 + Math.random() * (CHORD_SECS - 2), bus: musicBus });
+      const when = 1 + (i * (CHORD_SECS - 2)) / n + (Math.random() * 0.5 - 0.25);
+      tone({ freq: f, dur: 1.4, type: 'triangle', gain: 0.12, when, bus: musicBus });
     }
   }
 
   function startMusic() {
+    if (!MUSIC_ENABLED) return;
     if (musicOn) return;
     if (!ac()) return;
     musicOn = true;
@@ -194,7 +224,15 @@
     return muted;
   }
 
+  // Parked-loop switch (see MUSIC_ENABLED above). Exposed so the loop stays
+  // testable and a future settings UI can revive it without code changes.
+  function setMusicEnabled(on) {
+    MUSIC_ENABLED = !!on;
+    if (!MUSIC_ENABLED) stopMusic();
+  }
+
   window.ElDoradoAudio = {
     unlock, sfx, startMusic, stopMusic, setMuted, isMuted, hasStoredPref,
+    setMusicEnabled,
   };
 })();

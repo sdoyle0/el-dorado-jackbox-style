@@ -126,9 +126,10 @@ legality; it's the "would someone pay for this" pop layer.
   motion, thumbs, gold End Turn).
 - Status (Oct 2026): slice (d) shipped — ambient lobby glow drift, footer
   credits, lobby busy spinner, start-button double-tap guard.
-- Status (Oct 2026): slice (c) implemented, UNCOMMITTED — `Audio.js`
-  (procedural SFX + generative Am–F–C–G pad/pluck loop, no assets), game
-  events wired, first-gesture unlock, standalone 🔊 mute (localStorage),
-  phones default muted. Needs ears: music/SFX balance + loop feel.
+- Status (Oct 2026): slice (c) partial, UNCOMMITTED — SFX live (move/buy/
+  break/turn/win/error), music loop PARKED behind `setMusicEnabled` (two
+  generative attempts didn't land; blind timbre iteration converges too
+  slowly). Revisit with vendored royalty-free loops or ears on a new
+  generative design. Phones: action blips only, no loop ever.
 - Start at: `client/src/game/HexRenderer.js` (pawn/move animation layer),
   `client/src/game/CardUI.js` (play-animation hook), `client/src/styles/`.

@@ -1210,9 +1210,10 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast('Expedition begun! Good luck.', { icon: '🗺️', type: 'accent' });
     log('Game started!', 'system');
     // Slice 6c: music starts with the expedition (context already unlocked
-    // by the taps that got us here).
+    // by the taps that got us here). Phones never start the loop — action
+    // blips only, so a table of handsets never drones.
     try {
-      window.ElDoradoAudio?.startMusic();
+      if (VIEW !== 'phone') window.ElDoradoAudio?.startMusic();
     } catch (_) { /* silent */ }
     if (client.isMyTurn && client.isMyTurn(currentPlayerId)) playSfx('turn');
   };
@@ -1580,9 +1581,10 @@ document.addEventListener('DOMContentLoaded', () => {
     showScreen('game');
     // Slice 6c: a refreshed mid-game view (e.g. the TV) lands here, not in
     // onGameStarted — start the music too (idempotent; silent until the
-    // first tap unlocks audio if the browser holds it suspended).
+    // first tap unlocks audio if the browser holds it suspended). Phones
+    // stay music-free (action blips only).
     try {
-      window.ElDoradoAudio?.startMusic();
+      if (VIEW !== 'phone') window.ElDoradoAudio?.startMusic();
     } catch (_) { /* silent */ }
     // Refresh/reconnect path (not game_started): re-ensure the debug panel
     // so ?debug testers keep it after a phone refresh. No-op if present.
