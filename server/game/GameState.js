@@ -52,6 +52,14 @@ class GameStateManager {
     if (this.selectingCardsToRemove > 0) {
       const target = player.hand.find(c => c.instanceId === instanceId || c.key === instanceId);
       if (!target) return { ok: false, error: 'card not in hand' };
+      // The played Scientist / Travel Log itself sits on the table, not in
+      // hand — it can't be chosen as one of its own removals. (Scientist
+      // discards itself; Travel Log trashes itself via dispose. Counting it
+      // as a target would trash/discard the wrong pile and shortchange the
+      // "up to N others" count.)
+      if (this.playedCardData && target.instanceId === this.playedCardData.instanceId) {
+        return { ok: false, error: 'cannot remove the played card itself' };
+      }
       this.selectingCardsToRemove--;
       player.removeCardPermanently(target.instanceId);
       this.emit('hand_updated', { playerId, hand: player.hand });
@@ -533,13 +541,13 @@ class GameStateManager {
         player.drawCards(1);
         this.selectingCardsToRemove = 1;
         this.emit('hand_updated', { playerId: player.id, hand: player.hand });
-        this.emit('prompt_remove_cards', { playerId: player.id, count: 1 });
+        this.emit('prompt_remove_cards', { playerId: player.id, count: 1, playedInstanceId: card.instanceId });
         break;
       case CardEffect.TRAVEL_LOG:
         player.drawCards(2);
         this.selectingCardsToRemove = 2;
         this.emit('hand_updated', { playerId: player.id, hand: player.hand });
-        this.emit('prompt_remove_cards', { playerId: player.id, count: 2 });
+        this.emit('prompt_remove_cards', { playerId: player.id, count: 2, playedInstanceId: card.instanceId });
         break;
       default:
         break;
@@ -573,8 +581,15 @@ class GameStateManager {
     if (!this._isCurrentPlayer(playerId)) return { ok: false, error: 'not your turn' };
     if (this.state !== GS.AWAITING_MOVE) return { ok: false, error: 'nothing to cancel' };
     // Removal mode has its own Done button (finish_remove) — Cancel must not
-    // return the Scientist / Travel Log to hand mid-removal.
+    // return the Scientist / Travel Log to hand mid-removal. Re-emit the
+    // prompt so a client that already cleared its banner optimistically
+    // resyncs instead of desyncing into silent removals.
     if (this.selectingCardsToRemove > 0) {
+      this.emit('prompt_remove_cards', {
+        playerId,
+        count: this.selectingCardsToRemove,
+        playedInstanceId: this.playedCardData ? this.playedCardData.instanceId : null,
+      });
       return { ok: false, error: 'finish or skip card removal first' };
     }
 

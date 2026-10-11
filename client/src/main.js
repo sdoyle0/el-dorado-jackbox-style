@@ -495,6 +495,17 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function cancelMoveSelection() {
+    // Scientist / Travel Log removal has no Cancel — Done/Skip (finish_remove)
+    // owns it. A stale move-list Cancel (or a double-tap race) must not clear
+    // the banner or emit cancel_card: the server rejects that cancel while
+    // selectingCardsToRemove > 0, and the optimistic clear desyncs us —
+    // later hand taps look normal locally but the server eats them as
+    // removals. Bail out and point at Done instead.
+    if (pendingRemovals > 0 || pendingRemovalsTotal > 0) {
+      showToast('Finish removing first — tap Done to keep the rest.', { icon: '🔬', type: 'info', duration: 3000 });
+      log('Finish removing first — tap Done to keep the rest.', 'system');
+      return;
+    }
     const instanceId = selectedCard?.instanceId;
     const wasPartial = moveMovementTotal > 0
       && (moveMovesRemaining ?? moveMovementTotal) < moveMovementTotal;
@@ -529,7 +540,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const marketOpen = typeof cardUI.isMarketOpen === 'function'
       ? cardUI.isMarketOpen()
       : false;
-    const busy = pendingRemovals > 0 || !!rubblePendingTileId;
+    const busy = pendingRemovals > 0 || pendingRemovalsTotal > 0 || !!rubblePendingTileId;
     btn.disabled = !(isMe && selectedCard?.instanceId && !marketOpen && !busy);
   }
 
@@ -593,10 +604,15 @@ document.addEventListener('DOMContentLoaded', () => {
   // disposes the card — that makes clear hand taps remove instead of moving.
   let pendingRemovals = 0;
   let pendingRemovalsTotal = 0;
+  // InstanceId of the Scientist / Travel Log being resolved. It stays in the
+  // hand payload (server disposes it when removal ends) but it sits on the
+  // table, not in hand — it must not be selectable as its own removal target.
+  let pendingRemovalPlayedId = null;
 
-  function showRemovePrompt(count) {
+  function showRemovePrompt(count, playedInstanceId = null) {
     pendingRemovals = count;
     pendingRemovalsTotal = count;
+    if (playedInstanceId) pendingRemovalPlayedId = playedInstanceId;
     // Scientist/Travel Log have no movement — drop any stale move list so
     // its Cancel ("return card to hand") can't fire mid-removal.
     clearMoveList();
@@ -609,6 +625,9 @@ document.addEventListener('DOMContentLoaded', () => {
       banner.id = 'remove-prompt-banner';
       host.appendChild(banner);
     }
+    // Mark the played card as "on the table" so it's visibly not a removal
+    // candidate. Re-applied on every hand_updated while removal is active.
+    if (pendingRemovalPlayedId) cardUI.updateSelectedCardForMovement(pendingRemovalPlayedId);
     updateRemovePromptText();
     syncDiscardButton();
   }
@@ -624,7 +643,7 @@ document.addEventListener('DOMContentLoaded', () => {
       : '🔬 Finishing…';
     const span = document.createElement('span');
     span.textContent = pendingRemovals > 0
-      ? ` — tap hand cards to permanently remove them (${removed}/${pendingRemovalsTotal} removed).`
+      ? ` — tap another hand card to permanently remove it (${removed}/${pendingRemovalsTotal} removed; the played card itself can't be chosen).`
       : '';
     banner.appendChild(strong);
     banner.appendChild(span);
@@ -652,8 +671,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function clearRemovePrompt() {
+    const wasRemoval = pendingRemovalsTotal > 0 || pendingRemovalPlayedId;
     pendingRemovals = 0;
     pendingRemovalsTotal = 0;
+    pendingRemovalPlayedId = null;
+    // Only touch the movement highlight if we were actually in removal —
+    // otherwise a stray clear could wipe a legitimate movement selection.
+    if (wasRemoval) cardUI.updateSelectedCardForMovement(null);
     document.getElementById('remove-prompt-banner')?.remove();
     if (typeof syncDiscardButton === 'function') {
       try { syncDiscardButton(); } catch (e) { /* early boot — button not ready */ }
@@ -664,17 +688,29 @@ document.addEventListener('DOMContentLoaded', () => {
   // so boardless phones know hand taps now remove (not move). Gated to the
   // acting player — TV/spectators and opponents ignore the DM'd event even
   // if a broadcast ever arrives (defence in depth with the server DM).
-  function showRemovePromptWithModal(count, playerId) {
+  function showRemovePromptWithModal(count, playerId, playedInstanceId = null) {
     // Server DMs prompt_remove_cards to the acting player only. Gate anyway
     // so a broadcast (or a stale snapshot) never pops the dialog on the TV
     // (spectator, playerId null) or on opponent phones.
     if (!client.playerId) return;
     if (playerId && playerId !== client.playerId) return;
-    showRemovePrompt(count);
-    showModal(`Remove up to ${count} card(s) from your hand permanently (Done keeps the rest).`);
-    log(`🔬 Remove up to ${count}: tap hand cards to remove, or Done to keep the rest.`, 'system');
+    // Resync (e.g. server re-emit after a rejected cancel): banner already up
+    // means the user is mid-removal — just correct the counts silently
+    // instead of spamming another modal/toast/log.
+    if (pendingRemovalsTotal > 0 && document.getElementById('remove-prompt-banner')) {
+      pendingRemovals = count;
+      pendingRemovalsTotal = Math.max(pendingRemovalsTotal, count);
+      if (playedInstanceId) pendingRemovalPlayedId = playedInstanceId;
+      if (pendingRemovalPlayedId) cardUI.updateSelectedCardForMovement(pendingRemovalPlayedId);
+      updateRemovePromptText();
+      syncDiscardButton();
+      return;
+    }
+    showRemovePrompt(count, playedInstanceId);
+    showModal(`Remove up to ${count} other card(s) from your hand permanently (the played card itself can't be chosen; Done keeps the rest).`);
+    log(`🔬 Remove up to ${count}: tap another hand card to remove, or Done to keep the rest.`, 'system');
     if (VIEW === 'phone') {
-      showToast(`Tap up to ${count} card(s) to remove — or Done to skip.`, { icon: '🔬', type: 'accent', duration: 4000 });
+      showToast(`Tap up to ${count} other card(s) to remove — or Done to skip.`, { icon: '🔬', type: 'accent', duration: 4000 });
     }
   }
 
@@ -1112,6 +1148,16 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   cardUI.onMarketCard = ({ cardKey, handCardsUsed }) => client.purchaseCard(cardKey, handCardsUsed);
   cardUI.onMarketOpened = (transmitterBonus = 0) => {
+    // Removal owns the hand — opening the market mid-removal must not cancel
+    // it (that desyncs into silent removals). Keep the banner; pooling can
+    // wait until Done. Just drop any stale move highlights.
+    if (pendingRemovals > 0 || pendingRemovalsTotal > 0) {
+      clearMoveList();
+      renderer.clearHighlights();
+      renderer.setBreakableBlockades([], []);
+      syncDiscardButton();
+      return;
+    }
     // Intention changed movement → buying: drop the movement panel so it
     // doesn't linger under the market, and cancel the played card so a
     // later move needs a fresh select.
@@ -1159,6 +1205,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!isMidMove) {
       selectedCard = null;
       selectedValidMoves = [];
+    }
+    // Keep the played Scientist / Travel Log visibly "on the table" across
+    // re-renders (draws + removals) so it doesn't read as a removal target.
+    if (pendingRemovalsTotal > 0 && pendingRemovalPlayedId) {
+      cardUI.updateSelectedCardForMovement(pendingRemovalPlayedId);
     }
     syncDiscardButton();
   };
@@ -1516,7 +1567,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (data.playerId && data.playerId !== client.playerId) return;
     cardUI.closeMarket();
   };
-  client.onPromptRemove = ({ count, playerId }) => showRemovePromptWithModal(count, playerId);
+  client.onPromptRemove = ({ count, playerId, playedInstanceId }) => showRemovePromptWithModal(count, playerId, playedInstanceId);
 
   client.onGameWon = ({ playerId, blockadeCounts = {}, finishers = [], firstFinisherId = null }) => {
     const winner = allPlayers.find(p => p.id === playerId);
@@ -1622,11 +1673,43 @@ document.addEventListener('DOMContentLoaded', () => {
 
   client.onActionError = ({ message }) => {
     // Removal taps decrement the banner optimistically. If the server
-    // rejects a tap (stale card), undo one step instead of nuking the whole
-    // removal session — the server count is unchanged.
-    if (pendingRemovalsTotal > 0 && message === 'card not in hand'
+    // rejects a tap (stale card, or the played card itself), undo one step
+    // instead of nuking the whole removal session — the server count is
+    // unchanged.
+    if (pendingRemovalsTotal > 0
+      && (message === 'card not in hand'
+        || message === 'cannot remove the played card itself')
       && pendingRemovals < pendingRemovalsTotal) {
       pendingRemovals = Math.min(pendingRemovalsTotal, pendingRemovals + 1);
+      updateRemovePromptText();
+      syncDiscardButton();
+      if (message === 'cannot remove the played card itself') {
+        log(`🔬 The played card itself can't be removed — pick another card or Done.`, 'system');
+        showToast(`Played card can't be removed — pick another, or Done.`, { icon: '🔬', type: 'info', duration: 3000 });
+      } else {
+        log(`⚠ ${message}`, 'warn');
+        showToast(message, { icon: '⚠️', type: 'warn' });
+      }
+      return;
+    }
+    // Cancel is rejected mid-removal ("finish or skip card removal first").
+    // The server count is unchanged — keep the banner so later taps still
+    // route to removal instead of desyncing into silent removals.
+    if (pendingRemovalsTotal > 0
+      && (message === 'finish or skip card removal first'
+        || message === 'nothing to finish'
+        || message === 'nothing to cancel')) {
+      updateRemovePromptText();
+      syncDiscardButton();
+      log(`🔬 Still removing — tap hand cards or Done to keep the rest.`, 'system');
+      showToast('Finish removing first — tap Done to keep the rest.', { icon: '🔬', type: 'info', duration: 3000 });
+      return;
+    }
+    // Any other error mid-removal also leaves the server count unchanged
+    // (only finish_remove, the final removal, or end-turn clears it — none
+    // of which surface as action_error). Never drop the banner here; that
+    // desync is exactly the "later taps silently remove" bug.
+    if (pendingRemovalsTotal > 0) {
       updateRemovePromptText();
       syncDiscardButton();
       log(`⚠ ${message}`, 'warn');
@@ -1663,9 +1746,26 @@ document.addEventListener('DOMContentLoaded', () => {
     // banner optimistically (server corrects via card_disposed/error).
     // "Up to N" skips go through the banner's Done button (finish_remove).
     if (pendingRemovals > 0) {
+      // The played card sits on the table, not in hand — it can't be its own
+      // removal target. Block locally (no decrement, no emit) so the banner
+      // count stays correct; the server rejects it too as defence in depth.
+      if (pendingRemovalPlayedId && instanceId === pendingRemovalPlayedId) {
+        const playedName = card.cardName || card.key || 'that card';
+        showToast(`${playedName} is already played — pick another card, or Done.`, { icon: '🔬', type: 'info', duration: 3000 });
+        log(`🔬 ${playedName} is already played and can't be removed as its own target — pick another card or Done.`, 'system');
+        return;
+      }
       pendingRemovals = Math.max(0, pendingRemovals - 1);
       updateRemovePromptText();
       client.playCard(instanceId);
+      return;
+    }
+
+    // Final removal sent, waiting for the server's card_disposed to clear the
+    // banner ("Finishing…"). Swallow hand taps until then — a fresh play here
+    // would have its valid-moves panel suppressed by the removal guard anyway.
+    if (pendingRemovalsTotal > 0) {
+      showToast('Finishing removal…', { icon: '🔬', type: 'info', duration: 1500 });
       return;
     }
 

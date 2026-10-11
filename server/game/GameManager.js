@@ -298,6 +298,7 @@ class GameRoom {
           this.io.to(socket.id).emit('prompt_remove_cards', {
             playerId: playerOrNull.id,
             count: gs.selectingCardsToRemove,
+            playedInstanceId: gs.playedCardData ? gs.playedCardData.instanceId : null,
           });
         }
       }
