@@ -264,6 +264,18 @@ class GameStateManager {
     const tile = this.board.getTile(tileId);
     const needed = tile.movementCost - 1;
 
+    // Extras must be exactly `needed` distinct cards from hand, none of
+    // which is the in-flight movement card (it already pays the entry).
+    if (extraCardIds.length !== needed) {
+      return { ok: false, error: `rubble requires ${needed} extra card(s), got ${extraCardIds.length}` };
+    }
+    if (new Set(extraCardIds).size !== extraCardIds.length) {
+      return { ok: false, error: 'invalid hand cards' };
+    }
+    if (this.playedCardData && extraCardIds.includes(this.playedCardData.instanceId)) {
+      return { ok: false, error: 'invalid hand cards' };
+    }
+
     const extraCards = extraCardIds
       .map(id => player.hand.find(c => c.instanceId === id))
       .filter(Boolean);
@@ -373,10 +385,18 @@ class GameStateManager {
   // ── Purchase a card from the market ───────────────────────────────────────
   purchaseCard(playerId, cardKey, handCardsUsed = [], cardMarket) {
     if (!this._isCurrentPlayer(playerId)) return { ok: false, error: 'not your turn' };
+    // Purchases happen before/after movement, never mid-card. The played
+    // card stays in hand until disposed, so without this guard it would
+    // still resolve as purchase cash (Issue 2). Transmitter is unaffected:
+    // it disposes itself immediately and drops back to AWAITING_CARD.
+    if (this.state === GS.AWAITING_MOVE) return { ok: false, error: 'finish movement first' };
 
     const player = this.currentPlayer;
 
     if (new Set(handCardsUsed).size !== handCardsUsed.length) {
+      return { ok: false, error: 'invalid hand cards' };
+    }
+    if (this.playedCardData && handCardsUsed.includes(this.playedCardData.instanceId)) {
       return { ok: false, error: 'invalid hand cards' };
     }
 
