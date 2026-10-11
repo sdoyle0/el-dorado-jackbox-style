@@ -280,6 +280,11 @@ class GameRoom {
             firstFinisherId: gs.firstWinnerId,
           }
         : null,
+      // Rulebook p4 (1 buy per turn): lets a rejoiner render locked Buys
+      // when the current turn already has its purchase. Per-current-turn
+      // flag, so applying it unconditionally is correct — turn_ended
+      // clears it when the turn advances.
+      purchasedThisTurn: !!gs.purchasedThisTurn,
     });
     if (playerOrNull && !playerOrNull.disconnected) {
       this.io.to(socket.id).emit('hand_updated', { hand: playerOrNull.hand });

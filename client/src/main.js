@@ -176,6 +176,10 @@ document.addEventListener('DOMContentLoaded', () => {
   let tvModalTimer = null;
   let selectedCard = null;
   let selectedValidMoves = [];
+  // Rulebook p4: 1 buy per turn. Display gate only — the server flag is
+  // authoritative. Set on own card_purchased, cleared on turn_ended /
+  // game_started (server rejections still surface as action_error toasts).
+  let hasPurchasedThisTurn = false;
   // Server-sent move budget (valid_moves_updated): lets the phone tell a
   // fresh "Cancel" (card returns) from a partial-move "Done moving" (card
   // is discarded, unused moves lost).
@@ -1085,6 +1089,8 @@ document.addEventListener('DOMContentLoaded', () => {
     currentTurnPlayerId = currentPlayerId;
     updateTurnLabel(currentPlayerId);
 
+    hasPurchasedThisTurn = false;
+    cardUI.setPurchaseLocked(false);
     selectedCard = null;
     selectedValidMoves = [];
     clearMoveList();
@@ -1146,8 +1152,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     client.discardCard(selectedCard.instanceId);
   };
-  cardUI.onMarketCard = ({ cardKey, handCardsUsed }) => client.purchaseCard(cardKey, handCardsUsed);
+  cardUI.onMarketCard = ({ cardKey, handCardsUsed }) => {
+    // Rulebook p4: 1 buy per turn (server enforces; this just saves a
+    // round-trip and explains why the Buy buttons went dead).
+    if (hasPurchasedThisTurn) {
+      showToast('Only 1 card per turn — already bought this turn.', { icon: '💰', type: 'info', duration: 2500 });
+      return;
+    }
+    client.purchaseCard(cardKey, handCardsUsed);
+  };
+  // Same toast when the CardUI-level lock eats the tap (desktop card click
+  // returns before onMarketCard fires).
+  cardUI.onPurchaseLocked = () => {
+    showToast('Only 1 card per turn — already bought this turn.', { icon: '💰', type: 'info', duration: 2500 });
+  };
   cardUI.onMarketOpened = (transmitterBonus = 0) => {
+    // 1-buy-per-turn lock: explain immediately on open (browsing still
+    // allowed, but pooling is disabled and Buys are dead).
+    if (hasPurchasedThisTurn && !transmitterBonus) {
+      showToast('Already bought this turn (1 per turn) — browsing only.', { icon: '💰', type: 'info', duration: 2500 });
+    }
     // Removal owns the hand — opening the market mid-removal must not cancel
     // it (that desyncs into silent removals). Keep the banner; pooling can
     // wait until Done. Just drop any stale move highlights.
@@ -1313,6 +1337,11 @@ document.addEventListener('DOMContentLoaded', () => {
     clearRemovePrompt();
     // Block 5: never leave a stale purchase pool open on someone else's turn.
     if (nextPlayerId !== client.playerId) cardUI.closeMarket();
+    // Fresh turn → fresh buy (1 per turn). Covers both "my new turn" and
+    // "opponent's turn started" so the flag is always correct when it
+    // becomes my turn again.
+    hasPurchasedThisTurn = false;
+    cardUI.setPurchaseLocked(false);
     currentTurnPlayerId = nextPlayerId;
     updateTurnLabel(nextPlayerId);
     log(`${nextPlayerName}'s turn.`, 'turn');
@@ -1403,6 +1432,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (snap.market) cardUI.renderMarket(snap.market);
     currentTurnPlayerId = snap.currentPlayerId || null;
+    // 1-buy-per-turn lock for rejoiners (see game_snapshot purchasedThisTurn).
+    hasPurchasedThisTurn = !!snap.purchasedThisTurn;
+    cardUI.setPurchaseLocked(hasPurchasedThisTurn);
     selectedCard = null;
     selectedValidMoves = [];
     moveMovesRemaining = null;
@@ -1463,7 +1495,7 @@ document.addEventListener('DOMContentLoaded', () => {
       body.view-phone #market-header { position: static; flex: none;
         background: linear-gradient(180deg, #0d1e30 0%, #091525 100%);
         padding-top: 0.7rem; }
-      body.view-phone #transmitter-banner, body.view-phone #pool-chips { flex: none; }
+      body.view-phone #transmitter-banner, body.view-phone #pool-chips, body.view-phone #purchase-locked-banner { flex: none; }
       body.view-phone #shop-slots { flex: 1 1 auto; min-height: 0; overflow-y: auto;
         -webkit-overflow-scrolling: touch; }
       body.view-phone #purchase-total { font-size: 1.05rem; font-weight: 800;
@@ -1645,6 +1677,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const buyerName = buyer?.name || 'Someone';
     const pretty = (cardKey || 'card').replace(/_/g, ' ');
     if (playerId === client.playerId) {
+      hasPurchasedThisTurn = true;
+      cardUI.setPurchaseLocked(true);
       showToast(`Purchased ${pretty}!`, { icon: '💰', type: 'accent' });
       log(`You purchased ${pretty}.`, 'purchase');
     } else {

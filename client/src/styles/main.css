@@ -1324,6 +1324,25 @@ body.view-phone .market-onetime-pill {
 }
 #transmitter-banner.hidden { display: none; }
 
+/* 1-buy-per-turn notice: own wrapped line below the header (same pattern
+   as the transmitter banner). Must never live in #purchase-total — long
+   header text pushes ✕ Close off-screen on narrow phones. */
+#purchase-locked-banner {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #ffe066;
+  background: rgba(201,162,39,0.15);
+  border: 1px solid var(--gold-mid, #c9a227);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.7rem;
+  margin: 0.1rem 0 0.5rem;
+  text-align: center;
+  line-height: 1.4;
+  overflow-wrap: break-word;
+}
+#purchase-locked-banner.hidden { display: none; }
+
 /* Transmitter section headers read as free-pick signposts, not dim labels. */
 #shop-slots.transmitter-active .market-section-header {
   color: #ffe066;
@@ -1776,6 +1795,7 @@ body.view-phone .market-onetime-pill {
 /* Header + banners stay put in normal flow; the card list scrolls below. */
 #card-market #market-header,
 #card-market #transmitter-banner,
+#card-market #purchase-locked-banner,
 #card-market #pool-chips {
   flex: none;
 }

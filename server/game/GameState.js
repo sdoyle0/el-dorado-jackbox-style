@@ -16,6 +16,10 @@ class GameStateManager {
     this.selectingCardsForRubble = 0;
     this.transmitterActive = false;
     this.pendingReserveSlot = null;
+    // Rulebook p4: "You can buy up to 1 card per turn." Enforced
+    // server-side; cleared on every endTurn. Transmitter free picks go
+    // through purchaseCard too, so they count as the 1.
+    this.purchasedThisTurn = false;
     // ── Final-round tracking ──────────────────────────────────────────────────
     this.finalRoundTriggered = false;
     this.finalRoundTriggerPlayerIndex = -1;
@@ -377,6 +381,7 @@ class GameStateManager {
     this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
     const next = this.currentPlayer;
 
+    this.purchasedThisTurn = false;
     this.emit('hand_updated', { playerId: player.id, hand: player.hand });
     this.emit('turn_ended', { nextPlayerId: next.id, nextPlayerName: next.name });
     return { ok: true };
@@ -385,6 +390,7 @@ class GameStateManager {
   // ── Purchase a card from the market ───────────────────────────────────────
   purchaseCard(playerId, cardKey, handCardsUsed = [], cardMarket) {
     if (!this._isCurrentPlayer(playerId)) return { ok: false, error: 'not your turn' };
+    if (this.purchasedThisTurn) return { ok: false, error: 'already purchased this turn' };
     // Purchases happen before/after movement, never mid-card. The played
     // card stays in hand until disposed, so without this guard it would
     // still resolve as purchase cash (Issue 2). Transmitter is unaffected:
@@ -425,6 +431,7 @@ class GameStateManager {
     if (!purchased) return { ok: false, error: 'card sold out' };
     player.discardPile.push(purchased);
 
+    this.purchasedThisTurn = true;
     this.transmitterActive = false;
 
     if (!fromReserve && cardMarket.shopCardSoldOut(cardKey)) {

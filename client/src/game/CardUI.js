@@ -36,6 +36,18 @@ class CardUI {
       '📡 Transmitter — pick ANY card FREE, Market + Reserve below';
     this.poolChipsEl?.before(this.transmitterBannerEl);
 
+    // 1-buy-per-turn notice (own wrapped line below the header — never
+    // inside #purchase-total, whose width would push ✕ Close off-screen
+    // on narrow phones and soft-lock the overlay). Mirrors the
+    // transmitter banner pattern.
+    this.purchaseLockedBannerEl = document.createElement('div');
+    this.purchaseLockedBannerEl.id = 'purchase-locked-banner';
+    this.purchaseLockedBannerEl.className = 'hidden';
+    this.purchaseLockedBannerEl.setAttribute('role', 'status');
+    this.purchaseLockedBannerEl.textContent =
+      '✅ Already bought this turn (1 per turn) — browsing only';
+    this.transmitterBannerEl?.after(this.purchaseLockedBannerEl);
+
     // Callbacks — set by main.js
     this.onCardPlayed     = null; // (instanceId) — play for movement
     this.onMarketCard     = null; // ({ cardKey, handCardsUsed }) — purchase
@@ -44,6 +56,7 @@ class CardUI {
     this.onDiscardClicked = null;
     this.onMarketOpened   = null; // () — movement selection should be dropped
     this.onMarketClosed   = null; // () — resync action buttons
+    this.onPurchaseLocked = null; // () — Buy tapped after the 1-per-turn buy
 
     // ── Mode ────────────────────────────────────────────────────────────────
     // 'movement' | 'market' | 'rubble'
@@ -57,6 +70,10 @@ class CardUI {
     // ── Market state ────────────────────────────────────────────────────────
     this._transmitterBonus = 0;
     this._purchasePool     = new Map(); // instanceId → card
+    // Rulebook p4: 1 buy per turn. Set via setPurchaseLocked() from main.js
+    // (own card_purchased → true, turn_ended/game_started → false). Display
+    // gate only — the server flag is authoritative.
+    this._purchaseLocked = false;
 
     // ── Rubble state ────────────────────────────────────────────────────────
     this._rubbleNeeded    = 0;
@@ -168,6 +185,10 @@ class CardUI {
   }
 
   _handleMarketPoolClick(instanceId, btn) {
+    // 1-buy-per-turn lock: hand taps do nothing while locked (the market
+    // explains why via the open toast + locked total line) instead of
+    // pooling into dead Buy buttons.
+    if (this._purchaseLocked) return;
     const card = this._currentHand.find(c => c.instanceId === instanceId);
     if (!card) return;
 
@@ -766,6 +787,14 @@ class CardUI {
   }
 
   _onMarketCardClicked(card) {
+    if (this._purchaseLocked) {
+      if (this.totalEl) {
+        this.totalEl.style.color = '#e74c3c';
+        setTimeout(() => { this.totalEl.style.color = ''; }, 600);
+      }
+      this.onPurchaseLocked?.();
+      return;
+    }
     const power = this._currentPurchasePower();
     if (power < card.cost) {
       if (this.totalEl) {
@@ -797,6 +826,10 @@ class CardUI {
   }
 
   _updatePurchaseTotal() {
+    // Locked: pooling is disabled so the pool stays empty and the normal
+    // short total fits the header. The why lives in the banner row below
+    // the header (never in #purchase-total — long header text pushes
+    // ✕ Close off-screen on narrow phones).
     const power = this._currentPurchasePower();
     // Live total + pooled count, e.g. "💰 2.5 · 3 pooled" — verifies yellow
     // (face value) + 0.5-value cards are both counted as tapped.
@@ -839,6 +872,21 @@ class CardUI {
   }
 
   _updateAffordability() {
+    // 1-buy-per-turn lock overrides affordability — including FREE
+    // Transmitter rows (NaN cost → always enabled below).
+    if (this._purchaseLocked) {
+      this.shopEl.querySelectorAll('.market-card-wrapper:not(.empty):not(.reserve-locked)').forEach(wrapper => {
+        wrapper.classList.toggle('cant-afford', true);
+        wrapper.classList.toggle('can-afford', false);
+      });
+      this.shopEl.querySelectorAll('.market-row-item:not(.reserve-locked)').forEach(row => {
+        row.classList.toggle('cant-afford', true);
+        row.classList.toggle('can-afford', false);
+        const buyBtn = row.querySelector('.market-row-buy');
+        if (buyBtn) buyBtn.disabled = true;
+      });
+      return;
+    }
     const power = this._currentPurchasePower();
     // Desktop full cards…
     this.shopEl.querySelectorAll('.market-card-wrapper:not(.empty):not(.reserve-locked)').forEach(wrapper => {
@@ -874,6 +922,16 @@ class CardUI {
   showMarket(visible) {
     if (visible) this.openMarket();
     else this.closeMarket();
+  }
+
+  // Rulebook p4: 1 buy per turn. Display gate only — the server flag is
+  // authoritative (a stale lock still buys nothing; a missing lock just
+  // surfaces the server's action_error toast).
+  setPurchaseLocked(locked) {
+    this._purchaseLocked = !!locked;
+    if (this._purchaseLocked) this._purchasePool.clear();
+    this.purchaseLockedBannerEl?.classList.toggle('hidden', !this._purchaseLocked);
+    this._updateAffordability();
   }
 
   setControlsEnabled(enabled) {
