@@ -106,14 +106,11 @@ legality; it's the "would someone pay for this" pop layer.
     frames, hand/market spacing + typography, TV 10ft readability check.
   - c) Audio + turn rhythm — tiny WebAudio bleeps (move, buy, break,
     turn start, win) with mute toggle; turn-banner transition;
-    final-round / win fanfare. Deferred: group table play makes audio an
-    afterthought; revisit after the visual slices land.
+    final-round / win fanfare; generative ambient music loop (no assets —
+    the table is offline, so it's synthesized, not streamed).
   - d) Menu/lobby warmth — title screen, animated background, footer
     credits; loading states that don't look like placeholders. Phone-view
     richness deferred to a future pass (slice (b) barely touched phones).
-- Status (Oct 2026): slice (d) in progress, UNCOMMITTED — ambient lobby
-  glow drift, footer credits, lobby busy spinner, start-button double-tap
-  guard. (Audio (c) deferred: table play makes it an afterthought.)
 - Status (Oct 2026): slice (a) shipped — pawn slides (`HexRenderer`
   rAF lerp, reduced-motion aware, chained moves chain smoothly),
   played-card flourish (`CardUI` + CSS, transform-only), blockade-break
@@ -125,5 +122,13 @@ legality; it's the "would someone pay for this" pop layer.
   badges/rings, El Dorado keeps its own ornament), card frame top-light +
   edge, card-name weight, card-art fill rule, small TV status-strip type
   bumps. Deliberately restrained: terrain color-coding still dominates.
+  Phone hand richness follow-up shipped separately (glow rows, stat badges,
+  motion, thumbs, gold End Turn).
+- Status (Oct 2026): slice (d) shipped — ambient lobby glow drift, footer
+  credits, lobby busy spinner, start-button double-tap guard.
+- Status (Oct 2026): slice (c) implemented, UNCOMMITTED — `Audio.js`
+  (procedural SFX + generative Am–F–C–G pad/pluck loop, no assets), game
+  events wired, first-gesture unlock, standalone 🔊 mute (localStorage),
+  phones default muted. Needs ears: music/SFX balance + loop feel.
 - Start at: `client/src/game/HexRenderer.js` (pawn/move animation layer),
   `client/src/game/CardUI.js` (play-animation hook), `client/src/styles/`.

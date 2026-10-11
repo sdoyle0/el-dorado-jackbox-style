@@ -1918,6 +1918,30 @@ body.view-phone .market-onetime-pill {
   to   { opacity: 1; }
 }
 
+/* ── Slice 6c: mute button — fixed bottom-right on the game screen only
+   (main.js toggles .hidden elsewhere). Standalone because zoom controls are
+   TV-hidden; 44px touch target everywhere. */
+#mute-btn {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  z-index: 80;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--border-mid);
+  background: rgba(15,28,46,0.92);
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  opacity: 0.9;
+}
+#mute-btn:hover {
+  border-color: var(--gold-mid);
+  opacity: 1;
+}
+
 /* ── Game log — richer entries ────────────────────────────────────────────── */
 #game-log p.log-win      { color: #ffd700; font-weight: 600; }
 #game-log p.log-turn     { border-top: 1px solid rgba(0,0,0,.4); padding-top: 3px; margin-top: 3px; }

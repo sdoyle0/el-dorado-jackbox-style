@@ -10,7 +10,56 @@ document.addEventListener('DOMContentLoaded', () => {
     lobbyScreen.classList.toggle('active', name === 'lobby');
     waitingScreen.classList.toggle('active', name === 'waiting');
     gameScreen.classList.toggle('active', name === 'game');
+    // Slice 6c: the mute button lives on the game screen only (lobby and
+    // waiting have no sound yet — music starts with the expedition).
+    document.getElementById('mute-btn')?.classList.toggle('hidden', name !== 'game');
   }
+
+  // ── Slice 6c: sound (procedural WebAudio — no assets, LAN-safe) ──────────
+  // Audio.js owns synthesis; these are fire-and-forget calls that no-op when
+  // audio is unavailable, so sound can never break gameplay.
+  function playSfx(name) {
+    try {
+      window.ElDoradoAudio?.sfx(name);
+    } catch (_) { /* silent */ }
+  }
+  // Autoplay policy: the context may only start from a user gesture. Unlock
+  // on every tap (cheap; also resumes after browser auto-suspend).
+  document.addEventListener('pointerdown', () => {
+    try {
+      window.ElDoradoAudio?.unlock();
+    } catch (_) { /* silent */ }
+  });
+  // A table with a TV + four phones all droning would be chaos: phones
+  // default to muted (one tap on 🔊 to opt in); an explicit stored choice
+  // always wins. TV/desktop default to sound on.
+  try {
+    if (VIEW === 'phone' && !window.ElDoradoAudio?.hasStoredPref()) {
+      window.ElDoradoAudio?.setMuted(true);
+    }
+  } catch (_) { /* silent */ }
+  function ensureMuteButton() {
+    if (document.getElementById('mute-btn')) return;
+    const b = document.createElement('button');
+    b.id = 'mute-btn';
+    b.type = 'button';
+    const paint = () => {
+      const m = !!window.ElDoradoAudio?.isMuted();
+      b.textContent = m ? '🔇' : '🔊';
+      b.title = m ? 'Unmute sound' : 'Mute sound';
+      b.setAttribute('aria-label', m ? 'Unmute sound' : 'Mute sound');
+    };
+    b.addEventListener('click', () => {
+      try {
+        window.ElDoradoAudio?.setMuted(!window.ElDoradoAudio?.isMuted());
+      } catch (_) { /* silent */ }
+      paint();
+    });
+    paint();
+    b.classList.add('hidden');
+    document.body.appendChild(b);
+  }
+  ensureMuteButton();
 
   // ── Block 2: ?view=tv / ?view=phone layout split (scaffolding only) ───────
   // No game logic here: just a body class for CSS + a board collapse toggle
@@ -1160,6 +1209,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     showToast('Expedition begun! Good luck.', { icon: '🗺️', type: 'accent' });
     log('Game started!', 'system');
+    // Slice 6c: music starts with the expedition (context already unlocked
+    // by the taps that got us here).
+    try {
+      window.ElDoradoAudio?.startMusic();
+    } catch (_) { /* silent */ }
+    if (client.isMyTurn && client.isMyTurn(currentPlayerId)) playSfx('turn');
   };
 
   // ── Blockade broken ────────────────────────────────────────────────────────
@@ -1170,6 +1225,7 @@ document.addEventListener('DOMContentLoaded', () => {
       : null;
 
     renderer.removeBlockade(blockadeId);
+    playSfx('breakit');
 
     // Slice 6a: wall-break thump — brief screen shake on the board viewport.
     // #board-container carries no transform of its own (zoom lives on
@@ -1387,6 +1443,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (player) player.currentTileId = tileId;
     renderer.setPawnPosition(playerId, tileId, idx >= 0 ? idx : 0);
     renderer.clearHighlights();
+    playSfx('move');
     // Chained moves re-render via the following valid_moves_updated; final
     // moves clear via onCardDisposed. Clear here to avoid stale taps.
     clearMoveList();
@@ -1456,6 +1513,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (nextPlayerId === client.playerId) {
       showToast('Your turn!', { icon: '⚡', type: 'accent', duration: 2000 });
+      playSfx('turn');
     }
 
     if (endedCard) {
@@ -1520,6 +1578,12 @@ document.addEventListener('DOMContentLoaded', () => {
     snapshotReceived = true;
     if (rejoinFallbackTimer) { clearTimeout(rejoinFallbackTimer); rejoinFallbackTimer = null; }
     showScreen('game');
+    // Slice 6c: a refreshed mid-game view (e.g. the TV) lands here, not in
+    // onGameStarted — start the music too (idempotent; silent until the
+    // first tap unlocks audio if the browser holds it suspended).
+    try {
+      window.ElDoradoAudio?.startMusic();
+    } catch (_) { /* silent */ }
     // Refresh/reconnect path (not game_started): re-ensure the debug panel
     // so ?debug testers keep it after a phone refresh. No-op if present.
     if (DEBUG) appendDebugPanel();
@@ -1711,6 +1775,7 @@ document.addEventListener('DOMContentLoaded', () => {
   client.onPromptRemove = ({ count, playerId, playedInstanceId }) => showRemovePromptWithModal(count, playerId, playedInstanceId);
 
   client.onGameWon = ({ playerId, blockadeCounts = {}, finishers = [], firstFinisherId = null }) => {
+    playSfx('win');
     const winner = allPlayers.find(p => p.id === playerId);
     const winnerName = winner?.name || 'Someone';
     const isMe = client.playerId === playerId;
@@ -1782,6 +1847,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // (main.js only — no GameClient.js change). Gives phones a confirmation
   // toast/log for own and opponent purchases.
   socket.on('card_purchased', ({ playerId, cardKey } = {}) => {
+    playSfx('buy');
     const buyer = allPlayers.find(p => p.id === playerId);
     const buyerName = buyer?.name || 'Someone';
     const pretty = (cardKey || 'card').replace(/_/g, ' ');
@@ -1815,6 +1881,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   client.onActionError = ({ message }) => {
+    playSfx('error');
     // Removal taps decrement the banner optimistically. If the server
     // rejects a tap (stale card, or the played card itself), undo one step
     // instead of nuking the whole removal session — the server count is
