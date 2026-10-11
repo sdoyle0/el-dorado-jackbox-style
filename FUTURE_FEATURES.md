@@ -109,5 +109,11 @@ legality; it's the "would someone pay for this" pop layer.
     final-round / win fanfare.
   - d) Menu/lobby warmth — title screen, animated background, footer
     credits; loading states that don't look like placeholders.
+- Status (Oct 2026): slice (a) shipped — pawn slides (`HexRenderer`
+  rAF lerp, reduced-motion aware, chained moves chain smoothly),
+  played-card flourish (`CardUI` + CSS, transform-only), blockade-break
+  screen shake (existing `.shake` on `#board-container`, zoom-safe).
+  Purchase fly-to-discard deferred: no discard-pile element exists in the
+  UI to fly to. Valid-move pulse + turn flash already existed, untouched.
 - Start at: `client/src/game/HexRenderer.js` (pawn/move animation layer),
   `client/src/game/CardUI.js` (play-animation hook), `client/src/styles/`.

@@ -471,9 +471,23 @@ class CardUI {
 
   // ── Selected-card highlight (movement mode) ──────────────────────────────
 
+  // Slice 6a: freshly played cards pop (scale + glow, then rest in the
+  // .selected lift). Transform-only so hand layout never shifts; the class
+  // is removed on animationend so replays retrigger cleanly.
   updateSelectedCardForMovement(instanceId) {
+    // Pop only on a fresh selection (hand re-renders re-assert the same id
+    // and must not replay the flourish every time).
+    const fresh = instanceId != null && instanceId !== this._lastSelectedForMovement;
+    this._lastSelectedForMovement = instanceId ?? null;
     for (const btn of this.handEl.querySelectorAll('.card-btn')) {
-      btn.classList.toggle('selected', btn.dataset.instanceId === instanceId);
+      const isSel = btn.dataset.instanceId === instanceId;
+      btn.classList.toggle('selected', isSel);
+      if (isSel && fresh && !btn.classList.contains('just-played')) {
+        btn.classList.add('just-played');
+        btn.addEventListener('animationend', () => btn.classList.remove('just-played'), { once: true });
+      } else if (!isSel) {
+        btn.classList.remove('just-played');
+      }
     }
   }
 

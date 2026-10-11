@@ -40,6 +40,23 @@ const BLOCKADE_STYLE = {
   rubble: { color: '#898681', glow: 'rgba(200,160,96,0.4)', pulse: 'rgba(200,160,96,0.7)' },
 };
 
+// Slice 6a: eased pawn slides. Pure function (no DOM) so the curve is
+// unit-testable; the renderer only maps progress → tile-center lerp.
+function easeInOutCubic(t) {
+  if (t <= 0) return 0;
+  if (t >= 1) return 1;
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+function prefersReducedMotion() {
+  try {
+    if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+      return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    }
+  } catch (_) { /* non-browser harness — animate */ }
+  return false;
+}
+
 class HexRenderer {
   constructor(svgEl) {
     this.svg = svgEl;
@@ -49,6 +66,13 @@ class HexRenderer {
     this.scale = 1;
     this._defs = null;
     this._animFrames = new Set();
+    // Slice 6a: in-flight pawn-slide rAF ids (playerId → id) so a chained
+    // move or correction arriving mid-flight cancels the old slide and wins.
+    this._pawnAnims = new Map();
+    // Last painted tile center per pawn (playerId → {cx, cy}). Slides start
+    // here; cleared on full re-render so a fresh game never slides in from
+    // stale positions.
+    this._pawnCenters = new Map();
 
     // ── Zoom/pan state ────────────────────────────────────────────────────
     // These are used by zoomToTiles() and kept in sync with the
@@ -109,6 +133,13 @@ class HexRenderer {
 
     this.tileEls.clear();
     this.pawnEls.clear();
+    // Fresh board: no slide origins survive (a new game's pawns must appear,
+    // never glide in from last game's tiles). Cancel any in-flight slides.
+    for (const id of this._pawnAnims.values()) {
+      if (typeof cancelAnimationFrame === 'function') cancelAnimationFrame(id);
+    }
+    this._pawnAnims.clear();
+    this._pawnCenters.clear();
 
     if (!tiles || tiles.length === 0) return;
 
@@ -488,7 +519,29 @@ class HexRenderer {
 
   // ── Pawn rendering ───────────────────────────────────────────────────────
 
-  setPawnPosition(playerId, tileId, colorIndex = 0) {
+  // Slice 6a: pawns slide instead of teleporting. Same call signature as
+  // before (opts.animate defaults true) — all existing callers (game start,
+  // snapshot rejoin, tutorial, pawn_moved) are untouched. A slide only
+  // happens when the pawn already has a painted position that differs from
+  // the target; everything else places instantly. Honors
+  // prefers-reduced-motion. Purely visual: game state is already updated by
+  // the caller, so interrupting a slide never corrupts a position.
+  setPawnPosition(playerId, tileId, colorIndex = 0, opts = {}) {
+    // A chained move or correction arriving mid-slide wins at once — and
+    // resumes from the currently painted position (not the stale target),
+    // so rapid chained moves glide continuously instead of jumping.
+    const inflight = this._pawnAnims.get(playerId);
+    if (inflight != null) {
+      if (typeof cancelAnimationFrame === 'function') cancelAnimationFrame(inflight);
+      const cur = this.pawnEls.get(playerId);
+      const curBody = cur && cur._slideShapes ? cur._slideShapes[1] : null;
+      if (curBody && typeof curBody.getAttribute === 'function') {
+        const px = parseFloat(curBody.getAttribute('cx'));
+        const py = parseFloat(curBody.getAttribute('cy'));
+        if (isFinite(px) && isFinite(py)) this._pawnCenters.set(playerId, { cx: px, cy: py });
+      }
+      this._pawnAnims.delete(playerId);
+    }
     // Remove ALL existing tokens for this player (querySelector alone only
     // drops the first match, so a past duplicate would leave a ghost behind).
     for (const el of this.svg.querySelectorAll(`[data-pawn="${CSS.escape(playerId)}"]`)) {
@@ -497,9 +550,53 @@ class HexRenderer {
     this.pawnEls.delete(playerId);
 
     const entry = this.tileEls.get(tileId);
-    if (!entry) return;
+    if (!entry) {
+      this._pawnCenters.delete(playerId);
+      return;
+    }
 
     const { cx, cy } = this._center(entry.tile.q, entry.tile.r);
+    const from = this._pawnCenters.get(playerId) || null;
+    this._pawnCenters.set(playerId, { cx, cy });
+    const animate = opts.animate !== false
+      && from != null && (from.cx !== cx || from.cy !== cy)
+      && !prefersReducedMotion()
+      && typeof requestAnimationFrame === 'function';
+    const start = animate ? from : { cx, cy };
+    const g = this._buildPawn(playerId, colorIndex, start.cx, start.cy);
+
+    if (!animate) return;
+
+    // Interpolate every shape from the old center to the new one (~380ms,
+    // eased). Shapes keep their constant offsets (halo +2y, highlight −5/−5)
+    // by lerping each painted coordinate toward its own target.
+    const DURATION = 380;
+    const targets = new Map(); // element → {x0,y0,x1,y1,halo:boolean}
+    const put = (el, x0, y0, x1, y1) => targets.set(el, { x0, y0, x1, y1 });
+    const [halo, body, highlight, ring] = g._slideShapes;
+    put(halo, start.cx, start.cy + 2, cx, cy + 2);
+    put(body, start.cx, start.cy, cx, cy);
+    put(highlight, start.cx - 5, start.cy - 5, cx - 5, cy - 5);
+    put(ring, start.cx, start.cy, cx, cy);
+    const t0 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    const step = (now) => {
+      const p = easeInOutCubic(Math.min(1, Math.max(0, (now - t0) / DURATION)));
+      for (const [el, t] of targets) {
+        el.setAttribute('cx', String(t.x0 + (t.x1 - t.x0) * p));
+        el.setAttribute('cy', String(t.y0 + (t.y1 - t.y0) * p));
+      }
+      if (p < 1) {
+        this._pawnAnims.set(playerId, requestAnimationFrame(step));
+      } else {
+        this._pawnAnims.delete(playerId);
+      }
+    };
+    this._pawnAnims.set(playerId, requestAnimationFrame(step));
+  }
+
+  // Build the pawn token group at an explicit center. Returns the group;
+  // the animated shapes are attached as g._slideShapes in paint order.
+  _buildPawn(playerId, colorIndex, cx, cy) {
     const palette = PAWN_PALETTE[colorIndex] || PAWN_PALETTE[0];
     const ns = 'http://www.w3.org/2000/svg';
     const mk = (tag) => document.createElementNS(ns, tag);
@@ -541,8 +638,10 @@ class HexRenderer {
     ring.setAttribute('stroke-width', '1');
     g.appendChild(ring);
 
+    g._slideShapes = [halo, body, highlight, ring];
     this.svg.appendChild(g);
     this.pawnEls.set(playerId, g);
+    return g;
   }
 
   // Remove one player's pawn token entirely (seat expired / removed).

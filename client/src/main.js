@@ -1146,6 +1146,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     renderer.removeBlockade(blockadeId);
 
+    // Slice 6a: wall-break thump — brief screen shake on the board viewport.
+    // #board-container carries no transform of its own (zoom lives on
+    // #board-scroll-inner), so the translateX keyframes can't fight the zoom.
+    // Same remove/reflow/add retrigger pattern as the action-error shake.
+    const boardViewport = document.getElementById('board-container');
+    if (boardViewport) {
+      boardViewport.classList.remove('shake');
+      void boardViewport.offsetWidth;
+      boardViewport.classList.add('shake');
+      boardViewport.addEventListener('animationend', () => boardViewport.classList.remove('shake'), { once: true });
+    }
+
     // Block 6: drop the broken entry from the phone list immediately so it
     // can't be double-tapped while the server's follow-up
     // valid_moves_updated / card_disposed is in flight.

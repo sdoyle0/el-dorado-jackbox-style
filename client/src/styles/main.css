@@ -869,6 +869,17 @@ body {
   transform: translateY(-4px);
   box-shadow: 0 8px 20px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.2);
 }
+/* Slice 6a: played-card flourish — quick pop + glow, then rests selected.
+   Transform/opacity only: no layout shift on phone rows or desktop cards. */
+.card-btn.just-played {
+  animation: card-play-pop 0.45s ease;
+}
+@keyframes card-play-pop {
+  0%   { transform: translateY(0) scale(1); }
+  35%  { transform: translateY(-8px) scale(1.05);
+         box-shadow: 0 12px 26px rgba(0,0,0,0.7), 0 0 18px rgba(255,215,0,0.55); }
+  100% { transform: translateY(-4px) scale(1); }
+}
 
 .card-header-strip {
   height: 2rem;
