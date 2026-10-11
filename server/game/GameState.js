@@ -13,7 +13,6 @@ class GameStateManager {
     this.validMoves = [];
     this.breakableBlockades = []; // blockade IDs the current card can break from current position
     this.selectingCardsToRemove = 0;
-    this.selectingCardsForRubble = 0;
     this.transmitterActive = false;
     this.pendingReserveSlot = null;
     // Rulebook p4: "You can buy up to 1 card per turn." Enforced
@@ -70,13 +69,6 @@ class GameStateManager {
       if (this.selectingCardsToRemove === 0 && this.playedCardData) {
         this._disposeFinishedCard(player);
       }
-      return { ok: true };
-    }
-
-    if (this.selectingCardsForRubble > 0) {
-      this.selectingCardsForRubble--;
-      player.playCard(instanceId);
-      this.emit('hand_updated', { playerId, hand: player.hand });
       return { ok: true };
     }
 
@@ -216,6 +208,13 @@ class GameStateManager {
     const player = this.currentPlayer;
     const tile = this.board.getTile(tileId);
 
+    // Cost-2+ rubble must go through the toll flow (move_to_rubble with extra
+    // cards) so the full price is paid up front. Plain move_pawn would grant
+    // entry for 1 card. Cost-1 rubble continues below and ends movement.
+    if (tile && tile.terrainType === TerrainType.RUBBLE && tile.movementCost > 1) {
+      return { ok: false, error: 'rubble toll: use extra cards to cross' };
+    }
+
     player.currentTileId = tileId;
     this.emit('pawn_moved', { playerId, tileId });
 
@@ -252,8 +251,8 @@ class GameStateManager {
     const cost = tile.movementCost;
 
     if (terrain === TerrainType.RUBBLE) {
+      // Cost-2+ rubble is rejected above; cost-1 ends movement (like blockades).
       this.movesRemaining = 0;
-      if (cost > 1) this.selectingCardsForRubble = cost - 1;
     } else if (terrain === TerrainType.CAMP) {
       this.movesRemaining = 0;
       this.playedCardData.oneTimeUse = true;
