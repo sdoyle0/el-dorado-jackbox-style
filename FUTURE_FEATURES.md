@@ -13,14 +13,35 @@ rubble/blockades, TV polish, disconnects/final round, and Block 9 QR join
 (`qrcode` dep + `/api/qr` + `?room=` deep link) are all in the code. So this
 file is now the single future-features list.
 
-| # | Feature | Complexity (1-5, effort) | Value (1-5, to game) | Notes |
-|---|---------|--------------------------|----------------------|-------|
-| 4 | Rubble-toll UX revisit | 2 — client-only (`main.js`, `CardUI.js`) | 4 — fixes live tester confusion | Simplest high-value pick |
-| 5 | Multiple map layouts | 3 — per-map JSON + seams + picker, `loadMap` already generic | 4.5 — biggest replayability win, no rule risk | 2nd pick, well-isolated |
-| 1 | Two-pawn duel (2P) | 4.5 — win logic, occupancy, per-card picker on all views | 3.5 — only matters for 2P games | High cost, defer |
-| 2 | AI-bot opponents | 3 — harness + discard-to-cycle logic | 2 — low value for party format | Blocked on format question |
-| 3 | Single-screen revival | 2 — verify + port as separate project | 2 — out of mainline direction | Only if fallback wanted |
-| 6 | Game-feel / presentation polish | 2 per slice, 3.5 total — client/CSS/audio only | 5 perceived ("looks like a real game"), 0 rules | New entry below, slice it |
+| # | Feature | Complexity (1-5, effort) | Value (1-5, to game) | Status |
+|---|---------|--------------------------|----------------------|--------|
+| 4 | Rubble-toll UX revisit | 2 — client-only (`main.js`, `CardUI.js`) | 4 — fixes live tester confusion | ✅ Done (`41cb736`; Option B only if two-phase model still confuses) |
+| 5 | Multiple map layouts | 3 — per-map JSON + seams + picker, `loadMap` already generic | 4.5 — biggest replayability win, no rule risk | ⬜ Open — suggested next |
+| 1 | Two-pawn duel (2P) | 4.5 — win logic, occupancy, per-card picker on all views | 3.5 — only matters for 2P games | ⬜ Open — high cost, defer |
+| 2 | AI-bot opponents | 3 — harness + discard-to-cycle logic | 2 — low value for party format | ⬜ Open — blocked on format question |
+| 3 | Single-screen revival | 2 — verify + port as separate project | 2 — out of mainline direction | ⬜ Open — only if fallback wanted |
+| 6 | Game-feel / presentation polish | 2 per slice, 3.5 total — client/CSS/audio only | 5 perceived ("looks like a real game"), 0 rules | ✅ Mostly done (a, b, d + phones ✅; c partial — SFX ✅, music parked) |
+
+## Done ledger (Oct 2026 — all on master, nothing in flight)
+
+| What | Commit | Notes / remainder |
+|---|---|---|
+| #4 rubble-toll Option A | `41cb736` | Named target, slot chips, retargeting, toll guards. Option B deferred — revisit only if the two-phase model itself still confuses testers. |
+| #6a movement feedback | `7364622` | Pawn slides, card flourish, break shake. Fly-to-discard deferred (no discard-pile element). Pulse + turn flash pre-existed. |
+| #6b board/card art | `7c11a93` | Backdrop, tile texture, frames, TV type. |
+| #6d lobby warmth | `5f955e2` | Glow drift, credits, spinner, start guard. |
+| Phone hand richness | `a207532` | Glow rows, badges, motion, thumbs, gold End Turn, hint icons, badge → rule line. |
+| #6c audio (SFX) | `cc648f3` + `8594971` | move/buy/break/turn/win/error live; phones action-only; snapshot music fix. |
+| Plan doc retired | (docs-only, inside above) | `TV_PHONE_PLAN.md` marked ✅ COMPLETE legacy reference. |
+
+## Left for future sessions
+
+1. **#5 Multiple map layouts** (suggested next) — only rulebook layout built; transcribe more arrangements + room-level picker + confirm blockade pool per layout.
+2. **Music loop revisit** — parked behind `setMusicEnabled` in `client/src/game/Audio.js`. Either vendor royalty-free seamless loops (MP3+OGG under `client/`, `<audio loop>`, keep mute wiring) or re-attempt generative with ears on it. Feel keywords: hand drums + kalimba, minor pentatonic, 80–90 BPM, no vocals.
+3. **Purchase fly-to-discard** — needs a discard-pile element in the UI first (nothing to fly to today).
+4. **#1 two-pawn duel** — needs variant isolation; high cost.
+5. **#2 AI bots** — blocked on settled format; low party value.
+6. **#3 single-screen revival** — separate project only.
 
 ## 1. Two-pawn duel variant for 2-player games (from I-G)
 
@@ -64,7 +85,7 @@ testers find confusing.
   awkward to restructure mid-playtest.
 - Scope: small-medium, client-only. Ideas to explore: multi-select cards up
   front, combined cost preview, clearer toll banner on all views.
-- Status (Oct 2026): Option A shipped — named toll target (destination
+- Status: ✅ done (`41cb736`) — Option A shipped: named toll target (destination
   number, never internal tile ids), slot chips, rubble→rubble retargeting,
   "Change destination" back-out, Market/Discard mid-toll guards; client-only,
   no TV change. Deeper "pick payment first" rethink (Option B) deferred —
@@ -111,25 +132,25 @@ legality; it's the "would someone pay for this" pop layer.
   - d) Menu/lobby warmth — title screen, animated background, footer
     credits; loading states that don't look like placeholders. Phone-view
     richness deferred to a future pass (slice (b) barely touched phones).
-- Status (Oct 2026): slice (a) shipped — pawn slides (`HexRenderer`
+- Status: ✅ done — slice (a) shipped (`7364622`): pawn slides (`HexRenderer`
   rAF lerp, reduced-motion aware, chained moves chain smoothly),
   played-card flourish (`CardUI` + CSS, transform-only), blockade-break
   screen shake (existing `.shake` on `#board-container`, zoom-safe).
   Purchase fly-to-discard deferred: no discard-pile element exists in the
   UI to fly to. Valid-move pulse + turn flash already existed, untouched.
-- Status (Oct 2026): slice (b) shipped — felt-table board backdrop, per-tile
+- Status: ✅ done — slice (b) shipped (`7c11a93`): felt-table board backdrop, per-tile
   tonal variation + vignette + deterministic speckle (all low-opacity, below
   badges/rings, El Dorado keeps its own ornament), card frame top-light +
   edge, card-name weight, card-art fill rule, small TV status-strip type
   bumps. Deliberately restrained: terrain color-coding still dominates.
   Phone hand richness follow-up shipped separately (glow rows, stat badges,
   motion, thumbs, gold End Turn).
-- Status (Oct 2026): slice (d) shipped — ambient lobby glow drift, footer
+- Status: ✅ done — slice (d) shipped (`5f955e2`): ambient lobby glow drift, footer
   credits, lobby busy spinner, start-button double-tap guard.
-- Status (Oct 2026): slice (c) partial, UNCOMMITTED — SFX live (move/buy/
-  break/turn/win/error), music loop PARKED behind `setMusicEnabled` (two
-  generative attempts didn't land; blind timbre iteration converges too
-  slowly). Revisit with vendored royalty-free loops or ears on a new
-  generative design. Phones: action blips only, no loop ever.
+- Status: 🔶 partial — slice (c): SFX shipped (`cc648f3` + `8594971`,
+  move/buy/break/turn/win/error live; phones action-only; snapshot music
+  fix). Music loop PARKED behind `setMusicEnabled` in
+  `client/src/game/Audio.js` (two generative attempts didn't land; blind
+  timbre iteration converges too slowly) — see "Left" #2 for the revisit.
 - Start at: `client/src/game/HexRenderer.js` (pawn/move animation layer),
   `client/src/game/CardUI.js` (play-animation hook), `client/src/styles/`.
