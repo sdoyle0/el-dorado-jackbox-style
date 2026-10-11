@@ -102,11 +102,24 @@ Never trust the client for legality — server already validates.
   terrain icons shrunk (32→22, El Dorado 38→26) since tile color carries
   terrain meaning; cost badge enlarged into the freed space (16px→22px
   type, 38×20→52×28 pill). Eyeball on TV before committing.
-  Follow-up: badge overlay layer — terrain icon is now a large faint
-  watermark (40px/0.22 opacity, physical-board density), cost/move numbers
-  paint above blockade planks via re-raised .tile-badges groups (fixes
-  planks covering numbers on 1–2 seam-adjacent tiles). 10/10 render checks
-  pass. Uncommitted — eyeball on TV.
+   Follow-up: badge overlay layer — terrain icon is now a large faint
+   watermark (40px/0.22 opacity, physical-board density), cost/move numbers
+   paint above blockade planks via re-raised .tile-badges groups (fixes
+   planks covering numbers on 1–2 seam-adjacent tiles). 10/10 render checks
+   pass. Uncommitted — eyeball on TV.
+- Rules hardening (Oct 11, from sim-findings worklist — all committed):
+  Issues 1–3 (server trusted client id lists: dup purchase ids, in-flight
+  card as cash, played card as own rubble extra) → uniqueness +
+  played-card + AWAITING_MOVE guards in `GameState.js` (`0a6ba76`,
+  `e865ff2`). Issue 4 (rulebook p4: 1 buy/turn) → `purchasedThisTurn`
+  flag, cleared on `endTurn`, client lock/toast/banner + snapshot flag
+  (`f385fa4`). Issue 7 (reconnecting finisher lost tiebreak) → remap
+  `finishers`/`firstWinnerId` in `tryReclaimSeat` (`9bd2217`; simpler
+  than the worklist's re-key proposal — no protocol/client change).
+  Issues 5 (reserve-refill overwrite) + 6 (same-ms bought ids) closed as
+  unreachable under the 1-buy rule (verified by probe, not fixed).
+  Lesson reused twice: phone-viewport check now a session rule above
+  (a header string once pushed ✕ Close off-screen).
 
 ## Work blocks
 
