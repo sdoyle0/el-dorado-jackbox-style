@@ -230,6 +230,10 @@ document.addEventListener('DOMContentLoaded', () => {
         cursor: pointer; font-weight: 600; text-align: center; }
       .move-dest-btn:hover { background: #1e3352; border-color: #c9a227; }
       .move-dest-btn:active { transform: translateY(1px); }
+      /* Option A: the toll panel's target stays marked so the player sees
+         which tile the picks are paying for (tap another tile to retarget). */
+      .move-dest-btn.is-pending { border-color: #e74c3c; border-width: 2px;
+        background: rgba(61,22,22,0.92); }
       .move-dest-num { display: inline-grid; place-items: center;
         min-width: 40px; height: 40px; border-radius: 50%;
         background: #000; color: #fff; border: 2px solid #fff;
@@ -340,8 +344,14 @@ document.addEventListener('DOMContentLoaded', () => {
     return { terrain, icon, cost };
   }
 
-  function blockadeLabelFor(blockadeId) {
-    const b = activeBlockades.find(x => x.id === blockadeId);
+  // User-facing toll reference: the list button number, which matches the
+  // badge number on the TV board (internal tile ids mean nothing on screen).
+  function destLabelFor(tileId) {
+    const n = selectedValidMoves.indexOf(tileId);
+    return n >= 0 ? `destination ${n + 1}` : 'that rubble tile';
+  }
+
+  function blockadeLabelFor(blockadeId) {    const b = activeBlockades.find(x => x.id === blockadeId);
     const terrain = b?.terrainType || 'unknown';
     const icon = BLOCKADE_TERRAIN_ICONS[terrain] || '🚧';
     const label = b?.label || blockadeId;
@@ -483,6 +493,9 @@ document.addEventListener('DOMContentLoaded', () => {
         cancelBtn.setAttribute('aria-label', 'Cancel, return card to hand');
       }
     }
+    // A mid-toll re-render (e.g. fresh valid-moves) wipes button classes —
+    // re-mark the pending toll target so the panel and list stay in sync.
+    if (rubblePendingTileId) markPendingRubbleDest(rubblePendingTileId);
     panel.classList.remove('hidden');
   }
 
@@ -550,12 +563,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Shared destination tap: same rubble handling as board clicks, but works
   // without board navigation. Normal tiles emit move_pawn; cost-2+ rubble
-  // goes through the existing move_to_rubble picker (Block 6 owns that flow).
+  // opens the toll panel (Option A: named target, slot picks, Change
+  // destination back out). Tapping another valid destination mid-toll
+  // retargets (rubble→rubble keeps picks where they fit) or abandons the
+  // toll for a normal move — never a dead tap.
   function attemptMoveToTile(tileId) {
-    if (rubblePendingTileId) return;
     if (!selectedValidMoves.includes(tileId)) return;
     const tile = clientBoard.getTile(tileId);
-    if (tile?.terrainType === 'rubble' && tile.movementCost > 1) {
+    const isToll = tile?.terrainType === 'rubble' && tile.movementCost > 1;
+    if (rubblePendingTileId) {
+      if (tileId === rubblePendingTileId) return;
+      if (isToll) {
+        rubblePendingTileId = tileId;
+        rubbleCardsNeeded = tile.movementCost - 1;
+        cardUI.updateRubbleTarget(rubbleCardsNeeded, { label: destLabelFor(tileId), cost: tile.movementCost });
+        markPendingRubbleDest(tileId);
+        log(`🪨 Rubble toll switched: ${destLabelFor(tileId)} (rubble ×${tile.movementCost}) — pick ${rubbleCardsNeeded} extra card(s), then Cross Rubble. You stop here.`, 'system');
+        if (VIEW === 'phone') {
+          showToast(`Rubble toll: ${destLabelFor(tileId)}, ×${tile.movementCost} — pick ${rubbleCardsNeeded} extra.`, { icon: '🪨', type: 'info', duration: 3000 });
+        }
+        syncDiscardButton();
+        return;
+      }
+      // Retargeted to a non-toll tile: drop the toll, picks evaporate with
+      // the panel (nothing was ever sent), and move normally.
+      exitRubblePaymentMode();
+    }
+    if (isToll) {
       rubblePendingTileId = tileId;
       rubbleCardsNeeded = tile.movementCost - 1;
       cardUI.enterRubblePaymentMode(rubbleCardsNeeded, selectedCard?.instanceId, () => {
@@ -571,14 +605,17 @@ document.addEventListener('DOMContentLoaded', () => {
         exitRubblePaymentMode();
         syncDiscardButton();
       }, () => {
+        // "Change destination": the mover stays played and the destination
+        // list stays up — only the toll panel goes away.
         exitRubblePaymentMode();
         syncDiscardButton();
-      });
-      // Block 6: boardless phones get no board highlight for the toll, so say
-      // it outright (desktop sees the same prompt in #hand-messages).
-      log(`🪨 Rubble toll: pick ${rubbleCardsNeeded} extra card(s), then Cross Rubble.`, 'system');
+      }, { label: destLabelFor(tileId), cost: tile.movementCost });
+      markPendingRubbleDest(tileId);
+      // Boardless phones get no board highlight for the toll, so say it
+      // outright (desktop sees the same prompt in #hand-messages).
+      log(`🪨 Rubble toll: ${destLabelFor(tileId)} (rubble ×${tile.movementCost}) — pick ${rubbleCardsNeeded} extra card(s), then Cross Rubble. You stop here.`, 'system');
       if (VIEW === 'phone') {
-        showToast(`Rubble toll: pick ${rubbleCardsNeeded} extra card(s).`, { icon: '🪨', type: 'info', duration: 4000 });
+        showToast(`Rubble toll: ${destLabelFor(tileId)}, ×${tile.movementCost} — pick ${rubbleCardsNeeded} extra.`, { icon: '🪨', type: 'info', duration: 4000 });
       }
       syncDiscardButton();
       return;
@@ -1126,7 +1163,20 @@ document.addEventListener('DOMContentLoaded', () => {
   function exitRubblePaymentMode() {
     rubblePendingTileId = null;
     rubbleCardsNeeded = 0;
+    markPendingRubbleDest(null);
     cardUI.exitRubblePaymentMode();
+  }
+
+  // Option A: the pending toll target stays marked in the destination list
+  // so the player can see which tile the panel is paying for (and tap
+  // another one to retarget). Null clears the mark.
+  function markPendingRubbleDest(tileId) {
+    for (const btn of document.querySelectorAll('.move-dest-btn[data-tile]')) {
+      const isPending = tileId != null && String(btn.dataset.tile) === String(tileId);
+      btn.classList.toggle('is-pending', isPending);
+      if (isPending) btn.setAttribute('aria-current', 'true');
+      else btn.removeAttribute('aria-current');
+    }
   }
 
   // Board taps (desktop/TV-host) and phone list taps share one path so the
@@ -1143,6 +1193,13 @@ document.addEventListener('DOMContentLoaded', () => {
   cardUI.onCardPlayed = (instanceId) => selectCardForMove(instanceId);
   cardUI.onEndTurn = () => client.endTurn();
   cardUI.onDiscardClicked = () => {
+    // Mid-toll Discard would strand the toll panel (the mover is in flight
+    // and the extras are only local pool highlights). Block with an
+    // explanation — the button is already disabled in this state.
+    if (rubblePendingTileId) {
+      showToast('Finish the toll first — Cross Rubble or Change destination.', { icon: '🪨', type: 'info', duration: 3000 });
+      return;
+    }
     // Guard: Discard with no movement card selected (e.g. while pooling for
     // the market) must be a no-op, not a TypeError on null.instanceId.
     // The button is also disabled in that state — this is just a safety net.
@@ -1166,7 +1223,21 @@ document.addEventListener('DOMContentLoaded', () => {
   cardUI.onPurchaseLocked = () => {
     showToast('Only 1 card per turn — already bought this turn.', { icon: '💰', type: 'info', duration: 2500 });
   };
+  cardUI.onMarketBlocked = () => {
+    showToast('Finish the toll first — Cross Rubble or Change destination.', { icon: '🪨', type: 'info', duration: 3000 });
+  };
   cardUI.onMarketOpened = (transmitterBonus = 0) => {
+    // Safety net: a programmatic open (e.g. Transmitter free pick) fired
+    // while the toll panel was up. The market overlay is already visible, so
+    // close it and re-show the toll with its picks intact — never silently
+    // evaporate the panel the player was filling.
+    if (rubblePendingTileId) {
+      cardUI.closeMarket();
+      cardUI.restoreRubbleMode();
+      showToast('Finish the toll first — Cross Rubble or Change destination.', { icon: '🪨', type: 'info', duration: 3000 });
+      syncDiscardButton();
+      return;
+    }
     // 1-buy-per-turn lock: explain immediately on open (browsing still
     // allowed, but pooling is disabled and Buys are dead).
     if (hasPurchasedThisTurn && !transmitterBonus) {

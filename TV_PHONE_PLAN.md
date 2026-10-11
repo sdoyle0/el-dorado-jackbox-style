@@ -1,3 +1,12 @@
+# ✅ COMPLETE — LEGACY REFERENCE ONLY (Oct 2026)
+
+> The jackbox-style conversion this plan described is **done and playable**:
+> `?view=tv` / `?view=phone` split, private hands, list-based moves, market,
+> rubble/blockades, TV polish, disconnects + final round / game over, and
+> Block 9 QR join are all in the code. Kept for posterity (work-block detail,
+> session prompts, LAN/QR notes). **Do not plan new work here — the canonical
+> future list is `FUTURE_FEATURES.md`.**
+
 # Quest for El Dorado — TV + Phone Conversion Plan
 
 Goal: host the server + shared board on a machine shown on the TV, and have each

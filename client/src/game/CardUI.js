@@ -56,6 +56,7 @@ class CardUI {
     this.onDiscardClicked = null;
     this.onMarketOpened   = null; // () — movement selection should be dropped
     this.onMarketClosed   = null; // () — resync action buttons
+    this.onMarketBlocked  = null; // () — Market tapped mid rubble-toll (blocked)
     this.onPurchaseLocked = null; // () — Buy tapped after the 1-per-turn buy
 
     // ── Mode ────────────────────────────────────────────────────────────────
@@ -80,6 +81,8 @@ class CardUI {
     this._rubblePool      = new Map(); // instanceId → card
     this._rubbleExcludeId = null;
     this._rubbleExcludeName  = null;
+    this._rubbleDestLabel = null; // toll target in user terms ("destination 5",
+    this._rubbleDestCost   = null; // never an internal tile id — those mean nothing on the board)
     this._rubbleOnConfirm = null;
     this._rubbleOnCancel  = null;
 
@@ -153,7 +156,13 @@ class CardUI {
 
   _bindControls() {
     document.getElementById('end-turn-btn').addEventListener('click', () => this.onEndTurn?.());
-    document.getElementById('open-market-btn').addEventListener('click', () => this.openMarket());
+    // Mid-toll Market taps must not silently evaporate the toll (the open
+    // would cancel the movement via onMarketOpened). Block with an
+    // explanation so the picks survive; main.js toasts the reason.
+    document.getElementById('open-market-btn').addEventListener('click', () => {
+      if (this._mode === 'rubble') { this.onMarketBlocked?.(); return; }
+      this.openMarket();
+    });
     document.getElementById('discard-btn').addEventListener('click', () => this.onDiscardClicked?.());
     document.getElementById('cancel-purchase-btn').addEventListener('click', () => this.closeMarket());
     this._getMarketShopButton().addEventListener('click', () => this._changeMarketView(false));
@@ -445,6 +454,7 @@ class CardUI {
     btn.disabled      = !ready;
     btn.style.opacity = ready ? '1' : '.4';
     btn.style.cursor  = ready ? 'pointer' : 'not-allowed';
+    this._renderRubbleSlots();
     this._syncHandState();
 
     // 4e: live counter update
@@ -1047,12 +1057,14 @@ class CardUI {
 
   // ── Rubble payment mode ──────────────────────────────────────────────────
 
-  enterRubblePaymentMode(count, excludeInstanceId, onConfirm, onCancel) {
+  enterRubblePaymentMode(count, excludeInstanceId, onConfirm, onCancel, destInfo = null) {
     this._rubbleNeeded    = count;
     this._rubbleExcludeId = excludeInstanceId ?? null;
     this._rubblePool      = new Map();
     this._rubbleOnConfirm = onConfirm;
     this._rubbleOnCancel  = onCancel;
+    this._rubbleDestLabel = destInfo?.label ?? null;
+    this._rubbleDestCost   = destInfo?.cost ?? null;
 
     const excludedCard = excludeInstanceId
       ? this._currentHand.find(c => c.instanceId === excludeInstanceId)
@@ -1063,16 +1075,43 @@ class CardUI {
     this._renderRubbleControls();
   }
 
+  // Option A retarget: the player tapped a different valid destination while
+  // the toll panel was open. Keep already-picked extras when they still fit
+  // (drop the most recently picked first), then re-render the panel with the
+  // new target header. Pool entries stay valid — they're still in hand.
+  updateRubbleTarget(count, destInfo = null) {
+    this._rubbleNeeded = count;
+    this._rubbleDestLabel = destInfo?.label ?? null;
+    this._rubbleDestCost   = destInfo?.cost ?? null;
+    while (this._rubblePool.size > this._rubbleNeeded) {
+      const ids = [...this._rubblePool.keys()];
+      this._rubblePool.delete(ids[ids.length - 1]);
+    }
+    this._setMode('rubble');
+    this._renderRubbleControls();
+  }
+
+  // Safety net: a programmatic market open (e.g. Transmitter) fired while the
+  // toll was pending and main.js closed it again. Re-show the toll panel with
+  // the preserved pool instead of dropping into movement mode.
+  restoreRubbleMode() {
+    if (this._rubbleNeeded <= 0) return;
+    this._setMode('rubble');
+    this._renderRubbleControls();
+  }
+
   exitRubblePaymentMode() {
     this._rubblePool        = new Map();
     this._rubbleNeeded      = 0;
     this._rubbleExcludeId   = null;
     this._rubbleExcludeName = null;
+    this._rubbleDestLabel  = null;
+    this._rubbleDestCost    = null;
     document.getElementById('hand-messages').innerHTML = '';
-    // Opening the market mid-toll cancels the toll via onMarketOpened →
-    // cancelMoveSelection → here. The market overlay is already visible at
-    // that point, so stay in market mode instead of dropping back to
-    // movement (which would route hand taps to the wrong handler).
+    // The toll panel owns #hand-messages while open. Market taps are blocked
+    // at the button (see _bindControls) and programmatic opens are bounced
+    // back via restoreRubbleMode, so reaching here with the market open
+    // means the move itself ended (confirm/dispose/cancel) — see below.
     const marketOpen = !this.marketEl.classList.contains('hidden');
     this._setMode(marketOpen ? 'market' : 'movement');
   }
@@ -1081,46 +1120,111 @@ class CardUI {
     return [...this._rubblePool.keys()];
   }
 
-  // 4e: Rubble prompt — polished copy and live counter
+  // Option A toll panel: names the target tile + total cost, shows the
+  // locked mover plus one slot per extra card, and offers "Change
+  // destination" (back to the destination list, picks kept where they fit)
+  // instead of an ambiguous Cancel.
   _renderRubbleControls() {
     const messages = document.getElementById('hand-messages');
+    messages.innerHTML = '';
 
     const cardWord = this._rubbleNeeded === 1 ? 'card' : 'cards';
+    const destLine = (this._rubbleDestLabel != null && this._rubbleDestCost != null)
+      ? `Crossing to ${this._rubbleDestLabel} — rubble ×${this._rubbleDestCost}, you stop here.`
+      : `Cost ${this._rubbleNeeded + 1} rubble — you stop here.`;
 
-    // Committed-card note: cleaner phrasing than before
-    const nameNote = this._rubbleExcludeName
-      ? `<span class="rubble-committed-note">
-           <span class="rubble-committed-card">🔒 ${this._rubbleExcludeName}</span>
-           already pays — pick <strong>${this._rubbleNeeded}</strong> more ${cardWord} for the toll.
-         </span>`
-      : `<span class="rubble-committed-note">
-           Pick <strong>${this._rubbleNeeded}</strong> ${cardWord} of any type to pay the toll.
-         </span>`;
+    const prompt = document.createElement('div');
+    prompt.className = 'rubble-prompt';
 
-    messages.innerHTML = `
-      <div class="rubble-prompt">
-        <div class="rubble-prompt-header">🪨 Pay with any cards</div>
-        ${nameNote}
-        <span id="rubble-selection-count" class="rubble-selection-count">
-          0 of ${this._rubbleNeeded} selected
-        </span>
-      </div>
-      <div class="rubble-prompt-actions">
-        <button id="rubble-confirm-btn" disabled
-          style="background:#e74c3c;color:#fff;border:none;border-radius:4px;
-                  padding:.6rem 1rem;cursor:not-allowed;opacity:.4;font-size:.9rem;font-weight:600;
-                  min-height:44px;flex:1 1 auto;">
-          Cross Rubble
-        </button>
-        <button id="rubble-cancel-btn"
-          style="background:#555;color:#fff;border:none;border-radius:4px;
-                  padding:.6rem .9rem;cursor:pointer;font-size:.9rem;min-height:44px;">
-          Cancel
-        </button>
-      </div>`;
+    const header = document.createElement('div');
+    header.className = 'rubble-prompt-header';
+    header.textContent = '🪨 Rubble toll';
+    prompt.appendChild(header);
 
-    document.getElementById('rubble-cancel-btn').onclick  = () => this._rubbleOnCancel?.();
-    document.getElementById('rubble-confirm-btn').onclick = () => this._rubbleOnConfirm?.();
+    const dest = document.createElement('div');
+    dest.className = 'rubble-dest-line';
+    dest.style.cssText = 'font-size:.8rem;color:#ffcf9e;font-weight:600;margin-top:.15rem;';
+    dest.textContent = destLine;
+    prompt.appendChild(dest);
+
+    // Committed-card note: the mover pays entry, extras pay the remainder.
+    const nameNote = document.createElement('div');
+    nameNote.className = 'rubble-committed-note';
+    nameNote.style.cssText = 'font-size:.8rem;color:#e8e0d0;margin-top:.15rem;';
+    if (this._rubbleExcludeName) {
+      const lock = document.createElement('span');
+      lock.className = 'rubble-committed-card';
+      lock.textContent = `🔒 ${this._rubbleExcludeName} pays 1 — pick ${this._rubbleNeeded} more ${cardWord}.`;
+      nameNote.appendChild(lock);
+    } else {
+      nameNote.textContent = `Pick ${this._rubbleNeeded} ${cardWord} of any type to pay the toll.`;
+    }
+    prompt.appendChild(nameNote);
+
+    // Slot row: one chip per needed card — filled chips name the pick, empty
+    // chips show what is still owed. Re-rendered by _renderRubbleSlots().
+    const slots = document.createElement('div');
+    slots.id = 'rubble-slots';
+    slots.style.cssText = 'display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.35rem;';
+    prompt.appendChild(slots);
+
+    const counter = document.createElement('span');
+    counter.id = 'rubble-selection-count';
+    counter.className = 'rubble-selection-count';
+    prompt.appendChild(counter);
+
+    messages.appendChild(prompt);
+
+    const actions = document.createElement('div');
+    actions.className = 'rubble-prompt-actions';
+
+    const confirm = document.createElement('button');
+    confirm.id = 'rubble-confirm-btn';
+    confirm.disabled = true;
+    confirm.style.cssText = 'background:#e74c3c;color:#fff;border:none;border-radius:4px;'
+      + 'padding:.6rem 1rem;cursor:not-allowed;opacity:.4;font-size:.9rem;font-weight:600;'
+      + 'min-height:44px;flex:1 1 auto;';
+    confirm.textContent = 'Cross Rubble';
+    confirm.onclick = () => this._rubbleOnConfirm?.();
+    actions.appendChild(confirm);
+
+    const cancel = document.createElement('button');
+    cancel.id = 'rubble-cancel-btn';
+    cancel.style.cssText = 'background:#555;color:#fff;border:none;border-radius:4px;'
+      + 'padding:.6rem .9rem;cursor:pointer;font-size:.9rem;min-height:44px;';
+    cancel.textContent = '← Change destination';
+    cancel.title = 'Back to the destination list — your mover stays played.';
+    cancel.setAttribute('aria-label', 'Back to the destination list, mover stays played');
+    cancel.onclick = () => this._rubbleOnCancel?.();
+    actions.appendChild(cancel);
+
+    messages.appendChild(actions);
+
+    this._renderRubbleSlots();
+    this._syncRubbleConfirmButton();
+  }
+
+  // Slot chips mirror the pool: filled chips name picked cards (tap the hand
+  // card again to un-pick), empty chips show the remaining count.
+  _renderRubbleSlots() {
+    const slots = document.getElementById('rubble-slots');
+    if (!slots) return;
+    slots.innerHTML = '';
+    const picked = [...this._rubblePool.values()];
+    for (const card of picked) {
+      const chip = document.createElement('span');
+      chip.style.cssText = 'font-size:.75rem;font-weight:700;color:#06240f;'
+        + 'background:#4cff4c;border-radius:20px;padding:.2rem .6rem;';
+      chip.textContent = `✓ ${card.cardName || card.key}`;
+      slots.appendChild(chip);
+    }
+    for (let i = picked.length; i < this._rubbleNeeded; i++) {
+      const empty = document.createElement('span');
+      empty.style.cssText = 'font-size:.75rem;color:#9aabbf;'
+        + 'border:1px dashed rgba(154,171,191,.6);border-radius:20px;padding:.2rem .6rem;';
+      empty.textContent = '+ any card';
+      slots.appendChild(empty);
+    }
   }
 
   disableMarketButton() {
