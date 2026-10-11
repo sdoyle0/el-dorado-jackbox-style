@@ -239,6 +239,15 @@ class GameRoom {
     player.id = socket.id;
     player.socketId = socket.id;
     if (this.hostId === oldId) this.hostId = socket.id;
+    // Issue 7: finishers/firstWinnerId are recorded by socket id at finish
+    // time, while _blockadeCounts is keyed by current id — without this
+    // remap a finisher who reclaims a new id counts 0 tokens and the
+    // winner can be a stale id matching no seated player. Same pattern as
+    // the hostId line above; the client already merges rosters by seat
+    // (playerNumber), so no client change needed.
+    const gs = this.gameState;
+    gs.finishers = gs.finishers.map(f => (f === oldId ? player.id : f));
+    if (gs.firstWinnerId === oldId) gs.firstWinnerId = player.id;
     socket.join(this.roomId);
     this._broadcast('player_joined', {
       player: player.toPublicData(),
