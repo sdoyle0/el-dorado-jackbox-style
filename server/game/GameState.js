@@ -154,14 +154,28 @@ class GameStateManager {
     if (!blockade) return { ok: false, error: 'blockade not found' };
 
     const player = this.currentPlayer;
+    const isRubble = blockade.terrainType === TerrainType.RUBBLE;
 
-    // Wild card: lock its terrain to the blockade terrain (same as moving onto that terrain)
-    if (this.playedCardData.movementTerrain === TerrainType.WILD && !this.wildCardTerrain) {
+    // Rubble blockades mirror rubble tiles: only a fresh card pays, and the
+    // card is spent (no onward movement). Defense-in-depth alongside the
+    // HexBoard fresh check — breakableBlockades is server-computed, but a
+    // crafted break event must not slip past a stale list.
+    if (isRubble && this.movesRemaining !== this.playedCardData.movementTotal) {
+      return { ok: false, error: 'rubble blockade requires a fresh card' };
+    }
+
+    // Wild card: lock its terrain to the blockade terrain (same as moving onto that terrain).
+    // Rubble accepts any card identity (like rubble tiles), so no locking there.
+    if (!isRubble && this.playedCardData.movementTerrain === TerrainType.WILD && !this.wildCardTerrain) {
       this.wildCardTerrain = blockade.terrainType;
     }
 
-    // Spend 1 movement
-    this.movesRemaining -= 1;
+    // Spend the card: rubble ends movement (like rubble tiles), others cost 1
+    if (isRubble) {
+      this.movesRemaining = 0;
+    } else {
+      this.movesRemaining -= 1;
+    }
 
     // Remove the blockade
     this.activeBlockades = this.activeBlockades.filter(b => b.id !== blockadeId);

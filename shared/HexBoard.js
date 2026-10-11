@@ -145,7 +145,7 @@ class HexBoard {
 
     return activeBlockades.filter(blockade =>
       this._isAdjacentToBlockade(currentTileId, blockade) &&
-      this._canPayBlockade(blockade, playedCard, wildCardTerrain)
+      this._canPayBlockade(blockade, playedCard, wildCardTerrain, movesRemaining)
     ).map(b => b.id);
   }
 
@@ -154,11 +154,16 @@ class HexBoard {
   }
 
   // Can the played card pay 1 movement of this blockade's terrain type?
-  _canPayBlockade(blockade, playedCard, wildCardTerrain) {
+  // Rubble blockades mirror rubble tiles (HexBoard.isValidMove): any card
+  // type pays, but only with a fresh card — leftover power from a card
+  // already used to move cannot be spent on rubble.
+  _canPayBlockade(blockade, playedCard, wildCardTerrain, movesRemaining) {
     const bTerrain = blockade.terrainType;
 
-    // Rubble blockade: any card type pays it (same as rubble tiles — discard 1 extra card)
-    if (bTerrain === _ElDoradoBoardDeps.TerrainType.RUBBLE) return true;
+    // Rubble blockade: any card type pays it, but only fresh (same as rubble tiles)
+    if (bTerrain === _ElDoradoBoardDeps.TerrainType.RUBBLE) {
+      return movesRemaining === playedCard.movementTotal;
+    }
 
     if (playedCard.specialEffect === _ElDoradoBoardDeps.CardEffect.NATIVE) return true;
 
