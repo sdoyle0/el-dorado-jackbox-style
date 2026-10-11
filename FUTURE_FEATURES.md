@@ -36,3 +36,29 @@ jackbox conversion is unverified.
 - Decision: revive as a **separate project** if wanted; port the rules fixes
   over (Issues 1–4, 7 + rubble-blockade freshness `f0ef9d7`), don't entangle.
 - Start at: bare URL with no `?view=` args; verify lobby → game → reconnect.
+
+## 4. Rubble-toll UX revisit
+
+Crossing cost-2+ rubble today is a toll overlay bolted onto a single-card
+select-and-move flow (pick mover → toll prompt → pick extras → confirm), which
+testers find confusing.
+- Why deferred: rules and server flow are correct (`movePawnToRubble` + I-H
+  guard); this is presentation-only, and the single-card architecture makes it
+  awkward to restructure mid-playtest.
+- Scope: small-medium, client-only. Ideas to explore: multi-select cards up
+  front, combined cost preview, clearer toll banner on all views.
+- Start at: `client/src/main.js` (`attemptMoveToTile`, rubble payment mode),
+  `client/src/game/CardUI.js` (`enterRubblePaymentMode`).
+
+## 5. Multiple map layouts
+
+Only the first rulebook example layout is built (`shared/mapData.json` +
+`shared/blockadeData.js` seams). The rulebook's assembly guide has ~half a
+dozen recommended block arrangements/rotations.
+- Why deferred: needs the section/seam framework proven first (current seams
+  verified as true cut-sets; see I-E).
+- Scope: medium. Per-map tile JSON + seam edge lists (derive programmatically
+  from section boundaries as today), room-level map picker, `HexBoard.loadMap`
+  already generic — confirm blockade terrain pool per layout.
+- Start at: `shared/mapData.json`, `shared/blockadeData.js`,
+  `server/game/GameManager.js` (`_startGame`).
