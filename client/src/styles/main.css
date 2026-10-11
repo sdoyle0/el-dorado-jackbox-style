@@ -122,6 +122,43 @@ body {
   pointer-events: none;
 }
 
+/* Slice 6d: ambient drift — a slow-breathing firelight glow behind the
+   boxes so the lobby feels alive without moving any content. Pure paint
+   (opacity only); disabled under prefers-reduced-motion below. */
+#lobby-screen,
+#waiting-screen {
+  position: relative;
+}
+#lobby-screen::after,
+#waiting-screen::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 45% 30% at 50% 85%, rgba(201,162,39,0.10) 0%, transparent 70%);
+  pointer-events: none;
+  animation: lobby-breathe 7s ease-in-out infinite;
+}
+@keyframes lobby-breathe {
+  0%, 100% { opacity: 0.45; }
+  50%      { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #lobby-screen::after,
+  #waiting-screen::after {
+    animation: none;
+    opacity: 0.7;
+  }
+}
+
+/* Slice 6d: footer credit — own wrapped line, dim, never a touch target. */
+.lobby-credit {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  text-align: center;
+  line-height: 1.4;
+  max-width: 100%;
+}
+
 /* ── Title — signature element: shimmer sweep on load ──────────────────── */
 .game-title {
   font-family: 'Cinzel', Georgia, serif;
@@ -318,6 +355,29 @@ body {
   color: var(--danger);
   text-align: center;
   min-height: 1.2em;
+}
+/* Slice 6d: busy states get a spinner ring so waits read as progress, not
+   dead text. main.js toggles .is-loading on non-empty info messages. */
+.lobby-status.is-loading::before {
+  content: '';
+  display: inline-block;
+  width: 0.8em;
+  height: 0.8em;
+  margin-right: 0.45em;
+  vertical-align: -0.1em;
+  border: 2px solid rgba(201,162,39,0.25);
+  border-top-color: var(--gold-bright);
+  border-radius: 50%;
+  animation: lobby-spin 0.8s linear infinite;
+}
+@keyframes lobby-spin {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lobby-status.is-loading::before {
+    animation: none;
+    border-top-color: rgba(201,162,39,0.25);
+  }
 }
 
 /* ── Waiting Room ─────────────────────────────────────────────────────────── */

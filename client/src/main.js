@@ -787,10 +787,14 @@ document.addEventListener('DOMContentLoaded', () => {
   function setLobbyError(msg) {
     lobbyStatus.textContent = msg;
     lobbyStatus.style.color = '#e74c3c';
+    lobbyStatus.classList.remove('is-loading');
   }
   function setLobbyInfo(msg) {
     lobbyStatus.textContent = msg;
     lobbyStatus.style.color = '#aaa';
+    // Non-empty info messages are all busy states (creating/joining/
+    // reconnecting) — show the spinner; empty clears it.
+    lobbyStatus.classList.toggle('is-loading', !!msg);
   }
 
   // ── Block 9: QR-code join ────────────────────────────────────────────
@@ -960,7 +964,15 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   startGameBtn.addEventListener('click', () => {
-    if (!startGameBtn.disabled) client.startGame();
+    if (startGameBtn.disabled) return;
+    // Slice 6d: guard double-tap (success navigates away; the timeout only
+    // heals a silently lost emit).
+    startGameBtn.disabled = true;
+    client.startGame();
+    setTimeout(() => {
+      const gameEl = document.getElementById('game-screen');
+      if (gameEl && !gameEl.classList.contains('active')) startGameBtn.disabled = false;
+    }, 5000);
   });
 
   zoomInBtn?.addEventListener('click', () => {

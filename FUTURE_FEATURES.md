@@ -106,9 +106,14 @@ legality; it's the "would someone pay for this" pop layer.
     frames, hand/market spacing + typography, TV 10ft readability check.
   - c) Audio + turn rhythm — tiny WebAudio bleeps (move, buy, break,
     turn start, win) with mute toggle; turn-banner transition;
-    final-round / win fanfare.
+    final-round / win fanfare. Deferred: group table play makes audio an
+    afterthought; revisit after the visual slices land.
   - d) Menu/lobby warmth — title screen, animated background, footer
-    credits; loading states that don't look like placeholders.
+    credits; loading states that don't look like placeholders. Phone-view
+    richness deferred to a future pass (slice (b) barely touched phones).
+- Status (Oct 2026): slice (d) in progress, UNCOMMITTED — ambient lobby
+  glow drift, footer credits, lobby busy spinner, start-button double-tap
+  guard. (Audio (c) deferred: table play makes it an afterthought.)
 - Status (Oct 2026): slice (a) shipped — pawn slides (`HexRenderer`
   rAF lerp, reduced-motion aware, chained moves chain smoothly),
   played-card flourish (`CardUI` + CSS, transform-only), blockade-break
