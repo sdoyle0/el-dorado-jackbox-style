@@ -57,6 +57,19 @@ function prefersReducedMotion() {
   return false;
 }
 
+// Slice 6b: deterministic per-tile variation (FNV-1a → [0, 1)). Stable
+// across re-renders so tiles never shimmer between paints; pure function,
+// unit-testable.
+function hashTileId(str) {
+  const s = String(str);
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return ((h >>> 0) % 100000) / 100000;
+}
+
 class HexRenderer {
   constructor(svgEl) {
     this.svg = svgEl;
@@ -288,6 +301,42 @@ class HexRenderer {
       overlay.setAttribute('fill', 'url(#hex-face-light)');
       overlay.setAttribute('pointer-events', 'none');
       g.appendChild(overlay);
+    }
+
+    // ── Slice 6b: tile richness — tonal variation + vignette + speckle ──────
+    // Painted above the face/overlay, below rings + badges (badges carry the
+    // gameplay info and must stay crisp). All low-opacity so terrain
+    // color-coding stays dominant at TV distance; the detail only resolves
+    // up close on desktop. Deterministic per tile id — no repaint flicker.
+    // El Dorado keeps only its own ornament (rings + shimmer).
+    if (!isElDorado) {
+      const tone = mk('polygon');
+      tone.setAttribute('points', this._hexPoints(cx, cy, HEX_R - 3));
+      tone.setAttribute('fill', hashTileId(tile.id + ':tone') < 0.5 ? '#ffffff' : '#000000');
+      tone.setAttribute('opacity', '0.035');
+      tone.setAttribute('pointer-events', 'none');
+      g.appendChild(tone);
+
+      const vig = mk('polygon');
+      vig.setAttribute('points', this._hexPoints(cx, cy, HEX_R - 5));
+      vig.setAttribute('fill', 'none');
+      vig.setAttribute('stroke', 'rgba(0,0,0,0.30)');
+      vig.setAttribute('stroke-width', '7');
+      vig.setAttribute('pointer-events', 'none');
+      g.appendChild(vig);
+
+      for (let i = 0; i < 4; i++) {
+        const ang = hashTileId(`${tile.id}:sp${i}a`) * Math.PI * 2;
+        const rad = 8 + hashTileId(`${tile.id}:sp${i}r`) * (HEX_R - 16);
+        const dot = mk('circle');
+        dot.setAttribute('cx', (cx + Math.cos(ang) * rad).toFixed(1));
+        dot.setAttribute('cy', (cy + Math.sin(ang) * rad).toFixed(1));
+        dot.setAttribute('r', (2 + hashTileId(`${tile.id}:sp${i}s`) * 1.4).toFixed(1));
+        dot.setAttribute('fill', style.hilite || '#ffffff');
+        dot.setAttribute('opacity', '0.10');
+        dot.setAttribute('pointer-events', 'none');
+        g.appendChild(dot);
+      }
     }
 
     // ── El Dorado inner gold rings ────────────────────────────────────────────

@@ -115,5 +115,10 @@ legality; it's the "would someone pay for this" pop layer.
   screen shake (existing `.shake` on `#board-container`, zoom-safe).
   Purchase fly-to-discard deferred: no discard-pile element exists in the
   UI to fly to. Valid-move pulse + turn flash already existed, untouched.
+- Status (Oct 2026): slice (b) shipped — felt-table board backdrop, per-tile
+  tonal variation + vignette + deterministic speckle (all low-opacity, below
+  badges/rings, El Dorado keeps its own ornament), card frame top-light +
+  edge, card-name weight, card-art fill rule, small TV status-strip type
+  bumps. Deliberately restrained: terrain color-coding still dominates.
 - Start at: `client/src/game/HexRenderer.js` (pawn/move animation layer),
   `client/src/game/CardUI.js` (play-animation hook), `client/src/styles/`.

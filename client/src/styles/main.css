@@ -408,6 +408,9 @@ body {
   flex: 1;
   display: flex;
   overflow: auto;
+  /* Slice 6b: felt-table backdrop — soft radial falloff so the board reads
+     as pieces on a table, not hexes on a void. */
+  background: radial-gradient(ellipse at 50% 40%, #16283d 0%, #0b1522 65%, #070d16 100%);
 }
 
 #hex-board {
@@ -856,7 +859,8 @@ body {
   flex-direction: column;
   box-shadow:
     0 2px 8px rgba(0,0,0,0.5),
-    inset 0 1px 0 rgba(255,255,255,0.04);
+    inset 0 1px 0 rgba(255,255,255,0.04),
+    inset 0 0 0 1px rgba(255,255,255,0.06); /* slice 6b: faint frame edge */
   transition: transform 0.1s, box-shadow 0.1s, border-color 0.15s;
 }
 .card-btn:hover {
@@ -891,6 +895,7 @@ body {
   font-size: 0.74rem;
   font-family: 'Inter', sans-serif;
   line-height: 1.1;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.12); /* slice 6b: top light */
 }
 .card-body-area {
   padding: 5px 7px 6px;
@@ -1014,6 +1019,16 @@ body.view-phone .market-onetime-pill {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-weight: 800; /* slice 6b */
+  letter-spacing: 0.01em; /* slice 6b */
+}
+/* Slice 6b: card art fills its frame; dark bed behind slow images. */
+.card-body-area img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 4px;
+  background: rgba(0,0,0,0.25);
 }
 .card-header-strip .card-stat-line {
   flex-shrink: 0;
