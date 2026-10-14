@@ -1177,6 +1177,10 @@ body.view-phone .market-onetime-pill {
 .market-card.terrain-water .card-header-strip    { border-left: 4px solid #2068b0; }
 .card-btn.terrain-village .card-header-strip,
 .market-card.terrain-village .card-header-strip  { border-left: 4px solid #c08828; }
+.card-btn.terrain-wild .card-header-strip,
+.market-card.terrain-wild .card-header-strip      { border-left: 4px solid #b0b0b0; }
+.card-btn.terrain-empty .card-header-strip,
+.market-card.terrain-empty .card-header-strip     { border-left: 4px solid #9050e0; }
 
 /* In-pool (market / rubble selection) */
 .card-btn.in-pool {

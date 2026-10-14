@@ -1533,30 +1533,35 @@ document.addEventListener('DOMContentLoaded', () => {
   // phones it would otherwise sit on top of the top hand card. The CSS
   // reserves its height via body:has() — and a tap dismisses it entirely so
   // the cards are fully reachable.
-  function ensureFinalRoundBanner() {
-    if (!document.getElementById('final-round-banner')) {
-      const banner = document.createElement('div');
-      banner.id = 'final-round-banner';
-      banner.textContent = '⚑ Final Round — Someone Has Reached El Dorado (tap to hide)';
-      banner.title = 'Tap to hide';
-      banner.setAttribute('role', 'button');
-      banner.setAttribute('tabindex', '0');
-      const dismiss = () => banner.remove();
-      banner.addEventListener('click', dismiss);
-      banner.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); dismiss(); }
-      });
-      document.body.appendChild(banner);
+  function ensureFinalRoundBanner(triggerName) {
+    const label = (triggerName || '').trim() || 'Someone';
+    const text = `⚑ Final Round — ${label} Has Reached El Dorado (tap to hide)`;
+    const existing = document.getElementById('final-round-banner');
+    if (existing) {
+      existing.textContent = text;
+      return;
     }
+    const banner = document.createElement('div');
+    banner.id = 'final-round-banner';
+    banner.textContent = text;
+    banner.title = 'Tap to hide';
+    banner.setAttribute('role', 'button');
+    banner.setAttribute('tabindex', '0');
+    const dismiss = () => banner.remove();
+    banner.addEventListener('click', dismiss);
+    banner.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); dismiss(); }
+    });
+    document.body.appendChild(banner);
   }
 
   client.onFinalRoundStarted = ({ triggeredByPlayerId }) => {
     const trigger = allPlayers.find(p => p.id === triggeredByPlayerId);
     const triggerName = trigger?.name || 'A player';
 
-    ensureFinalRoundBanner();
+    ensureFinalRoundBanner(triggerName === 'A player' ? '' : triggerName);
 
-    showToast('Final round! Someone reached El Dorado.', { icon: '🏆', type: 'accent', duration: 6000 });
+    showToast(`Final round! ${triggerName} reached El Dorado.`, { icon: '🏆', type: 'accent', duration: 6000 });
 
     // No modal: nobody is at the TV/laptop to click OK once play has started,
     // the banner already announces the final round, and a modal would block
@@ -1617,7 +1622,10 @@ document.addEventListener('DOMContentLoaded', () => {
     updateTurnLabel(currentTurnPlayerId);
     syncDiscardButton();
 
-    if (snap.finalRound && snap.finalRound.triggered) ensureFinalRoundBanner();
+    if (snap.finalRound && snap.finalRound.triggered) {
+      const trigger = (snap.players || []).find(p => p.id === snap.finalRound.triggeredByPlayerId);
+      ensureFinalRoundBanner(trigger?.name || '');
+    }
 
     showToast('Game state synced.', { icon: '🔄', type: 'accent' });
     log('Reconnected — game state synced.', 'system');
@@ -1692,13 +1700,14 @@ document.addEventListener('DOMContentLoaded', () => {
       /* Terrain colour reference: left border per card terrain (matches the
          header-strip bars on hand/full cards). Hues are the HexRenderer
          TERRAIN inner-face fills, not neon — one consistent mapping
-         everywhere. Wild gets a transparent edge:
-         it matches ANY terrain, so any single colour would imply the wrong
-         tile — grey read as rubble-grey. */
+         everywhere. Wild gets a neutral light-grey edge (#b0b0b0, same as
+         the phone hand wild glow): it matches ANY terrain, so it needs a
+         visible frame that doesn't imply a single tile colour — transparent
+         read as broken/missing, and black vanishes on the dark row. */
       body.view-phone .market-row-item.terrain-jungle { border-left-color: #347a20; }
       body.view-phone .market-row-item.terrain-water { border-left-color: #2068b0; }
       body.view-phone .market-row-item.terrain-village { border-left-color: #c08828; }
-      body.view-phone .market-row-item.terrain-wild { border-left-color: transparent; }
+      body.view-phone .market-row-item.terrain-wild { border-left-color: #b0b0b0; }
       body.view-phone .market-row-item.terrain-empty { border-left-color: #9050e0; }
       body.view-phone .market-row-main { display: flex; align-items: center;
         gap: 0.5rem; width: 100%; }
