@@ -616,8 +616,6 @@ class CardUI {
     const row = document.createElement('div');
     row.className = `market-row-item terrain-${card.movementTerrain || 'empty'}` + (isReserve ? ' is-reserve' : '');
     if (locked) row.classList.add('reserve-locked');
-    // One-time-use hook for styling + discoverability (see _makeCardShared).
-    if (card.oneTimeUse) row.classList.add('is-onetime');
     row.dataset.cardKey = card.key;
 
     const effectDesc = this._specialDescription(card.specialEffect);
@@ -737,21 +735,15 @@ class CardUI {
     const effectInline = effectDesc
       ? `<span class="card-effect-inline">${effectDesc}</span>` : '';
 
-    // One-time-use indicator — explicit text pill, not just an icon, so it
-    // reads at a glance in the hand, the market, and the reserve picker
-    // (all three render through this shared factory). The header pill is
-    // the primary signpost: it lives in the header strip, which stays
-    // visible in every layout (phone hand rows hide .card-body-area, so a
-    // body-only badge would vanish there). The body badge keeps its
-    // .card-onetime-line class for the tutorial anchor and gives the art
-    // cards a second, larger signpost over the image.
+    // One-time-use indicator — a single explicit text pill in the header
+    // strip, so it reads at a glance in the hand, the market, and the
+    // reserve picker (all three render through this shared factory). The
+    // header survives every layout (phone wallet mode hides .card-body-area
+    // entirely), so one pill here covers all views with no double badges,
+    // outlines, or washes anywhere.
     const ONETIME_TITLE = 'Single use — removed from the game after you play it';
     const oneTimePill = card.oneTimeUse
       ? `<span class="card-onetime-pill" title="${ONETIME_TITLE}">1×&nbsp;USE</span>` : '';
-    const oneTimeLine = card.oneTimeUse
-      ? `<div class="card-onetime-line" title="${ONETIME_TITLE}" role="img" aria-label="Single use — removed from the game after play">❌ SINGLE&nbsp;USE</div>` : '';
-
-    if (card.oneTimeUse) btn.classList.add('is-onetime');
 
     const cardImage = `<img src="/shared/images/${card.key}.png" alt="" loading="lazy" onerror="this.style.display='none'">`;
 
@@ -772,7 +764,6 @@ class CardUI {
       ${effectLine}
       <div class="card-body-area">
         ${cardImage}
-        ${oneTimeLine}
       </div>`;
 
     if (isMarket) {
@@ -780,7 +771,6 @@ class CardUI {
 
       const wrapperElem = document.createElement('div');
       wrapperElem.className = 'market-card-wrapper';
-      if (card.oneTimeUse) wrapperElem.classList.add('is-onetime');
       
       const costElem = document.createElement('div');
       costElem.className = 'cost-label' + (transmitterActive ? ' free' : '');
@@ -1015,7 +1005,6 @@ class CardUI {
   _makeReservePickRowEl(card, onChosen, overlay) {
     const row = document.createElement('div');
     row.className = `market-row-item reserve-pick-row terrain-${card.movementTerrain || 'empty'}`;
-    if (card.oneTimeUse) row.classList.add('is-onetime');
     row.dataset.cardKey = card.key;
 
     const main = document.createElement('div');

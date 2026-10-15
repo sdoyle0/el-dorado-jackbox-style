@@ -649,9 +649,9 @@ class Tutorial {
       // ── Step 19c: One-Time Use cards ────────────────────────────────────────────
       {
         title: 'One Time Use Cards',
-        body: 'Notice some cards carry a red <strong>SINGLE&nbsp;USE</strong> / <strong>1×&nbsp;USE</strong> badge — in your hand, in the market, and in the reserve. When you play one, it is removed from the game and will not be reshuffled into your deck.',
+        body: 'Notice some cards carry a red <strong>1×&nbsp;USE</strong> badge — in your hand, in the market, and in the reserve. When you play one, it is removed from the game and will not be reshuffled into your deck.',
         onEnter: () => {
-          this._anchorCalloutToElement('.market-reserve-section .card-onetime-line', 'above');
+          this._anchorCalloutToElement('.market-reserve-section .card-onetime-pill', 'above');
         },
       },
 

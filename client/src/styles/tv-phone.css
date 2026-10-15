@@ -501,14 +501,6 @@ body.view-phone #hand-cards .card-info-btn {
   text-shadow: 0 1px 4px rgba(0,0,0,0.8);
 }
 
-/* Single-use badge over the art's bottom-left, compact for narrow tiles. */
-body.view-phone #hand-cards .card-onetime-line {
-  left: 6px;
-  bottom: 6px;
-  font-size: 0.55rem;
-  padding: 3px 5px;
-}
-
 /* Pool chips under the header (audit strip) need no gutter work here. */
 
 body.view-phone #move-list-panel {
@@ -702,8 +694,7 @@ body.view-phone.market-open #hand-cards .card-btn {
 }
 body.view-phone.market-open #hand-cards .card-body-area,
 body.view-phone.market-open #hand-cards .card-effect-line,
-body.view-phone.market-open #hand-cards .card-info-btn,
-body.view-phone.market-open #hand-cards .card-onetime-line {
+body.view-phone.market-open #hand-cards .card-info-btn {
   display: none;
 }
 body.view-phone.market-open #hand-cards .card-header-strip {
@@ -797,16 +788,12 @@ body.view-phone #hand-cards .card-btn.terrain-empty .card-header-strip {
   box-shadow: inset 3px 0 0 #a070f0, inset 0 1px 0 rgba(255,255,255,0.14);
 }
 
-/* ── EXPERIMENT follow-up: no left-edge treatments on phone tiles ───────
-    The tile header is already fully terrain-tinted, so the main.css hue bar
-    (border-left) and the glow edge above only duplicated the signal in a
-    clashing shade — and the market tiles never had either, hence the
-    inconsistency. Keep the gradient wash + top light; drop both edges.
-    Double-id specificity beats both source rules regardless of order.
-    Desktop keeps its treatments (out of scope).
-    REVERT: delete this block. */
+/* ── EXPERIMENT follow-up: no leading-edge glow on phone tiles ─────────
+    The tile header is already fully terrain-tinted, so the inset leading
+    edge only duplicated the signal — keep the gradient wash + top light,
+    drop the edge. (The old main.css hue bar this block also neutralised is
+    gone entirely now.) */
 body.view-phone #player-hand-ui #hand-cards .card-btn .card-header-strip {
-  border-left: none;
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.14);
 }
 

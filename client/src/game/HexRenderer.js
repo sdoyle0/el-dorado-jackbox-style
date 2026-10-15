@@ -77,6 +77,10 @@ class HexRenderer {
     this.pawnEls = new Map();
     this.onTileClick = null;
     this.scale = 1;
+    // Desktop default view has no move list (board-click only), so numbered
+    // move badges are meaningless there — main.js sets this false on bare
+    // URLs to keep highlight rings only. TV + phones always leave it true.
+    this.showMoveNumbers = true;
     this._defs = null;
     this._animFrames = new Set();
     // Slice 6a: in-flight pawn-slide rAF ids (playerId → id) so a chained
@@ -487,6 +491,9 @@ class HexRenderer {
   // Number badges map 1:1 to the phone tappable list (Block 4 fix).
   // Number N = position in the tileIds array (1-based), so TV and phone agree
   // without sorting as long as both use the same payload order.
+  // Desktop default view has no move list (board-click only), so badges are
+  // meaningless there — set showMoveNumbers=false to keep highlights only.
+  // TV + phones always leave it true. Pure display flag, never legality.
   setValidMoves(tileIds) {
     const ids = Array.isArray(tileIds) ? tileIds : [];
     const validSet = new Set(ids);
@@ -524,7 +531,11 @@ class HexRenderer {
         // ── Number badge (top-inside of hex, above terrain icon) ──────────
         // Large enough to read at TV distance and on laptop screens: the
         // badge must match the phone move-list number at a glance.
+        // Skipped when showMoveNumbers is false (desktop board-click flow).
         const { cx, cy } = this._center(tile.q, tile.r);
+        if (this.showMoveNumbers === false) {
+          if (entry._moveBadge) entry._moveBadge.style.display = 'none';
+        } else {
         let badge = entry._moveBadge;
         if (!badge) {
           badge = document.createElementNS(ns, 'g');
@@ -550,6 +561,7 @@ class HexRenderer {
         const labelEl = badge.querySelector('text');
         if (labelEl) labelEl.textContent = String(numberById.get(id) ?? '');
         badge.style.display = '';
+        }
       } else {
         poly.setAttribute('stroke', style.stroke || '#222');
         poly.setAttribute('stroke-width', tile.terrainType === 'el_dorado' ? '3' : '2');

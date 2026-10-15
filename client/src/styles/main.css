@@ -479,7 +479,7 @@ body {
 #game-screen { flex-direction: row; }
 
 #board-and-hand-container {
-  flex: 6 6 auto;
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -539,13 +539,18 @@ body {
    HUD SIDEBAR
 ───────────────────────────────────────────────────────────────────────────── */
 #hud {
-  flex: 1 1 0;
+  flex: 0 0 300px;
+  min-width: 240px;
   padding: 0.6rem 0.65rem;
   background: linear-gradient(180deg, var(--deep-navy) 0%, #0c1825 100%);
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
   border-left: 1px solid var(--border);
+}
+/* Narrow windows: let the sidebar give back room before the board squeezes. */
+@media (max-width: 760px) {
+  #hud { flex-basis: 240px; min-width: 200px; }
 }
 
 /* ── Turn banner ──────────────────────────────────────────────────────────── */
@@ -887,10 +892,38 @@ body {
   padding-bottom: 2px; /* prevent clip on hover lift */
   scrollbar-width: thin;
   scrollbar-color: var(--pale-navy) transparent;
+  flex: 1 1 auto;
+  min-width: 0;
+  align-items: flex-start; /* cards size to content, never stretch tall */
+}
+/* Desktop hand cards flex with the window instead of holding a fixed
+   140px: at narrow widths they shrink (names ellipsis) instead of
+   overflowing into a scroll strip. Phone tiles override this with their
+   own grid rules (tv-phone.css, higher specificity).
+   max-width is height-driven, not width-driven: art height follows width
+   (848×1264 portraits), and the bar is a fixed 250px (232px content after
+   padding; card chrome eats ~47px: border + 2rem header + body padding).
+   124px caps art at ~185px so the card never exceeds the bar — any excess
+   would surface as a vertical scrollbar (#hand-cards has overflow-x:auto,
+   which forces overflow-y off visible). */
+#hand-cards .card-btn {
+  flex: 1 1 0;
+  min-width: 96px;
+  max-width: 124px;
+  width: auto;
+}
+#hand-cards .card-body-area {
+  flex: none;
 }
 #hand-messages {
-  flex: 1;
-  min-width: 140px;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+/* Empty prompts leave no footprint: without this the flex share above
+   reserves a wide blank lane right of the buttons while the cards scroll. */
+#hand-messages:empty {
+  display: none;
 }
 
 /* ── Hand controls ────────────────────────────────────────────────────────── */
@@ -1015,54 +1048,28 @@ body {
   align-self: flex-start;
 }
 .card-onetime-line {
-  position: absolute;
-  left: 8px;
-  bottom: 8px;
-  z-index: 1;
-  font-family: 'Inter', sans-serif;
-  font-size: 0.62rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  line-height: 1;
-  white-space: nowrap;
-  color: #fff;
-  background: rgba(192, 57, 43, 0.94);
-  border: 1px solid #ff8a7a;
-  border-radius: 4px;
-  padding: 4px 7px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
-  pointer-events: none;
+  display: none; /* retired: the header pill is the single signal now */
 }
 /* ── One-time-use header pill (hand + market + reserve full cards) ─────────
    Lives in .card-header-strip so it survives layouts that hide
    .card-body-area (phone hand rows). Compact by design: the header also
-   carries the name + movement stat, so the pill never grows or wraps. */
+   carries the name + movement stat + info button, so the pill stays small
+   with room to breathe on 140px cards. */
 .card-onetime-pill {
   flex-shrink: 0;
   font-family: 'Inter', sans-serif;
-  font-size: 0.58rem;
+  font-size: 0.52rem;
   font-weight: 800;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.06em;
   line-height: 1;
   white-space: nowrap;
   color: #fff;
   background: #c0392b;
   border: 1px solid #ff8a7a;
   border-radius: 999px;
-  padding: 3px 7px;
-  margin: 0 2px;
+  padding: 2px 6px;
+  margin: 0 4px 0 2px;
   cursor: help;
-}
-/* Extra glanceability: single-use full cards get a thin red edge. Outlines
-   (not borders) so selected / in-pool border colours still win. */
-.card-btn.is-onetime {
-  outline: 2px solid rgba(231, 76, 60, 0.75);
-  outline-offset: -2px;
-}
-.market-card-wrapper.is-onetime {
-  outline: 2px solid rgba(231, 76, 60, 0.75);
-  outline-offset: -1px;
-  border-radius: var(--radius-sm);
 }
 /* ── One-time-use pill for phone compact rows (market + reserve picker) ───
    Generic rules first (rows only render on phones today, but keep them
@@ -1085,11 +1092,6 @@ body {
 body.view-phone .market-onetime-pill {
   font-size: 0.62rem;
   padding: 4px 8px;
-}
-/* Single-use rows keep their terrain left-border; add a soft red wash so
-   they group visually with the red full-card edge above. */
-.market-row-item.is-onetime {
-  box-shadow: inset 0 0 0 1px rgba(231, 76, 60, 0.45);
 }
 /* Header strip must absorb the extra pill without squeezing the movement
    stat off the 140px card: name shrinks with ellipsis, pill + stat pin. */
@@ -1117,7 +1119,11 @@ body.view-phone .market-onetime-pill {
   flex-shrink: 0;
   margin-left: auto;
 }
+/* Desktop full cards show no inline one-liner (purple and plain cards share
+   one height; full text lives behind the ℹ️ modal). Phone tiles re-show it
+   via their own rule below in tv-phone.css. */
 .card-effect-line {
+  display: none;
   font-size: 0.65rem;
   line-height: 1.3;
   opacity: 0.95;
@@ -1186,24 +1192,11 @@ body.view-phone .market-onetime-pill {
 .market-card.terrain-empty .card-terrain-pip         { background: #9050e0; }
 .card-btn.terrain-empty .card-gold-badge             { color: #c8a0f0; }
 
-/* ── Board↔card hue link (Option A companion) ───────────────────────────────
-   Headers stay dark for text contrast — a full-header exact match would put
-   light text on bright saturated fills (yellow-on-gold is unreadable) and
-   fight the card art. Instead the 4px leading bar uses the tile's exact
-   inner-face fill, so the match is hue-exact, not just same-family.
-   Tile fills live in HexRenderer.js TERRAIN (innerFill). Phone market rows
-   carry the same signal via their left border (see market-phone-styles in
-   main.js) — no dot, it only duplicated the border in the same colour. */
-.card-btn.terrain-jungle .card-header-strip,
-.market-card.terrain-jungle .card-header-strip   { border-left: 4px solid #347a20; }
-.card-btn.terrain-water .card-header-strip,
-.market-card.terrain-water .card-header-strip    { border-left: 4px solid #2068b0; }
-.card-btn.terrain-village .card-header-strip,
-.market-card.terrain-village .card-header-strip  { border-left: 4px solid #c08828; }
-.card-btn.terrain-wild .card-header-strip,
-.market-card.terrain-wild .card-header-strip      { border-left: 4px solid #b0b0b0; }
-.card-btn.terrain-empty .card-header-strip,
-.market-card.terrain-empty .card-header-strip     { border-left: 4px solid #9050e0; }
+/* ── Board↔card hue link retired ────────────────────────────────────────────
+    Headers used to carry a 4px terrain-coloured leading bar; it duplicated
+    the header tint + the board watermark and crowded narrow headers, so it
+    was removed on phones first and now everywhere. */
+
 
 /* In-pool (market / rubble selection) */
 .card-btn.in-pool {

@@ -22,6 +22,7 @@ file is now the single future-features list.
 | 3 | Single-screen revival | 2 — verify + port as separate project | 2 — out of mainline direction | ⬜ Open — only if fallback wanted |
 | 6 | Game-feel / presentation polish | 2 per slice, 3.5 total — client/CSS/audio only | 5 perceived ("looks like a real game"), 0 rules | ✅ Mostly done (a, b, d + phones ✅; c partial — SFX ✅, music parked) |
 | 7 | End-of-game rematch (play again) | 2 — server reset + client rematch flow, no rule changes | 4 — fast reset keeps a quick game night flowing | ✅ Done (same-room reset to waiting room, host or any seated player triggers) |
+| 8 | Phone mini-map movement picker | 3 — pawn-centred SVG excerpt + tap routing, phone-only | 4.5 — biggest live pain point (TV↔phone number-matching) | ⬜ Open — brainstorm below, needs a playtest pick |
 
 ## Done ledger (Oct 2026 — all on master, nothing in flight)
 
@@ -44,6 +45,7 @@ file is now the single future-features list.
 5. **#2 AI bots** — blocked on settled format; low party value.
 6. **#3 single-screen revival** — separate project only.
 7. **#7 end-of-game rematch** — ✅ done (details below).
+8. **#8 phone mini-map movement picker** — biggest live pain point: today the phone shows numbered chips (1..N) that must be matched to numbered badges on the TV, forcing constant look-up/look-down and mis-taps on multi-step moves. Details below.
 
 ## 1. Two-pawn duel variant for 2-player games (from I-G)
 
@@ -176,3 +178,34 @@ the table wants an instant rematch.
   rule changes.
 - Start at: `server/game/GameManager.js` (`tryRematch`, `_wireGameState`),
   `client/src/main.js` (`onReturnToWaiting`).
+
+## 8. Phone mini-map movement picker (replaces number-matching)
+
+Pain point (live playtesting, Oct 2026): the phone shows numbered chips
+(1..N) that must be matched to numbered badges on the TV — eyes go
+TV → phone → TV for every option, and multi-step cards make mis-taps easy
+(wrong direction picked from a bare number). The numbers exist only to bridge
+the two screens; remove the bridge and the problem goes away.
+- Proposal A (suggested): pawn-centred mini-board on the phone. When
+  `valid_moves_updated` arrives, render a small SVG excerpt around the acting
+  pawn (current tile + legal destinations + one ring of context tiles for
+  orientation), reusing the same terrain fills + highlight rings as the TV.
+  Taps hit `attemptMoveToTile` directly — no numbers anywhere. Scope ~3:
+  excerpt renderer (new `MiniMap.js` or a `HexRenderer` excerpt mode),
+  viewport math (pawn-centred, radius by `movementTotal`), phone-only panel,
+  tap routing; no server/shared changes (same `move_pawn` events).
+- Proposal B (cheaper): directional hints on the existing chips. Each chip
+  keeps its number but adds a compass nudge + terrain ("↖ 🌿 jungle ×1",
+  "2 left after this"), so most picks are made from the phone alone and the
+  TV is only a tiebreaker. Scope ~1, but keeps the matching problem alive.
+- Proposal C (TV-side): spotlight the phone's hovered option on the TV.
+  Phone list gains hover/long-press preview → TV pulses that tile's ring.
+  Kills mis-taps but not the look-up/look-down. Scope ~2 (needs a preview
+  event + TV pulse hook).
+- Proposal D (hybrid): mini-board only for multi-step cards
+  (`movementTotal > 1`), numbered chips for single-step. Smallest visual
+  change, but two UX paths to maintain.
+- Recommendation: playtest B first (one session), then decide whether A is
+  worth its weight — A is the only one that removes the numbers entirely.
+- Start at: `client/src/main.js` (`renderMoveList`, `moveLabelFor`),
+  `client/src/game/HexRenderer.js` (`setValidMoves`, TERRAIN fills).

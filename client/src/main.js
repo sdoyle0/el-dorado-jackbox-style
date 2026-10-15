@@ -202,6 +202,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const socket = io();
   const client = new GameClient(socket);
   const renderer = new HexRenderer(document.getElementById('hex-board'));
+  // Desktop default view (bare URL, no ?view=) is board-click only — there is
+  // no move list to number-match, so skip the numbered hex badges and keep
+  // highlight rings + glow only. TV + phones keep badges. Display only.
+  renderer.showMoveNumbers = VIEW !== '';
   window.renderer = renderer;
   const cardUI = new CardUI();
   const clientBoard = new ElDoradoHexBoard.HexBoard();
@@ -415,6 +419,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderMoveList(validMoves, breakableIds = []) {
+    // Desktop default view (bare URL) is board-click only — the tappable
+    // destination list is a phone affordance (boardless phones can't tap the
+    // TV board). Never render it on desktop; board highlights + clicks own
+    // that flow. TV hides the whole hand UI via CSS anyway.
+    if (VIEW !== 'phone') { clearMoveList(); return; }
     const panel = ensureMoveListPanel();
     const listEl = panel.querySelector('#move-list');
     const subEl = panel.querySelector('#move-list-sub');
