@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Phone Hand Layout Preview — no game needed</title>
+<link rel="stylesheet" href="src/styles/main.css" />
+<link rel="stylesheet" href="src/styles/tv-phone.css" />
+<style>
+  /* Preview shell only — not shipped to the game. */
+  body { height: auto; overflow-y: auto; }
+  #preview-bar {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(13,17,23,.96); border-bottom: 1px solid var(--border-mid);
+    padding: .6rem .75rem; display: flex; flex-direction: column; gap: .45rem;
+  }
+  #preview-bar h1 { font-family: 'Cinzel',serif; font-size: .95rem; color: var(--gold-bright); }
+  #preview-bar p { font-size: .78rem; color: var(--text-mid); line-height: 1.45; }
+  #preview-bar .row { display: flex; gap: .4rem; flex-wrap: wrap; }
+  #preview-bar button {
+    min-height: 44px; padding: .5rem .9rem; border-radius: 8px;
+    border: 1px solid var(--border-mid); background: rgba(22,39,61,.9);
+    color: var(--text-bright); font-weight: 700; font-size: .82rem; cursor: pointer;
+  }
+  #preview-bar button.active { border-color: var(--gold-bright); color: var(--gold-bright); }
+  .opt-section { padding: 1rem .75rem 2rem; max-width: 480px; margin: 0 auto; }
+  .opt-section h2 { font-family:'Cinzel',serif; font-size: 1rem; color: var(--gold-bright); margin-bottom: .25rem; }
+  .opt-section .verdict { font-size: .8rem; color: var(--text-mid); line-height: 1.5; margin-bottom: .75rem; }
+  .opt-section .verdict b { color: var(--text-bright); }
+  .hand-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--text-dim); margin: .9rem 0 .4rem; }
+  .demo-actions { display: flex; gap: .4rem; margin-top: .6rem; }
+  .demo-actions button {
+    flex: 1 1 30%; min-height: 44px; border-radius: 8px; font-weight: 700; font-size: .85rem;
+    border: 1px solid var(--border-mid); background: rgba(22,39,61,.9); color: var(--text-mid);
+  }
+  .demo-actions button.gold { border-color: var(--gold-mid); color: var(--gold-bright); }
+
+  /* ── Shared mini-card reset (mirrors .card-btn theming hooks) ── */
+  .pv-grid { display: grid; gap: .55rem; }
+  .pv-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+  .pv-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .pv-card {
+    position: relative; border: 2px solid transparent; border-radius: 10px; overflow: hidden;
+    background: #16273d; cursor: pointer; padding: 0; text-align: left;
+    box-shadow: 0 2px 8px rgba(0,0,0,.5);
+    min-height: 44px; /* touch target floor */
+  }
+  .pv-card.selected { border-color: rgba(255,255,255,.75); transform: translateY(-2px); }
+  .pv-card.in-pool { border-color: #ff1493; filter: brightness(1.25); }
+  .pv-card .pv-head {
+    display: flex; align-items: center; gap: 4px;
+    font-size: .72rem; font-weight: 800; padding: 5px 7px;
+  }
+  .pv-card .pv-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pv-card .pv-moves {
+    flex: none; min-width: 30px; height: 30px; padding: 0 4px;
+    display: inline-grid; place-items: center;
+    background: rgba(0,0,0,.55); border: 2px solid rgba(255,255,255,.85); border-radius: 50%;
+    font-size: 1rem; font-weight: 800;
+  }
+  .pv-card .pv-once {
+    flex: none; font-size: .55rem; font-weight: 800; color: #fff; background: #c0392b;
+    border: 1px solid #ff8a7a; border-radius: 999px; padding: 2px 6px; white-space: nowrap;
+  }
+  .pv-card .pv-info {
+    position: absolute; right: 2px; bottom: 2px; z-index: 2;
+    min-width: 44px; min-height: 44px; display: inline-grid; place-items: center; font-size: 1.15rem;
+  }
+  .pv-card.terrain-jungle .pv-head { background: #0a2a0a; color: #8fe88f; }
+  .pv-card.terrain-water .pv-head { background: #041528; color: #8ab8ee; }
+  .pv-card.terrain-village .pv-head { background: #4d3a00; color: #ffe066; }
+  .pv-card.terrain-wild .pv-head { background: #0e0e0e; color: #c0c0c0; }
+  .pv-card.terrain-empty .pv-head { background: #2a0a44; color: #c8a0f0; }
+  .pv-card img { display: block; width: 100%; background: rgba(0,0,0,.25); }
+
+  /* Option A — real cards: full portrait art */
+  .pv-grid.opt-a img { aspect-ratio: 848 / 1264; object-fit: cover; }
+  .pv-grid.opt-a .pv-card { font-size: .8rem; }
+
+  /* Option B′ — full art, 3-across, nothing cropped (RECOMMENDED).
+     Compactness comes from narrower columns, not from cutting the picture:
+     every tile keeps the full 848×1264 portrait, head to boots. Names
+     truncate sooner at this width — art + move badge carry identity. */
+  .pv-grid.opt-b img { aspect-ratio: 848 / 1264; object-fit: cover; background: #0b1420; }
+  .pv-grid.opt-b .pv-head { font-size: .62rem; padding: 4px 5px; }
+  .pv-grid.opt-b .pv-moves { min-width: 26px; height: 26px; font-size: .85rem; border-width: 1.5px; }
+  .pv-grid.opt-b .pv-info { font-size: 1rem; }
+  .pv-grid.opt-b .pv-sub {
+    font-size: .6rem; opacity: .8; padding: 2px 5px 5px; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+
+  /* Option D — market + reserve in the same card language (static mock). */
+  .pv-grid.opt-d img { aspect-ratio: 848 / 1264; object-fit: cover; background: #0b1420; }
+  .pv-grid.opt-d .pv-head { font-size: .62rem; padding: 4px 5px; }
+  .pv-grid.opt-d .pv-moves { min-width: 26px; height: 26px; font-size: .85rem; border-width: 1.5px; }
+  .pv-grid.opt-d .pv-buy {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: .35rem; padding: 6px 7px;
+  }
+  .pv-cost { font-size: .75rem; font-weight: 800; color: var(--gold-bright); white-space: nowrap; }
+  .pv-left { font-size: .62rem; color: var(--text-dim); margin-left: .25rem; }
+  .pv-buybtn {
+    min-height: 44px; min-width: 64px; display: inline-grid; place-items: center;
+    border-radius: 8px; font-weight: 800; font-size: .8rem;
+    border: 1px solid var(--gold-mid); background: rgba(201,162,39,.15); color: var(--gold-bright);
+  }
+  .pv-buybtn.is-disabled { opacity: .35; }
+  .pv-grid.opt-d .pv-card.cant-afford { opacity: .75; }
+  /* Option D mock tabs — mirrors the real market's Market/Reserve tabs. */
+  #sec-d .pv-tabs { display: flex; gap: .4rem; margin-bottom: .5rem; }
+  #sec-d .pv-tabs button {
+    flex: 1 1 auto; min-height: 44px; border-radius: 8px; font-weight: 700; font-size: .82rem;
+    border: 1px solid var(--border-mid); background: rgba(22,39,61,.9); color: var(--text-mid);
+  }
+  #sec-d .pv-tabs button.active { border-color: var(--gold-bright); color: var(--gold-bright); }
+  #sec-d .is-hidden { display: none; }
+
+  /* 4-across: same full art, smaller tiles — everything visible, tiny names. */
+  .pv-grid.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.4rem; }
+  .pv-grid.cols-4 .pv-head { font-size: 0.55rem; padding: 3px 4px; }
+  .pv-grid.cols-4 .pv-moves { min-width: 22px; height: 22px; font-size: 0.72rem; border-width: 1px; }
+  .pv-grid.cols-4 .pv-sub { font-size: 0.55rem; }
+  .pv-grid.cols-4 .pv-info { font-size: 0.9rem; }
+  /* Shared pill tabs (column switcher, market-open style toggle). */
+  .opt-section .pv-tabs { display: flex; gap: .4rem; margin-bottom: .5rem; flex-wrap: wrap; }
+  .opt-section .pv-tabs button {
+    flex: 1 1 auto; min-height: 44px; border-radius: 8px; font-weight: 700; font-size: .82rem;
+    border: 1px solid var(--border-mid); background: rgba(22,39,61,.9); color: var(--text-mid);
+  }
+  .opt-section .pv-tabs button.active { border-color: var(--gold-bright); color: var(--gold-bright); }
+  /* Option E — compact pooling chips (imageless wallet under the market). */
+  .pv-chips { display: flex; flex-direction: column; gap: .4rem; }
+  .pv-chips.is-hidden, .pv-grid.is-hidden { display: none; }
+  .pv-chip { display: flex; align-items: center; gap: .5rem; width: 100%;
+    min-height: 44px; padding: .5rem .7rem; border-radius: 8px; text-align: left;
+    border: 1px solid var(--border-mid); border-left-width: 4px;
+    background: rgba(22,39,61,.9); color: var(--text-bright);
+    font-size: .82rem; font-weight: 700; cursor: pointer; }
+  .pv-chip.terrain-jungle { border-left-color: #347a20; }
+  .pv-chip.terrain-water { border-left-color: #2068b0; }
+  .pv-chip.terrain-village { border-left-color: #c08828; }
+  .pv-chip.terrain-wild { border-left-color: #b0b0b0; }
+  .pv-chip.terrain-empty { border-left-color: #9050e0; }
+  .pv-chip .pv-pow { margin-left: auto; color: var(--gold-bright); font-weight: 800; flex: none; }
+  .pv-chip.pooled { border-color: #ff1493; filter: brightness(1.4); }
+  #e-total { color: var(--gold-bright); font-weight: 800; }
+  /* Option C — today's rows, for comparison */  .pv-rows { display: flex; flex-direction: column; gap: .5rem; }
+  .pv-rows .pv-card { display: flex; align-items: center; gap: .6rem; padding: .55rem .7rem; min-height: 60px; }
+  .pv-rows .pv-card img { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; flex: none; }
+  .pv-rows .pv-name { font-size: 1rem; }
+</style>
+</head>
+<body class="view-phone">
+<div id="preview-bar">
+  <h1>🃏 Phone hand ideas — tap cards to test</h1>
+  <p>No room, no game — this page is static. Open it on your phone at
+     <b>http://&lt;your-lan-ip&gt;:3000/hand-preview.html</b>
+     (same server you already run, just a new page). Tap any card to see selected / pooling states.</p>
+  <div class="row">
+    <button data-hand="starter" class="active">4-card hand</button>
+    <button data-hand="draw">6-card (Compass draw)</button>
+    <button data-hand="big">8-card (chained draws)</button>
+  </div>
+</div>
+
+<div class="opt-section" id="sec-a">
+  <h2>Option A — Real playing cards (2-col, full art)</h2>
+  <p class="verdict"><b>Biggest art.</b> Full portrait in large tiles. 4 cards = neat 2×2, but the tiles are ~300px tall
+  so you'll scroll a little to reach Market / End Turn. Pick this if maximum art beats zero-scroll.</p>
+  <div class="hand-label">Hand (<span class="hand-count">4</span> cards)</div>
+  <div class="pv-grid cols-2 opt-a" data-grid></div>
+  <div class="demo-actions"><button>Market</button><button class="gold">End Turn</button><button>Discard</button></div>
+</div>
+
+<div class="opt-section" id="sec-b">
+  <h2>Option B′ — Full art, nothing cropped ⭐ recommended</h2>
+  <p class="verdict">Compactness comes from <b>narrower columns</b>, not from cutting
+  the picture — every tile shows the full portrait, head to boots. Switch columns below and
+  flip hand sizes up top: 4-wide fits everything at once but tiny; 2-wide is roomy but scrolls.
+  Tradeoff everywhere is names (art + move badge still identify; tap ℹ️ for details).</p>
+  <div class="pv-tabs" role="tablist">
+    <button type="button" data-bcols="2">2 across</button>
+    <button type="button" data-bcols="3">3 across</button>
+    <button type="button" data-bcols="4" class="active">4 across</button>
+  </div>
+  <div class="hand-label">Hand (<span class="hand-count">4</span> cards)</div>
+  <div class="pv-grid cols-4 opt-b" data-grid-b></div>
+  <div class="demo-actions"><button>Market</button><button class="gold">End Turn</button><button>Discard</button></div>
+</div>
+
+<div class="opt-section" id="sec-c">
+  <h2>Option C — Today (full-width rows, for comparison)</h2>
+  <p class="verdict"><b>Baseline.</b> What the phone shows now: one card per row, 44px thumbnail only. Efficient for 8-card hands but mostly empty space and hides the art you love.</p>
+  <div class="hand-label">Hand (<span class="hand-count">4</span> cards)</div>
+  <div class="pv-rows" data-rows></div>
+  <div class="demo-actions"><button>Market</button><button class="gold">End Turn</button><button>Discard</button></div>
+</div>
+
+<div class="opt-section" id="sec-d">
+  <h2>Option D — Market + reserve in the same language</h2>
+  <p class="verdict"><b>Mock, not wired up.</b> The 6 shop cards as the same full-art tiles, 3-across, each with a
+  cost + 44px Buy bar. One card (Treasure Chest) is dimmed + unbuyable to show the can't-afford state; tap any Buy
+  to feel it flip to ✓. Tabs work like the real market — Market default, Reserve one tap away (try it above).
+  Tap a tile (not Buy) to select it.</p>
+  <div class="hand-label">Market — 6 shop cards</div>
+  <div class="pv-tabs" role="tablist">
+    <button type="button" class="active" data-mtab="shop">Market</button>
+    <button type="button" data-mtab="reserve">Reserve</button>
+  </div>
+  <div class="pv-grid cols-3 opt-d" data-mshop>
+    <div class="pv-card terrain-jungle"><span class="pv-head"><span class="pv-name">Scout</span><span class="pv-moves">2</span></span><img src="../shared/images/scout.png" alt="" loading="lazy" onerror="this.style.display='none'"><span class="pv-buy"><span><span class="pv-cost">💰 1</span><span class="pv-left">×3</span></span><span class="pv-buybtn">Buy</span></span></div>
+    <div class="pv-card terrain-jungle"><span class="pv-head"><span class="pv-name">Trailblazer</span><span class="pv-moves">3</span></span><img src="../shared/images/trailblazer.png" alt="" loading="lazy" onerror="this.style.display='none'"><span class="pv-buy"><span><span class="pv-cost">💰 3</span><span class="pv-left">×3</span></span><span class="pv-buybtn">Buy</span></span></div>
+    <div class="pv-card terrain-wild"><span class="pv-head"><span class="pv-name">Jack-of-all-Trades</span><span class="pv-moves">1</span></span><img src="../shared/images/jack_of_all_trades.png" alt="" loading="lazy" onerror="this.style.display='none'"><span class="pv-buy"><span><span class="pv-cost">💰 2</span><span class="pv-left">×3</span></span><span class="pv-buybtn">Buy</span></span></div>
+    <div class="pv-card terrain-village"><span class="pv-head"><span class="pv-name">Photographer</span><span class="pv-moves">2</span></span><img src="../shared/images/photographer.png" alt="" loading="lazy" onerror="this.style.display='none'"><span class="pv-buy"><span><span class="pv-cost">💰 2</span><span class="pv-left">×2</span></span><span class="pv-buybtn">Buy</span></span></div>
+    <div class="pv-card terrain-village cant-afford"><span class="pv-head"><span class="pv-name">Treasure Chest</span><span class="pv-once">1× USE</span><span class="pv-moves">4</span></span><img src="../shared/images/treasure_chest.png" alt="" loading="lazy" onerror="this.style.display='none'"><span class="pv-buy"><span><span class="pv-cost">💰 3</span><span class="pv-left">×3</span></span><span class="pv-buybtn is-disabled">Buy</span></span></div>
+    <div class="pv-card terrain-empty"><span class="pv-head"><span class="pv-name">Transmitter</span><span class="pv-once">1× USE</span></span><img src="../shared/images/transmitter.png" alt="" loading="lazy" onerror="this.style.display='none'"><span class="pv-buy"><span><span class="pv-cost">💰 4</span><span class="pv-left">×1 · → reserve pick</span></span><span class="pv-buybtn">Buy</span></span></div>
+  </div>
+  <div class="hand-label" data-mreserve-label>Reserve — same tiles (locked until a shop slot empties)</div>
+  <div class="pv-grid cols-3 opt-d is-hidden" data-mreserve>
+    <div class="pv-card terrain-jungle cant-afford"><span class="pv-head"><span class="pv-name">Pioneer</span><span class="pv-moves">5</span></span><img src="../shared/images/pioneer.png" alt="" loading="lazy" onerror="this.style.display='none'"><span class="pv-buy"><span><span class="pv-left">Reserve</span></span><span class="pv-buybtn is-disabled">Locked</span></span></div>
+    <div class="pv-card terrain-water cant-afford"><span class="pv-head"><span class="pv-name">Captain</span><span class="pv-moves">2</span></span><img src="../shared/images/captain.png" alt="" loading="lazy" onerror="this.style.display='none'"><span class="pv-buy"><span><span class="pv-left">Reserve</span></span><span class="pv-buybtn is-disabled">Locked</span></span></div>
+    <div class="pv-card terrain-empty cant-afford"><span class="pv-head"><span class="pv-name">Native</span><span class="pv-moves">1</span></span><img src="../shared/images/native.png" alt="" loading="lazy" onerror="this.style.display='none'"><span class="pv-buy"><span><span class="pv-left">Reserve</span></span><span class="pv-buybtn is-disabled">Locked</span></span></div>
+  </div>
+</div>
+
+<div class="opt-section" id="sec-e">
+  <h2>Option E — Market open: what should your hand become?</h2>
+  <p class="verdict">When the market opens, buying is the job and the hand is just the wallet — you tap its cards
+  to pool them. Below is a mini market with your 4-card hand under it, two ways. Toggle and tap hand cards/chips
+  to pool (watch the total). Chips keep full function: tap pools, pink = pooled, pool value shown.</p>
+  <div class="pv-tabs" role="tablist">
+    <button type="button" data-estyle="tiles">Full tiles (old build)</button>
+    <button type="button" data-estyle="chips" class="active">Compact chips (chosen)</button>
+  </div>
+  <div class="hand-label">Market (excerpt)</div>
+  <div class="pv-grid cols-3 opt-d">
+    <div class="pv-card terrain-jungle"><span class="pv-head"><span class="pv-name">Scout</span><span class="pv-moves">2</span></span><img src="../shared/images/scout.png" alt="" loading="lazy" onerror="this.style.display='none'"><span class="pv-buy"><span><span class="pv-cost">💰 1</span></span><span class="pv-buybtn">Buy</span></span></div>
+    <div class="pv-card terrain-jungle"><span class="pv-head"><span class="pv-name">Trailblazer</span><span class="pv-moves">3</span></span><img src="../shared/images/trailblazer.png" alt="" loading="lazy" onerror="this.style.display='none'"><span class="pv-buy"><span><span class="pv-cost">💰 3</span></span><span class="pv-buybtn">Buy</span></span></div>
+    <div class="pv-card terrain-empty"><span class="pv-head"><span class="pv-name">Transmitter</span><span class="pv-once">1× USE</span></span><img src="../shared/images/transmitter.png" alt="" loading="lazy" onerror="this.style.display='none'"><span class="pv-buy"><span><span class="pv-cost">💰 4</span></span><span class="pv-buybtn">Buy</span></span></div>
+  </div>
+  <div class="hand-label">Your hand — tap to pool · <span id="e-total">💰 0 · 0 pooled</span></div>
+  <div class="pv-grid cols-4 opt-b is-hidden" data-grid-e></div>
+  <div class="pv-chips" data-chips-e></div>
+</div>
+
+<div class="opt-section">
+  <h2>How the rare big hands work</h2>
+  <p class="verdict">Normal turn = <b>4 cards</b>. Cartographer draws +2 (→ ~5–6 in hand),
+  Compass +3 (→ ~6), Scientist +1 / Travel Log +2 then you <b>remove</b> cards so it shrinks back to 4 at End Turn.
+  Only chained draws (play Cartographer, then Compass from the new cards) reach 7–8 — rare and temporary.
+  A scrolls a little; B′ is already 3-across so 6 cards are exactly 2 rows and 8 cards add one more row.
+  In both, Market / End Turn / Discard stay pinned below while the grid scrolls.</p>
+</div>
+
+<script>
+const HANDS = {
+  starter: [
+    { key: 'explorer', name: 'Explorer', terrain: 'jungle', moves: 1 },
+    { key: 'traveler', name: 'Traveler', terrain: 'village', moves: 1 },
+    { key: 'traveler', name: 'Traveler', terrain: 'village', moves: 1 },
+    { key: 'sailor', name: 'Sailor', terrain: 'water', moves: 1 },
+  ],
+  draw: [
+    { key: 'explorer', name: 'Explorer', terrain: 'jungle', moves: 1 },
+    { key: 'compass', name: 'Compass', terrain: 'empty', moves: 0, effect: 'Draw 3 cards', once: true },
+    { key: 'scout', name: 'Scout', terrain: 'jungle', moves: 2 },
+    { key: 'traveler', name: 'Traveler', terrain: 'village', moves: 1 },
+    { key: 'sailor', name: 'Sailor', terrain: 'water', moves: 1 },
+    { key: 'cartographer', name: 'Cartographer', terrain: 'empty', moves: 0, effect: 'Draw 2 extra cards' },
+  ],
+  big: [
+    { key: 'explorer', name: 'Explorer', terrain: 'jungle', moves: 1 },
+    { key: 'compass', name: 'Compass', terrain: 'empty', moves: 0, effect: 'Draw 3 cards', once: true },
+    { key: 'scout', name: 'Scout', terrain: 'jungle', moves: 2 },
+    { key: 'traveler', name: 'Traveler', terrain: 'village', moves: 1 },
+    { key: 'sailor', name: 'Sailor', terrain: 'water', moves: 1 },
+    { key: 'cartographer', name: 'Cartographer', terrain: 'empty', moves: 0, effect: 'Draw 2 extra cards' },
+    { key: 'native', name: 'Native', terrain: 'empty', moves: 1, effect: 'Move 1 space' },
+    { key: 'photographer', name: 'Photographer', terrain: 'village', moves: 2 },
+  ],
+};
+let current = 'starter';
+let bCols = 4; // Option B′ column switcher state (2/3/4) — default 4 per playtest
+const ePool = new Set(); // Option E pooled indexes (imageless chips + tiles stay in sync)
+function poolPower(c) { return c.terrain === 'village' ? c.moves : 0.5; }
+function setCols(g, n) {
+  g.classList.toggle('cols-2', n === 2);
+  g.classList.toggle('cols-3', n === 3);
+  g.classList.toggle('cols-4', n === 4);
+}
+function updateETotal() {
+  let t = 0, n = 0;
+  HANDS[current].forEach((c, i) => { if (ePool.has(i)) { t += poolPower(c); n++; } });
+  const el = document.getElementById('e-total');
+  if (el) el.textContent = `💰 ${t} · ${n} pooled`;
+}
+function cardEl(c, withSub, onTap) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'pv-card terrain-' + c.terrain;
+  b.innerHTML =
+    '<span class="pv-head"><span class="pv-name">' + c.name + '</span>' +
+    (c.once ? '<span class="pv-once">1× USE</span>' : '') +
+    (c.moves > 0 ? '<span class="pv-moves">' + c.moves + '</span>' : '') + '</span>' +
+    '<img src="../shared/images/' + c.key + '.png" alt="" loading="lazy" onerror="this.style.display=\'none\'">' +
+    (withSub && c.effect ? '<span class="pv-sub">' + c.effect + '</span>' : '') +
+    (c.effect ? '<span class="pv-info" title="Details">ℹ️</span>' : '');
+  b.addEventListener('click', (e) => {
+    if (e.target.closest('.pv-info')) { alert(c.name + ': ' + (c.effect || 'movement card')); return; }
+    if (onTap) { onTap(b); return; }
+    b.classList.toggle('selected');
+  });
+  return b;
+}
+function renderChips() {
+  document.querySelectorAll('[data-chips-e]').forEach(box => {
+    box.innerHTML = '';
+    HANDS[current].forEach((c, i) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'pv-chip terrain-' + c.terrain + (ePool.has(i) ? ' pooled' : '');
+      b.innerHTML = '<span>' + c.name + (c.effect ? ' · ' + c.effect : '') + '</span>' +
+        '<span class="pv-pow">+' + poolPower(c) + '</span>';
+      b.addEventListener('click', () => {
+        ePool.has(i) ? ePool.delete(i) : ePool.add(i);
+        b.classList.toggle('pooled', ePool.has(i));
+        document.querySelectorAll('[data-grid-e] .pv-card').forEach((el, j) => {
+          el.classList.toggle('in-pool', ePool.has(j));
+        });
+        updateETotal();
+      });
+      box.appendChild(b);
+    });
+  });
+  updateETotal();
+}
+function render() {
+  document.querySelectorAll('[data-grid]').forEach(g => {
+    g.innerHTML = '';
+    HANDS[current].forEach(c => g.appendChild(cardEl(c, false)));
+    // Option A auto-dense: 7+ cards drop to 3-across so the rare big hand still fits
+    g.classList.toggle('cols-3', HANDS[current].length >= 7);
+    g.classList.toggle('cols-2', HANDS[current].length < 7);
+  });
+  // Option B′ columns follow the switcher (2/3/4) — full art, nothing cropped
+  document.querySelectorAll('[data-grid-b]').forEach(g => {
+    g.innerHTML = '';
+    HANDS[current].forEach(c => g.appendChild(cardEl(c, true)));
+    setCols(g, bCols);
+  });
+  // Option E tiles mirror the B column choice and share the chip pool
+  document.querySelectorAll('[data-grid-e]').forEach(g => {
+    g.innerHTML = '';
+    HANDS[current].forEach((c, i) => {
+      const el = cardEl(c, true, (node) => {
+        ePool.has(i) ? ePool.delete(i) : ePool.add(i);
+        node.classList.toggle('in-pool', ePool.has(i));
+        renderChips();
+        updateETotal();
+      });
+      if (ePool.has(i)) el.classList.add('in-pool');
+      g.appendChild(el);
+    });
+    setCols(g, bCols);
+  });
+  renderChips();
+  document.querySelectorAll('[data-rows]').forEach(r => {
+    r.innerHTML = '';
+    HANDS[current].forEach(c => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'pv-card terrain-' + c.terrain;
+      b.innerHTML = '<img src="../shared/images/' + c.key + '.png" alt="" loading="lazy" onerror="this.style.display=\'none\'">' +
+        '<span class="pv-name">' + c.name + (c.effect ? ' · ' + c.effect : '') + '</span>' +
+        (c.moves > 0 ? '<span class="pv-moves">' + c.moves + '</span>' : '');
+      b.addEventListener('click', () => b.classList.toggle('selected'));
+      r.appendChild(b);
+    });
+  });
+  document.querySelectorAll('.hand-count').forEach(el => el.textContent = HANDS[current].length);
+}
+document.querySelectorAll('#preview-bar button').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('#preview-bar button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    current = b.dataset.hand;
+    ePool.clear();
+    render();
+  });
+});
+// Option B′ column switcher (2/3/4 across)
+document.querySelectorAll('[data-bcols]').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('[data-bcols]').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    bCols = Number(b.dataset.bcols) || 3;
+    render();
+  });
+});
+// Option E hand-style toggle (full tiles vs compact chips)
+document.querySelectorAll('[data-estyle]').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('[data-estyle]').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    const chips = b.dataset.estyle === 'chips';
+    document.querySelectorAll('[data-grid-e]').forEach(g => g.classList.toggle('is-hidden', chips));
+    document.querySelectorAll('[data-chips-e]').forEach(g => g.classList.toggle('is-hidden', !chips));
+  });
+});
+// Option D mock interactions: Buy flips to ✓ (disabled ones ignore taps),
+// tapping a tile elsewhere selects it — same split as the real market.
+document.getElementById('sec-d')?.addEventListener('click', (e) => {
+  const buy = e.target.closest('.pv-buybtn');
+  if (buy) {
+    if (buy.classList.contains('is-disabled')) return;
+    buy.textContent = buy.textContent === 'Buy' ? '✓' : 'Buy';
+    buy.closest('.pv-card')?.classList.toggle('selected');
+    return;
+  }
+  const card = e.target.closest('.pv-card');
+  if (card) card.classList.toggle('selected');
+});
+// Option D mock tabs — same behavior as the real market tabs.
+document.querySelectorAll('#sec-d [data-mtab]').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('#sec-d [data-mtab]').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    const reserve = t.dataset.mtab === 'reserve';
+    document.querySelector('[data-mshop]')?.classList.toggle('is-hidden', reserve);
+    document.querySelector('[data-mreserve]')?.classList.toggle('is-hidden', !reserve);
+    document.querySelector('[data-mreserve-label]')?.classList.toggle('is-hidden', !reserve);
+  });
+});
+render();
+</script>
+</body>
+</html>

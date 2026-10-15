@@ -80,13 +80,30 @@ body {
 ───────────────────────────────────────────────────────────────────────────── */
 #lobby-screen,
 #waiting-screen {
-  align-items: center;
-  justify-content: center;
   /* Layered radial gradients: distant firelight glow from bottom-left */
   background:
     radial-gradient(ellipse 60% 40% at 20% 90%, rgba(201,162,39,0.07) 0%, transparent 70%),
     radial-gradient(ellipse 80% 60% at 80% 10%, rgba(30,83,82,0.12) 0%, transparent 70%),
     linear-gradient(160deg, #0a1520 0%, #0d1117 50%, #0e1a10 100%);
+}
+#lobby-screen {
+  align-items: center;
+  justify-content: center;
+}
+/* Short viewports (720p TV, squat windows): the waiting card + QR block are
+   taller than the screen. Centering an overflowing flex child clips the top
+   beyond reach and squeezes panels (see #waiting-players). Start-pack + auto
+   margins instead: centered when it fits, top-aligned and scrollable when it
+   doesn't. Lobby keeps plain centering (its content is shorter). */
+#waiting-screen {
+  align-items: center;
+  justify-content: flex-start;
+  overflow-y: auto;
+}
+#waiting-box {
+  flex-shrink: 0;
+  margin-top: auto;
+  margin-bottom: auto;
 }
 
 #lobby-box,
@@ -421,6 +438,12 @@ body {
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
   min-height: 60px;
+  /* Short viewports (720p TV, squat windows): the waiting card is taller than
+     the screen, and flex shrink would squeeze this panel down to its 60px
+     min-height — an explicit min-height overrides the automatic content
+     minimum, so the last row's descenders bled past the panel border. Never
+     shrink the panel; the screen scrolls instead (see #waiting-screen below). */
+  flex-shrink: 0;
 }
 
 .waiting-player-row {
