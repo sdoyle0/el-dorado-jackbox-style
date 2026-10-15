@@ -21,6 +21,7 @@ file is now the single future-features list.
 | 2 | AI-bot opponents | 3 — harness + discard-to-cycle logic | 2 — low value for party format | ⬜ Open — blocked on format question |
 | 3 | Single-screen revival | 2 — verify + port as separate project | 2 — out of mainline direction | ⬜ Open — only if fallback wanted |
 | 6 | Game-feel / presentation polish | 2 per slice, 3.5 total — client/CSS/audio only | 5 perceived ("looks like a real game"), 0 rules | ✅ Mostly done (a, b, d + phones ✅; c partial — SFX ✅, music parked) |
+| 7 | End-of-game rematch (play again) | 2 — server reset + client rematch flow, no rule changes | 4 — fast reset keeps a quick game night flowing | ✅ Done (same-room reset to waiting room, host or any seated player triggers) |
 
 ## Done ledger (Oct 2026 — all on master, nothing in flight)
 
@@ -42,6 +43,7 @@ file is now the single future-features list.
 4. **#1 two-pawn duel** — needs variant isolation; high cost.
 5. **#2 AI bots** — blocked on settled format; low party value.
 6. **#3 single-screen revival** — separate project only.
+7. **#7 end-of-game rematch** — ✅ done (details below).
 
 ## 1. Two-pawn duel variant for 2-player games (from I-G)
 
@@ -154,3 +156,23 @@ legality; it's the "would someone pay for this" pop layer.
   timbre iteration converges too slowly) — see "Left" #2 for the revisit.
 - Start at: `client/src/game/HexRenderer.js` (pawn/move animation layer),
   `client/src/game/CardUI.js` (play-animation hook), `client/src/styles/`.
+
+## 7. End-of-game rematch (play again without a server restart)
+
+Today a finished game is a dead end: screens only flow lobby → waiting →
+game (no back-navigation in `client/src/main.js` `showScreen`), rooms are
+deleted once empty (`server/game/GameManager.js` `onEmpty`), and there is no
+reset/rematch event. The only reliable reset is a server restart (plus a page
+reload for everyone, since Block 8 session rejoin would just rejoin the
+finished room). Fine while games are slow; painful once they go quickly and
+the table wants an instant rematch.
+- Status: ✅ done — `request_rematch` → `GameRoom.tryRematch` (host or any
+  seated player, game-over only) swaps in a fresh `GameStateManager`, sets
+  `started = false`, and broadcasts `return_to_waiting`; all clients land
+  back in the waiting room (same code/seats/options) and the next Start
+  re-runs the normal `_startGame` (fresh board, market, decks, pawns home).
+  "🔄 Play again" button on the game-won modal (sticky on TV, so it stays up
+  there too); double-taps guarded client-side and rejected server-side. No
+  rule changes.
+- Start at: `server/game/GameManager.js` (`tryRematch`, `_wireGameState`),
+  `client/src/main.js` (`onReturnToWaiting`).

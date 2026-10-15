@@ -40,7 +40,12 @@ class GameRoom {
     this.board = new HexBoard();
     this.market = new CardMarket();
     this.gameState = new GameStateManager(this.board);
+    this._wireGameState();
+  }
 
+  // Routes GameState events to the room (private DMs vs broadcasts). Kept as
+  // a method so a rematch can swap in a fresh GameStateManager and rewire it.
+  _wireGameState() {
     this.gameState.onEvent = (event, data) => {
       if (event === 'hand_updated' && data.playerId) {
         const owner = this.players.find(p => p.id === data.playerId);
@@ -328,6 +333,29 @@ class GameRoom {
     const minPlayers = this.debugMode ? 1 : 2;
     if (this.players.length < minPlayers) return { ok: false, error: 'need at least 2 players' };
     this._startGame();
+    return { ok: true };
+  }
+
+  // #7 rematch: after game over, drop back to a fresh pre-game lobby in the
+  // same room (same code, seats, host, options) so the table can run it back
+  // without a server restart. Only a fresh GameStateManager is needed here —
+  // _startGame() re-inits board/market/players/decks on the next Start.
+  // Same auth as tryStartGame: the host (TV spectator-host) or any seated
+  // player may trigger it, so nobody walks back to the laptop.
+  tryRematch(socketId) {
+    const isPlayer = this.players.some(p => p.socketId === socketId);
+    if (socketId !== this.hostId && !isPlayer) return { ok: false, error: 'only players in this room can request a rematch' };
+    if (!this.gameState || this.gameState.state !== GS.GAME_OVER) return { ok: false, error: 'game is not over yet' };
+    this.gameState = new GameStateManager(this.board);
+    this._wireGameState();
+    this.started = false;
+    this._broadcast('return_to_waiting', {
+      roomId: this.roomId,
+      players: this.players.map(p => p.toPublicData()),
+      hostId: this.hostId,
+      maxPlayers: this.maxPlayers,
+      enableBlockades: this.enableBlockades,
+    });
     return { ok: true };
   }
 

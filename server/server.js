@@ -115,6 +115,13 @@ io.on('connection', (socket) => {
     if (!result.ok) socket.emit('action_error', { message: result.error });
   });
 
+  socket.on('request_rematch', () => {
+    const room = gameManager.getRoomForSocket(socket.id);
+    if (!room) { socket.emit('action_error', { message: 'not in a room' }); return; }
+    const result = room.tryRematch(socket.id);
+    if (!result.ok) socket.emit('action_error', { message: result.error });
+  });
+
   socket.on('get_room_info', ({ roomId }) => {
     const room = gameManager.rooms.get((roomId || '').toUpperCase());
     if (!room) { socket.emit('room_info', null); return; }

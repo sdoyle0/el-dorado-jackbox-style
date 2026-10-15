@@ -1578,6 +1578,12 @@ body.view-phone .market-onetime-pill {
   background: linear-gradient(135deg, var(--gold-dim), var(--gold-bright));
   color: var(--deep-navy);
 }
+/* #7 rematch: primary end-of-game action, same gold treatment as OK. */
+#modal-rematch-btn {
+  background: linear-gradient(135deg, var(--gold-dim), var(--gold-bright));
+  color: var(--deep-navy);
+}
+#modal-rematch-btn:disabled { opacity: 0.5; cursor: wait; }
 #modal-cancel-btn  { background: var(--pale-navy); color: var(--text-mid); }
 
 /* ── Reserve picker overlay ───────────────────────────────────────────────── */

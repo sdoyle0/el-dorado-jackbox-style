@@ -29,6 +29,7 @@ class GameClient {
     this.onActionError = null;
     this.onPromptReserveChoice = null;
     this.onBlockadeBroken = null; // ({ blockadeId, brokenByPlayerId, brokenByName, terrainType, remainingBlockades })
+    this.onReturnToWaiting = null; // #7 rematch ({ roomId, players, maxPlayers, hostId, enableBlockades })
 
     this._bindEvents();
   }
@@ -73,6 +74,7 @@ class GameClient {
     s.on('action_error', d => this.onActionError?.(d));
     s.on('prompt_reserve_choice', d => this.onPromptReserveChoice?.(d));
     s.on('blockade_broken', d => this.onBlockadeBroken?.(d));
+    s.on('return_to_waiting', d => this.onReturnToWaiting?.(d));
 
     s.on('error', ({ message }) => console.warn('[server error]', message));
   }
@@ -89,6 +91,10 @@ class GameClient {
 
   startGame() {
     this.socket.emit('start_game');
+  }
+
+  requestRematch() {
+    this.socket.emit('request_rematch');
   }
 
   joinGame(playerName, debugMode = false) {

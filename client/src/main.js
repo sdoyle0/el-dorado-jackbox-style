@@ -1831,11 +1831,49 @@ document.addEventListener('DOMContentLoaded', () => {
     const msg = headline + blockadeMsg;
 
     showModal(msg, false, true);
+    // #7 rematch: anyone at this table (host TV or any seated phone) can send
+    // everyone back to the waiting room for a fresh game in the same room.
+    // The win modal is sticky on TV, so the button stays up there too.
+    const rematchBtn = document.getElementById('modal-rematch-btn');
+    if (rematchBtn) {
+      rematchBtn.classList.remove('hidden');
+      rematchBtn.disabled = false;
+      rematchBtn.textContent = '🔄 Play again';
+      rematchBtn.onclick = () => {
+        rematchBtn.disabled = true;
+        rematchBtn.textContent = 'Starting…';
+        client.requestRematch();
+      };
+    }
     log(isMe ? `🏆 ${headline}` : `${winnerName} wins!`, 'win');
     if (tied) log(`Both reached El Dorado — blockade tiebreak decides it.`, 'win');
     showToast(isMe ? '🏆 You win!' : `${winnerName} wins!`, {
       icon: '🏆', type: isMe ? 'accent' : 'info', duration: 8000,
     });
+  };
+
+  // #7 rematch: server reset the finished game — leave the game screen for
+  // the waiting room in the same room. The next Start re-runs the normal
+  // onGameStarted path (fresh board, hands, market), so here we only clear
+  // end-of-game chrome and restore the lobby state.
+  client.onReturnToWaiting = (data = {}) => {
+    document.getElementById('modal-overlay')?.classList.add('hidden');
+    document.getElementById('final-round-banner')?.remove();
+    document.getElementById('reserve-picker')?.classList.add('hidden');
+    try { cardUI.closeMarket(); } catch (_) { /* overlay may never have opened */ }
+    clearMoveList();
+    selectedCard = null;
+    selectedValidMoves = [];
+    waitingRoomState = {
+      players: data.players || [],
+      maxPlayers: data.maxPlayers,
+      hostId: data.hostId,
+      enableBlockades: data.enableBlockades ?? true,
+    };
+    showScreen('waiting');
+    renderWaitingRoom();
+    log('Back in the lobby — press Start Expedition for a rematch.', 'system');
+    showToast('Same room, fresh expedition — press Start.', { icon: '🔄', type: 'accent' });
   };
 
   // ── Reserve picker ─────────────────────────────────────────────────────────
@@ -2137,6 +2175,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const overlay = document.getElementById('modal-overlay');
     document.getElementById('modal-message').textContent = message;
     document.getElementById('modal-cancel-btn').style.display = showCancel ? '' : 'none';
+    // #7 rematch button lives only on the game-won modal (wired in onGameWon
+    // below) — every other modal hides it.
+    document.getElementById('modal-rematch-btn')?.classList.add('hidden');
     overlay.classList.remove('hidden');
     document.getElementById('modal-confirm-btn').onclick = () => overlay.classList.add('hidden');
     document.getElementById('modal-cancel-btn').onclick = () => overlay.classList.add('hidden');
