@@ -77,6 +77,10 @@ class HexRenderer {
     this.pawnEls = new Map();
     this.onTileClick = null;
     this.scale = 1;
+    // Overlay layer for valid-move highlights (see _ensureHighlightLayer).
+    // Lives above tile faces / blockade planks so the full yellow border
+    // stays visible instead of being painted over by neighbouring tiles.
+    this._highlightLayer = null;
     // Desktop default view has no move list (board-click only), so numbered
     // move badges are meaningless there — main.js sets this false on bare
     // URLs to keep highlight rings only. TV + phones always leave it true.
@@ -157,6 +161,10 @@ class HexRenderer {
     }
     this._pawnAnims.clear();
     this._pawnCenters.clear();
+    // Board is rebuilt from scratch — the highlight overlay (if any) was
+    // just removed with the other children; drop the stale reference so
+    // setValidMoves() recreates it above the fresh tiles.
+    this._highlightLayer = null;
 
     if (!tiles || tiles.length === 0) return;
 
@@ -477,13 +485,38 @@ class HexRenderer {
   // always paint over blockade planks — then re-append pawns so player
   // tokens stay on top of the badges. Called after any pass that appends
   // planks (renderBlockades, setBreakableBlockades) and at end of render().
+  // The move-highlight overlay (when present) is lifted just below the
+  // badges so its borders paint over neighbouring tile faces + planks but
+  // never cover numbers, costs, or pawns.
   _raiseBadges() {
+    if (this._highlightLayer && this._highlightLayer.isConnected) {
+      this.svg.appendChild(this._highlightLayer);
+    }
     for (const badges of this.svg.querySelectorAll('.tile-badges')) {
       this.svg.appendChild(badges);
     }
     for (const pawn of this.pawnEls.values()) {
       if (pawn.isConnected) this.svg.appendChild(pawn);
     }
+  }
+
+  // Lazily create (or re-create after render() cleared the SVG) the shared
+  // overlay group that carries valid-move borders. One group for all
+  // highlights, appended last so it paints above every tile face: tile <g>
+  // elements paint in DOM order, so a yellow stroke drawn inside a tile's
+  // own <g> gets half-covered by whichever neighbour was rendered later —
+  // the classic "only two sides visible" bug. Drawing the same geometry up
+  // here sidesteps paint order entirely without reordering tile faces.
+  _ensureHighlightLayer() {
+    const ns = 'http://www.w3.org/2000/svg';
+    if (!this._highlightLayer || !this._highlightLayer.isConnected) {
+      const layer = document.createElementNS(ns, 'g');
+      layer.setAttribute('id', 'move-highlight-layer');
+      layer.setAttribute('pointer-events', 'none');
+      this.svg.appendChild(layer);
+      this._highlightLayer = layer;
+    }
+    return this._highlightLayer;
   }
 
   // ── Valid move highlighting ───────────────────────────────────────────────
@@ -500,39 +533,60 @@ class HexRenderer {
     const numberById = new Map(ids.map((id, i) => [id, i + 1]));
     const ns = 'http://www.w3.org/2000/svg';
 
+    const layer = this._ensureHighlightLayer();
+    // Fresh selection each call — drop last call's overlay borders. (The
+    // per-tile poly tint below is re-applied from scratch too.)
+    while (layer.firstChild) layer.firstChild.remove();
+
     for (const [id, { poly, tile }] of this.tileEls) {
       const entry = this.tileEls.get(id);
       const isValid = validSet.has(id);
       const style = TERRAIN[tile.terrainType] || {};
 
+      // Retire the legacy per-tile glow ring (it lived inside the tile's
+      // own <g>, so neighbours painted over it — the bug being fixed). If
+      // an old ring survives from before this change, remove it for good.
+      if (entry._glowRing) {
+        if (entry._glowRing.isConnected) entry._glowRing.remove();
+        delete entry._glowRing;
+      }
+
       if (isValid) {
         // Block 7 TV polish: thick yellow stroke + fat outer glow read at
         // 10ft. Desktop stays fine — these were previously 5 / 10.
+        // The in-place tint stays (brightness pulse on the face itself);
+        // the crisp full-perimeter border lives in the overlay layer below
+        // so it can't be covered by neighbouring tiles.
         poly.setAttribute('stroke', '#ffee00');
         poly.setAttribute('stroke-width', '7');
         poly.style.filter = 'brightness(1.4)';
         poly.style.animation = 'hex-pulse 1.4s ease-in-out infinite';
 
-        let glowRing = entry._glowRing;
-        if (!glowRing) {
-          const { cx, cy } = this._center(tile.q, tile.r);
-          glowRing = document.createElementNS(ns, 'polygon');
-          glowRing.setAttribute('points', this._hexPoints(cx, cy, HEX_R + 6));
-          glowRing.setAttribute('fill', 'none');
-          glowRing.setAttribute('stroke', 'rgba(255,238,0,0.55)');
-          glowRing.setAttribute('stroke-width', '14');
-          glowRing.setAttribute('pointer-events', 'none');
-          glowRing.style.animation = 'glow-pulse 1.4s ease-in-out infinite';
-          entry._glowRing = glowRing;
-          entry.g.insertBefore(glowRing, entry.g.firstChild);
-        }
-        glowRing.style.display = '';
+        const { cx, cy } = this._center(tile.q, tile.r);
+
+        const glow = document.createElementNS(ns, 'polygon');
+        glow.setAttribute('points', this._hexPoints(cx, cy, HEX_R + 6));
+        glow.setAttribute('fill', 'none');
+        glow.setAttribute('stroke', 'rgba(255,238,0,0.55)');
+        glow.setAttribute('stroke-width', '14');
+        glow.setAttribute('stroke-linejoin', 'round');
+        glow.setAttribute('pointer-events', 'none');
+        glow.style.animation = 'glow-pulse 1.4s ease-in-out infinite';
+        layer.appendChild(glow);
+
+        const ring = document.createElementNS(ns, 'polygon');
+        ring.setAttribute('points', this._hexPoints(cx, cy, HEX_R));
+        ring.setAttribute('fill', 'none');
+        ring.setAttribute('stroke', '#ffee00');
+        ring.setAttribute('stroke-width', '7');
+        ring.setAttribute('stroke-linejoin', 'round');
+        ring.setAttribute('pointer-events', 'none');
+        layer.appendChild(ring);
 
         // ── Number badge (top-inside of hex, above terrain icon) ──────────
         // Large enough to read at TV distance and on laptop screens: the
         // badge must match the phone move-list number at a glance.
         // Skipped when showMoveNumbers is false (desktop board-click flow).
-        const { cx, cy } = this._center(tile.q, tile.r);
         if (this.showMoveNumbers === false) {
           if (entry._moveBadge) entry._moveBadge.style.display = 'none';
         } else {
@@ -568,10 +622,14 @@ class HexRenderer {
         poly.style.filter = '';
         poly.style.animation = '';
 
-        if (entry._glowRing) entry._glowRing.style.display = 'none';
         if (entry._moveBadge) entry._moveBadge.style.display = 'none';
       }
     }
+
+    // Overlay was built while sitting wherever the last _raiseBadges() left
+    // it (possibly below freshly rendered blockade planks) — lift it above
+    // tiles/planks but below badges/pawns for the final paint order.
+    this._raiseBadges();
   }
 
   clearHighlights() {
