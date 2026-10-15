@@ -1946,8 +1946,9 @@ document.addEventListener('DOMContentLoaded', () => {
         border: 1px solid var(--border-mid, rgba(201,162,39,0.32));
         background: rgba(22,39,61,0.9); color: #e8e0d0; border-radius: 8px; }
       body.view-phone .market-row-main { display: flex; align-items: center;
-        gap: 4px; width: 100%; min-width: 0; padding: 4px 5px;
-        font-size: 0.62rem; font-weight: 800; }
+        flex-wrap: nowrap; gap: 4px; width: 100%; min-width: 0; padding: 4px 5px;
+        font-size: 0.62rem; font-weight: 800; box-sizing: border-box;
+        min-height: 30px; overflow: hidden; }
       /* Terrain headers — same mapping as the hand tiles. */
       body.view-phone .market-row-item.terrain-jungle .market-row-main { background: #0a2a0a; color: #8fe88f; }
       body.view-phone .market-row-item.terrain-water .market-row-main { background: #041528; color: #8ab8ee; }
@@ -1957,8 +1958,8 @@ document.addEventListener('DOMContentLoaded', () => {
       /* Full portrait art — nothing cropped; tiles size to the 848×1264 ratio. */
       body.view-phone .market-tile-art { display: block; width: 100%; height: auto;
         aspect-ratio: 848 / 1264; object-fit: cover; background: #0b1420; }
-      body.view-phone .market-row-sub { display: flex; align-items: center;
-        gap: 0.4rem; width: 100%; padding: 2px 5px; }
+      body.view-phone .market-row-sub { display: flex; align-items: flex-start;
+        gap: 0.35rem; width: 100%; padding: 3px 5px 2px; min-height: 2.1em; box-sizing: border-box; }
       body.view-phone .market-row-sub .market-row-effect { flex: 1 1 auto; min-width: 0; }
       /* Movement value: what the card does for green/blue/yellow. */
       body.view-phone .market-row-moves { font-weight: 800; font-size: 0.85rem;
@@ -1968,8 +1969,17 @@ document.addEventListener('DOMContentLoaded', () => {
       body.view-phone .market-row-item.cant-afford { opacity: 0.7; }
       body.view-phone .market-row-name { font-weight: 800; font-size: 0.62rem; flex: 1 1 auto;
         min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      body.view-phone .market-row-effect { font-size: 0.6rem; color: #9aabbf;
-        white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      /* Purple one-liner wraps to 2 lines in 3-across tiles: nowrap+ellipsis
+         left ~1 word readable on narrow phones. line-clamp keeps tiles
+         compact; full text stays behind ℹ️. */
+      body.view-phone .market-row-effect { font-size: 0.6rem; line-height: 1.25; color: #9aabbf;
+        white-space: normal; overflow: hidden; display: -webkit-box;
+        -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: break-word; }
+      /* Compact 1× USE pill so the header stays single-line: the old
+         4px 8px pill forced pill headers taller than plain ones and the
+         row art started at uneven heights. Headers share min-height above. */
+      body.view-phone .market-row-main .market-onetime-pill { font-size: 0.55rem;
+        padding: 2px 6px; line-height: 1; flex-shrink: 0; }
       /* Buy bar: amount-left + cost + Buy on their own bottom line. */
       body.view-phone .market-row-foot { display: flex; align-items: center;
         justify-content: space-between; gap: 0.3rem; width: 100%;
@@ -1982,13 +1992,18 @@ document.addEventListener('DOMContentLoaded', () => {
          tiles need it back in normal flow inside the effect line. */
       body.view-phone .market-row-sub .market-row-info { position: static; min-width: 32px; min-height: 32px;
         display: inline-grid; place-items: center; font-size: 1rem;
-        cursor: pointer; flex-shrink: 0; }
+        cursor: pointer; flex-shrink: 0; margin-top: -4px; }
       body.view-phone .market-row-buy { min-height: 44px; padding: 0.5rem 0.7rem;
         border: 1px solid var(--gold-mid, #c9a227); background: #2a4a2a;
         color: #fff; border-radius: 6px; font-size: 0.8rem; font-weight: 700;
         cursor: pointer; flex-shrink: 0; }
       body.view-phone .market-row-buy:disabled { opacity: 0.35; cursor: not-allowed; }
-      body.view-phone .reserve-pick-row .market-row-buy { flex: 1 1 auto; }
+      body.view-phone .reserve-pick-row .market-row-buy { flex: 1 1 auto; width: 100%; }
+      /* Reserve stock meta (×N left · 💰 cost) sits on its own line above the
+         full-width Choose so 3-across tiles never crowd it onto one row. */
+      body.view-phone .reserve-pick-foot { flex-direction: column; align-items: stretch; gap: 0.35rem; }
+      body.view-phone .reserve-pick-meta { display: flex; align-items: center;
+        justify-content: space-between; gap: 0.3rem; width: 100%; min-width: 0; }
       /* Pool audit chips under the header. */
       body.view-phone #pool-chips { display: flex; flex-wrap: wrap; gap: 0.3rem;
         padding: 0.35rem 0; }

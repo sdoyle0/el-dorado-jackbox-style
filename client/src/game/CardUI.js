@@ -986,14 +986,18 @@ class CardUI {
         container.appendChild(this._makeReservePickRowEl(card, onChosen, overlay));
         continue;
       }
-      const el    = this._makeMarketCardEl(card, true, true);
-      const clean = el.cloneNode(true);
-      clean.addEventListener('click', (e) => {
+      // Picker stocks the shop — the pick itself is free, so show the real
+      // future cost (not FREE) + remaining. Build unlocked (transmitterActive
+      // = false gives the real price) then drop the reserve-lock so the
+      // tile is tappable with a choose handler instead of a buy handler.
+      const el = this._makeMarketCardEl(card, true, false);
+      el.querySelector('.market-card')?.classList.remove('reserve-locked');
+      el.addEventListener('click', (e) => {
         if (e.target.closest('.card-info-btn')) return;
         onChosen(card.key);
         overlay.classList.add('hidden');
       });
-      container.appendChild(clean);
+      container.appendChild(el);
     }
 
     overlay.classList.remove('hidden');
@@ -1057,8 +1061,26 @@ class CardUI {
     }
 
     const foot = document.createElement('div');
-    foot.className = 'market-row-foot';
+    foot.className = 'market-row-foot reserve-pick-foot';
     row.appendChild(foot);
+
+    // Stock info: the Transmitter can buy straight from the reserve, so the
+    // pile is not always ×3 — show what's actually left + what the card
+    // will cost once it stocks the shop (the pick itself is free).
+    const meta = document.createElement('div');
+    meta.className = 'reserve-pick-meta';
+    row.dataset.remaining = String(card.remaining ?? '');
+    const leftEl = document.createElement('span');
+    leftEl.className = 'market-row-left';
+    leftEl.textContent = `×${card.remaining ?? '?'} left`;
+    leftEl.title = `${card.remaining ?? '?'} copies left in the reserve`;
+    meta.appendChild(leftEl);
+    const costEl = document.createElement('span');
+    costEl.className = 'market-row-cost';
+    costEl.textContent = `💰 ${card.cost ?? '?'}`;
+    costEl.title = `Costs ${card.cost ?? '?'} once stocked`;
+    meta.appendChild(costEl);
+    foot.appendChild(meta);
 
     const choose = document.createElement('button');
     choose.type = 'button';
