@@ -22,7 +22,7 @@ file is now the single future-features list.
 | 3 | Single-screen revival | 2 — verify + port as separate project | 2 — out of mainline direction | ⬜ Open — only if fallback wanted |
 | 6 | Game-feel / presentation polish | 2 per slice, 3.5 total — client/CSS/audio only | 5 perceived ("looks like a real game"), 0 rules | ✅ Mostly done (a, b, d + phones ✅; c partial — SFX ✅, music parked) |
 | 7 | End-of-game rematch (play again) | 2 — server reset + client rematch flow, no rule changes | 4 — fast reset keeps a quick game night flowing | ✅ Done (same-room reset to waiting room, host or any seated player triggers) |
-| 8 | Phone mini-map movement picker | 3 — pawn-centred SVG excerpt + tap routing, phone-only | 4.5 — biggest live pain point (TV↔phone number-matching) | ⬜ Open — brainstorm below, needs a playtest pick |
+| 8 | Phone mini-map movement picker | 3 — pawn-centred SVG excerpt + tap routing, phone-only | 4.5 — biggest live pain point (TV↔phone number-matching) | 🧪 Experimenting — Proposal A live on phones (MiniMap.js excerpt + chips kept below, `?minimap=0` restores list-only for A/B) |
 
 ## Done ledger (Oct 2026 — all on master, nothing in flight)
 
@@ -207,5 +207,38 @@ the two screens; remove the bridge and the problem goes away.
   change, but two UX paths to maintain.
 - Recommendation: playtest B first (one session), then decide whether A is
   worth its weight — A is the only one that removes the numbers entirely.
+- Experiment v1 (Oct 2026, uncommitted): Proposal A attempt live — new
+  `client/src/game/MiniMap.js` (pawn-centred SVG excerpt: 2 rings around the
+  pawn + 1 ring around each destination, TV terrain colours, number badges in
+  payload order so map/chips/TV agree, whole-hex tap targets → same
+  `attemptMoveToTile`, red outline for the rubble-toll target, pawn dots for
+  orientation). Wired into the phone move-list panel in `main.js` ABOVE the
+  chips (both visible; Hide/Show map toggle; `?minimap=0` kill-switch restores
+  list-only). No server/shared changes. Playtest questions: does the map get
+  tapped directly (vs chips as fallback)? Is 2-ring context enough on
+  multi-step cards? Keep, tune, or drop based on one session.
+- Experiment v2 (Oct 2026, uncommitted): map-only default — the numbered chips
+  are hidden behind `SHOW_CHIPS` (`?chips=1` brings map+chips back for
+  comparison; `?minimap=0` still forces the old list-only flow). Chip render
+  code stays intact underneath, so reintegration = flip the flag. Map header
+  now names the played card + remaining budget (`🗺 X · N left — tap a tile`)
+  so the panel reads standalone; empty state moved to the sub-line (the chip
+  grid's "No valid moves" div hides with it). Blockade-break buttons + Cancel/
+  Done row unchanged (the map doesn't cover blockades yet).
+- Experiment v3 (Oct 2026, uncommitted): persistent map — it no longer lives
+  inside the move list flashing in/out per card. New `#minimap-panel` above
+  the move list stays open all game (hidden only while the market is open):
+  orientation ("🗺 Your move — play a card" / "🗺 X's turn") when idle or
+  watching, yellow options + taps while your movement card is in flight
+  (taps stay disarmed until the server's valid-moves echo, so an instant tap
+  can't fire move_pawn ahead of play_card). Refresh hooks on turn change,
+  pawn moves (stale options dropped at once — also closes the double-tap
+  window), dispose, select preview, toll retarget, and roster sync.
+- Back pocket (parked after v3 playtest, Oct 2026 — deliberately NOT built):
+  (a) breakable-blockade markers on the mini-map — the button list below the
+  map feels fine as-is, revisit only if breaking starts feeling disconnected
+  from the map; (b) wider context rings for multi-step planning — concern is
+  smaller hexes shrinking tap targets on phones, so 2-ring stays the default
+  unless playtesting says the orientation loss is worse than the tap cost.
 - Start at: `client/src/main.js` (`renderMoveList`, `moveLabelFor`),
   `client/src/game/HexRenderer.js` (`setValidMoves`, TERRAIN fills).

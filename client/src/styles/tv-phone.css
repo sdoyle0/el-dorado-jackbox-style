@@ -503,22 +503,30 @@ body.view-phone #hand-cards .card-info-btn {
 
 /* Pool chips under the header (audit strip) need no gutter work here. */
 
-body.view-phone #move-list-panel {
+/* v3: the persistent mini-map (built by ensureMiniMapPanel in main.js) sits
+   directly under the hand — it owns the empty space; the move list (chips /
+   blockades / cancel) lands underneath while a card is played. */
+body.view-phone #minimap-panel {
   order: 1;
+  margin-top: 0;
+}
+
+body.view-phone #move-list-panel {
+  order: 2;
   margin-top: 0;
 }
 
 /* Destination list sits directly under the hand (above Market / End Turn /
    Discard) so options appear next to the card just played. */
 body.view-phone #hand-controls {
-  order: 2;
+  order: 3;
   flex-direction: row;
   flex-wrap: wrap;
   margin-right: 0;
 }
 
 body.view-phone #hand-messages {
-  order: 3;
+  order: 4;
 }
 
 body.view-phone #hand-controls button {
@@ -630,6 +638,7 @@ body.view-phone #phone-turn-pill.is-my-turn {
 body.view-phone.market-open #hand-controls,
 body.view-phone.market-open #phone-turn-pill,
 body.view-phone.market-open #move-list-panel,
+body.view-phone.market-open #minimap-panel,
 body.view-phone.market-open #hand-messages {
   display: none !important;
 }

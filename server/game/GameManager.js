@@ -229,11 +229,38 @@ class GameRoom {
   // Returns the player or null. Updates id + socketId to the new socket,
   // rejoins the socket.io room, and DMs a full state snapshot + hand so the
   // refreshed phone renders without waiting for the next broadcast.
+  //
+  // Stale-seat fast-forward (Oct 2026): a same-tab reload usually closes the
+  // old socket cleanly, but mobile browsers often don't — the server then only
+  // notices via heartbeat timeout (~30-60s), and a rejoin arriving in that
+  // window found a still-"connected" seat and ate 'Game already in progress'
+  // (client retries couldn't out-wait it). If the name matches a seat whose
+  // socket is already gone from the io map, the old tab is definitively dead,
+  // so grace-mark it now and reclaim immediately. Fail-open: if the lookup
+  // throws, the seat is treated as live (today's behavior) — a live seat
+  // (second tab genuinely open) is never stolen.
+  _isSocketLive(socketId) {
+    try {
+      if (!socketId) return false;
+      const s = this.io?.sockets?.sockets?.get(socketId);
+      return !!(s && s.connected !== false);
+    } catch (e) { return true; }
+  }
+
   tryReclaimSeat(socket, playerName) {
     const wanted = (playerName || '').trim().toLowerCase();
     if (!wanted) return null;
-    const player = this.players.find(p =>
-      p.disconnected && (p.name || '').trim().toLowerCase() === wanted);
+    const nameMatch = (p) => (p.name || '').trim().toLowerCase() === wanted;
+    let player = this.players.find(p =>
+      p.disconnected && nameMatch(p));
+    if (!player) {
+      const stale = this.players.find(p =>
+        !p.disconnected && nameMatch(p) && !this._isSocketLive(p.socketId));
+      if (stale) {
+        this._markDisconnected(stale);
+        player = stale;
+      }
+    }
     if (!player) return null;
     const oldId = player.id;
     if (player.disconnectTimer) {

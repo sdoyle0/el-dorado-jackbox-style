@@ -255,6 +255,25 @@ document.addEventListener('DOMContentLoaded', () => {
   // Number N = position in that array (1-based). HexRenderer draws the same
   // N on the TV tile, so the phone list matches the board without tile IDs.
   let currentTurnPlayerId = null;
+  // #8 experiment: pawn-centred mini-map on phones (?minimap=0 disables it and
+  // restores the list-only flow for A/B playtesting). The map taps route to
+  // the same attemptMoveToTile as the chips — no server/shared changes.
+  const MINIMAP_DISABLED = (() => {
+    try {
+      return new URLSearchParams(window.location.search).get('minimap') === '0';
+    } catch (e) { return false; }
+  })();
+  // #8 experiment v2: map-only by default — the numbered chips are hidden
+  // (their render code stays intact below). ?chips=1 brings both back for
+  // comparison; ?minimap=0 restores the old list-only flow (chips forced on).
+  const SHOW_CHIPS = (() => {
+    try {
+      const q = new URLSearchParams(window.location.search);
+      return MINIMAP_DISABLED || q.get('chips') === '1';
+    } catch (e) { return MINIMAP_DISABLED; }
+  })();
+  let miniMap = null;
+  let minimapCollapsed = false;
   const MOVE_TERRAIN_ICONS = {
     jungle: '🌿', water: '🌊', village: '🏘️', rubble: '🪨',
     camp: '⛺', mountain: '⛰️', start: '🏁', el_dorado: '🏆',
@@ -365,6 +384,29 @@ document.addEventListener('DOMContentLoaded', () => {
         white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       #move-list-cancel.is-cancel .move-cancel-meta { color: #9aabbf; }
       #move-list-cancel.is-done .move-cancel-meta { color: #b8f5b8; }
+      /* #8 experiment: pawn-centred mini-map. v3 made it a persistent
+         panel of its own (#minimap-panel, built by ensureMiniMapPanel) that
+         stays open all game: orientation when idle, yellow options + taps
+         while a movement card is in flight. Whole hexes are the tap targets
+         (thumb-sized once the viewBox crops tight). */
+      #minimap-panel { display: flex; flex-direction: column; gap: 0.3rem;
+        padding: 0.55rem 0.6rem; background: rgba(13,17,23,0.6);
+        border: 1px solid var(--border-mid, rgba(201,162,39,0.32));
+        border-radius: 8px; }
+      #minimap-panel.hidden { display: none; }
+      #minimap-toprow { display: flex; align-items: center; gap: 0.5rem; }
+      #minimap-title { font-size: 0.78rem; font-weight: 700; color: #ffd700;
+        letter-spacing: 0.03em; flex: 1 1 auto; }
+      #minimap-toggle { flex: none; min-height: 44px; padding: 0.4rem 0.7rem;
+        border-radius: 8px; border: 1px solid rgba(255,255,255,0.18);
+        background: rgba(255,255,255,0.06); color: #e8e0d0;
+        font-size: 0.75rem; font-weight: 700; cursor: pointer; }
+      #minimap-toggle:hover { background: rgba(255,255,255,0.12); }
+      #minimap-svg { width: 100%; height: auto; max-height: 320px;
+        background: rgba(0,0,0,0.35); border: 1px solid var(--border-mid, rgba(201,162,39,0.32));
+        border-radius: 10px; touch-action: manipulation; }
+      #minimap-svg.hidden { display: none; }
+      #minimap-cap { font-size: 0.7rem; color: #9aabbf; }
     `;
     document.head.appendChild(style);
   }
@@ -394,6 +436,128 @@ document.addEventListener('DOMContentLoaded', () => {
     host.appendChild(panel);
     panel.querySelector('#move-list-cancel').addEventListener('click', cancelMoveSelection);
     return panel;
+  }
+
+  // #8 experiment v3: the mini-map is a persistent panel of its own that
+  // stays open all game (phone) instead of flashing in/out per card. Three
+  // modes from the same render:
+  //   - interactive: my turn + a movement card in flight → yellow options,
+  //     taps route to attemptMoveToTile like the chips.
+  //   - idle: my turn, no card yet → "you are here" orientation, no targets.
+  //   - watching: opponent's turn → same orientation, their name on top.
+  // Runs phone-only; safe no-op when the MiniMap script failed to load, when
+  // the board isn't loaded yet, or when ?minimap=0 forces list-only.
+  function ensureMiniMapPanel() {
+    ensureMoveListStyles(); // minimap styles live in the same injected block
+    let panel = document.getElementById('minimap-panel');
+    if (panel) return panel;
+    const host = document.getElementById('player-hand-ui') || document.getElementById('game-screen');
+    panel = document.createElement('div');
+    panel.id = 'minimap-panel';
+    panel.className = 'hidden';
+    panel.innerHTML = `
+      <div id="minimap-toprow">
+        <span id="minimap-title">🗺 Around your pawn</span>
+        <button id="minimap-toggle" type="button" title="Collapse the mini-map">Hide map</button>
+      </div>
+      <svg id="minimap-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+      <div id="minimap-cap"></div>`;
+    // Above the move list so the map owns the empty space; the list (chips /
+    // blockades / cancel) lands directly underneath while a card is played.
+    const movePanel = document.getElementById('move-list-panel');
+    if (movePanel && movePanel.parentNode === host) host.insertBefore(panel, movePanel);
+    else host.appendChild(panel);
+    panel.querySelector('#minimap-toggle')?.addEventListener('click', (e) => {
+      minimapCollapsed = !minimapCollapsed;
+      e.currentTarget.textContent = minimapCollapsed ? 'Show map' : 'Hide map';
+      document.getElementById('minimap-svg')?.classList.toggle('hidden', minimapCollapsed);
+      document.getElementById('minimap-cap')?.classList.toggle('hidden', minimapCollapsed);
+    });
+    return panel;
+  }
+
+  function refreshPersistentMap() {
+    if (VIEW !== 'phone') return;
+    const panel = ensureMiniMapPanel();
+    const svg = document.getElementById('minimap-svg');
+    const cap = document.getElementById('minimap-cap');
+    if (!svg) return;
+    if (MINIMAP_DISABLED || typeof window.ElDoradoMiniMap?.MiniMap !== 'function') {
+      panel.classList.add('hidden');
+      return;
+    }
+    const me = allPlayers.find(p => p.id === client.playerId);
+    const centerTileId = me?.currentTileId || null;
+    let tiles = [];
+    try {
+      tiles = Array.from(clientBoard.tiles.values());
+    } catch (e) { tiles = []; }
+    if (!centerTileId || tiles.length === 0) {
+      panel.classList.add('hidden');
+      return;
+    }
+    if (!miniMap) {
+      miniMap = new window.ElDoradoMiniMap.MiniMap(svg);
+      miniMap.onSelect = (tileId) => attemptMoveToTile(tileId);
+    } else if (miniMap.svg !== svg) {
+      miniMap = new window.ElDoradoMiniMap.MiniMap(svg);
+      miniMap.onSelect = (tileId) => attemptMoveToTile(tileId);
+    }
+    const isMe = !!(currentTurnPlayerId && client.playerId
+      && currentTurnPlayerId === client.playerId);
+    const turnPlayer = allPlayers.find(p => p.id === currentTurnPlayerId);
+    // Interactive only on my own turn with my own card in flight — a stray
+    // broadcast can never arm someone else's tiles on my map. isMidMove
+    // (server echo) gates arming: the local select preview paints the map a
+    // beat early, but taps stay off until the server confirms the play, so an
+    // instant tap can't fire move_pawn ahead of play_card and eat an error.
+    const interactive = isMe && isMidMove && selectedValidMoves.length > 0
+      && (!!selectedCard || !!rubblePendingTileId);
+    const movesForRender = interactive ? selectedValidMoves : [];
+    const myIdx = Math.max(0, allPlayers.findIndex(p => p.id === client.playerId));
+    const pawns = (allPlayers || []).map((p, i) => ({
+      tileId: p.currentTileId,
+      color: PAWN_COLORS[i % PAWN_COLORS.length],
+    })).filter(p => p.tileId);
+    svg.classList.toggle('hidden', minimapCollapsed);
+    cap?.classList.toggle('hidden', minimapCollapsed);
+    const drawn = miniMap.render({
+      tiles,
+      centerTileId,
+      validMoves: movesForRender,
+      pawns,
+      myColor: PAWN_COLORS[myIdx % PAWN_COLORS.length],
+      pendingTileId: rubblePendingTileId,
+    });
+    if (!drawn) {
+      panel.classList.add('hidden');
+      return;
+    }
+    panel.classList.remove('hidden');
+    const titleEl = document.getElementById('minimap-title');
+    if (titleEl) {
+      if (interactive) {
+        const cardName = selectedCard?.cardName || selectedCard?.key || 'card';
+        const budget = (moveMovementTotal > 0 && typeof moveMovesRemaining === 'number')
+          ? ` · ${moveMovesRemaining} left`
+          : '';
+        titleEl.textContent = `🗺 ${cardName}${budget} — tap a tile`;
+      } else if (isMe) {
+        titleEl.textContent = '🗺 Your move — play a card';
+      } else {
+        titleEl.textContent = `🗺 ${turnPlayer?.name || 'Opponent'}'s turn`;
+      }
+    }
+    if (cap && !minimapCollapsed) {
+      const n = movesForRender.length;
+      if (interactive) {
+        cap.textContent = `You are ● — tap a yellow tile (${n} option${n === 1 ? '' : 's'}). Numbers match the TV.`;
+      } else if (isMe) {
+        cap.textContent = 'You are ● — play a card to light up your options.';
+      } else {
+        cap.textContent = `You are ● — watching ${turnPlayer?.name || 'opponent'}.`;
+      }
+    }
   }
 
   function moveLabelFor(tileId) {
@@ -441,13 +605,22 @@ document.addEventListener('DOMContentLoaded', () => {
     listEl.innerHTML = '';
     blockadeListEl.innerHTML = '';
     if (!validMoves || validMoves.length === 0) {
-      subEl.textContent = blockadeCount > 0 ? 'No moves — break a blockade below.' : '';
+      // Map-only mode hides the chip grid (with its "No valid moves" div),
+      // so the empty state must live in the sub-line to stay visible.
+      const emptyText = blockadeCount > 0 ? 'No moves — break a blockade below.' : 'No valid moves';
+      subEl.textContent = SHOW_CHIPS
+        ? (blockadeCount > 0 ? emptyText : '')
+        : emptyText;
       const empty = document.createElement('div');
       empty.className = 'move-empty';
       empty.textContent = 'No valid moves';
       listEl.appendChild(empty);
     } else {
-      subEl.textContent = `Match the number on the TV, then tap.`;
+      subEl.textContent = SHOW_CHIPS
+        ? (MINIMAP_DISABLED
+          ? `Match the number on the TV, then tap.`
+          : `Tap the map — or match the number on the TV.`)
+        : `Tap a yellow tile on the map.`;
       validMoves.forEach((tileId, i) => {
         const num = i + 1; // must match HexRenderer badge: position in payload
         const { terrain, cost } = moveLabelFor(tileId);
@@ -567,6 +740,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // A mid-toll re-render (e.g. fresh valid-moves) wipes button classes —
     // re-mark the pending toll target so the panel and list stay in sync.
     if (rubblePendingTileId) markPendingRubbleDest(rubblePendingTileId);
+    // #8 experiment v2: map-only default. The chip grid (and its sub-line
+    // wording) stays rendered underneath so ?chips=1 / ?minimap=0 can bring
+    // it back with zero code changes — reintegration = flip SHOW_CHIPS.
+    listEl.classList.toggle('hidden', !SHOW_CHIPS);
+    refreshPersistentMap();
     panel.classList.remove('hidden');
   }
 
@@ -574,6 +752,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const panel = document.getElementById('move-list-panel');
     if (!panel) return;
     panel.classList.add('hidden');
+    // v3: the mini-map is persistent — clearing the move selection leaves it
+    // up (it falls back to orientation mode on the next refresh).
     const listEl = panel.querySelector('#move-list');
     if (listEl) listEl.innerHTML = '';
     const blockadeListEl = panel.querySelector('#blockade-list');
@@ -835,6 +1015,22 @@ document.addEventListener('DOMContentLoaded', () => {
   let rejoinPending = false;
   let rejoinRoomId = null;
   let rejoinFallbackTimer = null;
+  // Arg-change resilience (Oct 2026): editing the URL (add/remove debug,
+  // minimap, chips…) and reloading fires auto-rejoin immediately, but the
+  // server may not have processed the old socket's disconnect yet — the seat
+  // isn't grace-held, reclaim finds nothing, and the server answers 'Game
+  // already in progress'. A manual Join tap seconds later would succeed, so
+  // instead retry the auto-rejoin a few times before giving up to the lobby.
+  // Client-only; manual joins never retry.
+  let rejoinAttempts = 0;
+  let rejoinRetryTimer = null;
+  const REJOIN_MAX_ATTEMPTS = 3;
+  const REJOIN_RETRY_MS = 2500;
+
+  function cancelRejoinRetry() {
+    rejoinAttempts = 0;
+    if (rejoinRetryTimer) { clearTimeout(rejoinRetryTimer); rejoinRetryTimer = null; }
+  }
 
   function storeSession(roomId, playerName, isSpectator) {
     try {
@@ -997,6 +1193,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // path and the lobby never advances to waiting.
     rejoinPending = false;
     rejoinRoomId = null;
+    cancelRejoinRetry();
     pendingIdentity = name; // Block 8: refresh-safe session
     const enableBlockades = blockadesToggle?.checked ?? true;
     client.createRoom(name, selectedPlayerCount, DEBUG, enableBlockades, VIEW === 'tv');
@@ -1018,6 +1215,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Manual intent wins over a stale Block 8 auto-rejoin — see above.
     rejoinPending = false;
     rejoinRoomId = null;
+    cancelRejoinRetry();
     pendingIdentity = name; // Block 8: refresh-safe session
     client.joinRoom(name, code, VIEW === 'tv');
   });
@@ -1066,6 +1264,7 @@ document.addEventListener('DOMContentLoaded', () => {
     createRoomBtn.disabled = false;
     joinRoomBtn.disabled = false;
     setLobbyInfo('');
+    cancelRejoinRetry();
     waitingRoomState = {
       players: data.players || [],
       maxPlayers: data.maxPlayers,
@@ -1119,8 +1318,29 @@ document.addEventListener('DOMContentLoaded', () => {
     // code, etc.) must not leave rejoinPending set — otherwise the NEXT
     // manual join/create is swallowed by the rejoin path and the lobby
     // appears stuck even though the server accepted the join.
+    const wasAutoRejoin = rejoinPending && rejoinRoomId;
+    const retryRoom = rejoinRoomId;
+    const retryName = pendingIdentity;
     rejoinPending = false;
     rejoinRoomId = null;
+    // …unless it's the disconnect-registration race (see session block):
+    // the seat becomes grace-held a moment later, so retry this error only.
+    // A missing/full room won't heal by retrying — those fall to the lobby.
+    if (wasAutoRejoin && message === 'Game already in progress'
+      && retryRoom && retryName && rejoinAttempts < REJOIN_MAX_ATTEMPTS) {
+      rejoinAttempts++;
+      setLobbyInfo(`Reconnecting… (retry ${rejoinAttempts}/${REJOIN_MAX_ATTEMPTS})`);
+      if (rejoinRetryTimer) clearTimeout(rejoinRetryTimer);
+      rejoinRetryTimer = setTimeout(() => {
+        rejoinRetryTimer = null;
+        pendingIdentity = retryName;
+        rejoinPending = true;
+        rejoinRoomId = String(retryRoom).toUpperCase();
+        client.joinRoom(retryName, retryRoom, VIEW === 'tv');
+      }, REJOIN_RETRY_MS);
+      return;
+    }
+    cancelRejoinRetry();
     // Mid-game reclaim fails only when no grace-held seat matches: wrong
     // name, seat expired (>2 min), or never joined before start (no late
     // joins). Say so directly instead of the bare server text.
@@ -1168,6 +1388,11 @@ document.addEventListener('DOMContentLoaded', () => {
     renderer.syncPawns(allPlayers);
     if (turnIdChanged) updateTurnLabel(currentTurnPlayerId);
     else renderPlayerLegend(currentTurnPlayerId);
+    // v3: a reclaimed seat can move pawn tokens — keep the phone map in sync.
+    // updateTurnLabel already refreshes; this covers the legend-only path.
+    if (!turnIdChanged) {
+      try { refreshPersistentMap(); } catch (e) { /* map optional */ }
+    }
   }
 
   client.onPlayerJoined = ({ player }) => log(`${player.name} joined.`);
@@ -1280,6 +1505,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if (isPending) btn.setAttribute('aria-current', 'true');
       else btn.removeAttribute('aria-current');
     }
+    // #8 experiment v3: the map is persistent, so refresh it unconditionally
+    // (no recursion: refreshPersistentMap never calls back here).
+    try {
+      refreshPersistentMap();
+    } catch (e) { /* map optional — list stays authoritative */ }
   }
 
   // Board taps (desktop/TV-host) and phone list taps share one path so the
@@ -1457,6 +1687,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Chained moves re-render via the following valid_moves_updated; final
     // moves clear via onCardDisposed. Clear here to avoid stale taps.
     clearMoveList();
+    // v3: the persistent map no longer hides with the list, so drop its stale
+    // options at once too (chained moves re-arm via valid_moves_updated).
+    // This also closes the double-tap window: taps need selectedValidMoves.
+    selectedValidMoves = [];
+    currentBreakableBlockades = [];
+    renderer.setBreakableBlockades([], []);
+    try { refreshPersistentMap(); } catch (e) { /* map optional */ }
 
     // Block 6: camp has no board affordance on phones, so say what happened:
     // the played card leaves the game instead of being discarded.
@@ -1491,6 +1728,7 @@ document.addEventListener('DOMContentLoaded', () => {
     clearRemovePrompt();
     exitRubblePaymentMode();
     syncDiscardButton();
+    try { refreshPersistentMap(); } catch (e) { /* map optional */ }
   };
 
   client.onTurnEnded = ({ nextPlayerId, nextPlayerName }) => {
@@ -2096,6 +2334,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     syncDiscardButton();
+    // v3: the local preview already knows the moves — light the persistent
+    // map instantly instead of waiting for the server echo (which re-renders
+    // authoritatively via onValidMoves right after).
+    try { refreshPersistentMap(); } catch (e) { /* map optional */ }
     client.playCard(instanceId);
   }
 
@@ -2139,6 +2381,9 @@ document.addEventListener('DOMContentLoaded', () => {
     renderPlayerLegend(currentPlayerId);
     cardUI.setControlsEnabled(isMe);
     syncDiscardButton();
+    // v3: turn changes re-centre/re-caption the persistent phone map (idle on
+    // my fresh turn, watching on opponents'). No-op off-phone.
+    try { refreshPersistentMap(); } catch (e) { /* map optional */ }
   }
 
   function renderPlayerLegend(currentPlayerId) {
