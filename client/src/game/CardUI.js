@@ -598,17 +598,18 @@ class CardUI {
     if (this._mode === 'market') this._updateAffordability();
   }
 
-  // Phone row thumbnail: the same PNG art hand rows show (desktop full
-  // cards render it large). 40px fits the 44px row height; missing art
-  // removes itself so rows never show a broken icon.
-  _makeRowThumb(card) {
-    const thumb = document.createElement('img');
-    thumb.className = 'market-row-thumb';
-    thumb.src = `/shared/images/${card.key}.png`;
-    thumb.alt = '';
-    thumb.loading = 'lazy';
-    thumb.addEventListener('error', () => thumb.remove());
-    return thumb;
+  // EXPERIMENT (Oct 2026): phone tile art — the full PNG portrait, nothing
+  // cropped (tiles size themselves to the 848×1264 art ratio in CSS).
+  // Missing art removes itself so tiles never show a broken icon.
+  // Revert notes in tv-phone.css experiment block.
+  _makeTileArt(card) {
+    const art = document.createElement('img');
+    art.className = 'market-tile-art';
+    art.src = `/shared/images/${card.key}.png`;
+    art.alt = '';
+    art.loading = 'lazy';
+    art.addEventListener('error', () => art.remove());
+    return art;
   }
 
   _makeMarketRowEl(card, isReserve, transmitterActive = false) {    const locked = isReserve && !transmitterActive;
@@ -622,15 +623,14 @@ class CardUI {
     const effectDesc = this._specialDescription(card.specialEffect);
     const lastCopy = !isReserve && card.remaining === 1;
 
-    // Line 1 — identical structure for every card (normal + purple special):
-    // name · [moves] · amount-left · cost · Buy. This keeps name/left/
-    // cost/Buy in the same spots so special rows line up with normal rows.
-    // Terrain reads from the row's left border (see market-phone-styles in
-    // main.js) — the old leading dot duplicated it in the same colour.
+    // Phone tile — same card language as the phone hand grid (compact header
+    // + full portrait art + buy bar). Class names stay row-compatible so
+    // _updateAffordability (cost/buy queries) works unchanged; only the
+    // layout is new (see market-phone-styles in main.js). Terrain reads from
+    // the tile header background, matching the hand tiles.
     const main = document.createElement('div');
     main.className = 'market-row-main';
     row.appendChild(main);
-    main.appendChild(this._makeRowThumb(card));
 
     const nameEl = document.createElement('span');
     nameEl.className = 'market-row-name';
@@ -638,7 +638,7 @@ class CardUI {
     main.appendChild(nameEl);
 
     // One-time-use pill — same signal as the full-card header pill, inline
-    // on line 1 so single-use market/reserve rows read at a glance.
+    // in the header so single-use tiles read at a glance.
     if (card.oneTimeUse) {
       const onceEl = document.createElement('span');
       onceEl.className = 'market-onetime-pill';
@@ -647,9 +647,8 @@ class CardUI {
       main.appendChild(onceEl);
     }
 
-    // What you're buying: movement value. Number only — the terrain emoji
-    // used to mirror the board watermark, which no longer exists (Option A);
-    // the card's terrain colour (header bar / row border) carries the link now.
+    // What you're buying: movement value. Number only — the card's terrain
+    // colour (tile header) carries the terrain link.
     if (card.movementTotal > 0) {
       const mvEl = document.createElement('span');
       mvEl.className = 'market-row-moves';
@@ -657,33 +656,11 @@ class CardUI {
       main.appendChild(mvEl);
     }
 
-    const leftEl = document.createElement('span');
-    leftEl.className = 'market-row-left';
-    // Last-copy hint: buying this empties the slot and earns a reserve pick.
-    leftEl.textContent = lastCopy
-      ? `×1 left · → reserve pick`
-      : `×${card.remaining} left`;
-    main.appendChild(leftEl);
+    // Full portrait art — nothing cropped (see _makeTileArt).
+    row.appendChild(this._makeTileArt(card));
 
-    const costEl = document.createElement('span');
-    costEl.className = 'market-row-cost';
-    costEl.textContent = transmitterActive ? 'FREE' : `💰 ${card.cost}`;
-    main.appendChild(costEl);
-
-    const buy = document.createElement('button');
-    buy.type = 'button';
-    buy.className = 'market-row-buy';
-    buy.textContent = transmitterActive ? 'Take' : 'Buy';
-    buy.disabled = locked;
-    if (!locked) {
-      buy.addEventListener('click', () => this._onMarketCardClicked(card));
-    }
-    main.appendChild(buy);
-
-    // Line 2 — only for purple specials: ℹ️ tucked right beside the short
-    // effect text on the left, far from Buy on line 1, so a fat-finger tap
-    // on details can't accidentally buy. The ℹ️ takes the slot the old
-    // leading emoji used to occupy.
+    // Purple specials: effect one-liner under the art, far from Buy in the
+    // foot bar below, so a fat-finger tap on details can't accidentally buy.
     if (effectDesc) {
       const sub = document.createElement('div');
       sub.className = 'market-row-sub';
@@ -706,6 +683,34 @@ class CardUI {
 
       row.appendChild(sub);
     }
+
+    // Buy bar: amount-left + cost + Buy on their own bottom line.
+    const foot = document.createElement('div');
+    foot.className = 'market-row-foot';
+    row.appendChild(foot);
+
+    const leftEl = document.createElement('span');
+    leftEl.className = 'market-row-left';
+    // Last-copy hint: buying this empties the slot and earns a reserve pick.
+    leftEl.textContent = lastCopy
+      ? `×1 left · → reserve pick`
+      : `×${card.remaining} left`;
+    foot.appendChild(leftEl);
+
+    const costEl = document.createElement('span');
+    costEl.className = 'market-row-cost';
+    costEl.textContent = transmitterActive ? 'FREE' : `💰 ${card.cost}`;
+    foot.appendChild(costEl);
+
+    const buy = document.createElement('button');
+    buy.type = 'button';
+    buy.className = 'market-row-buy';
+    buy.textContent = transmitterActive ? 'Take' : 'Buy';
+    buy.disabled = locked;
+    if (!locked) {
+      buy.addEventListener('click', () => this._onMarketCardClicked(card));
+    }
+    foot.appendChild(buy);
 
     return row;
   }
@@ -1004,9 +1009,9 @@ class CardUI {
     overlay.classList.remove('hidden');
   }
 
-  // Phone reserve-refill row: same two-line pattern as market rows — line 1
-  // is name (+ moves) + Choose, line 2 groups ℹ️ + the effect one-liner
-  // (full modal). Tapping ℹ️ must not choose — guarded like the desktop path.
+  // Phone reserve-refill tile: same tile pattern as market tiles — compact
+  // header + full art + Choose bar (full modal via ℹ️). Tapping ℹ️ must not
+  // choose — guarded like the desktop path.
   _makeReservePickRowEl(card, onChosen, overlay) {
     const row = document.createElement('div');
     row.className = `market-row-item reserve-pick-row terrain-${card.movementTerrain || 'empty'}`;
@@ -1016,7 +1021,6 @@ class CardUI {
     const main = document.createElement('div');
     main.className = 'market-row-main';
     row.appendChild(main);
-    main.appendChild(this._makeRowThumb(card));
 
     const nameEl = document.createElement('span');
     nameEl.className = 'market-row-name';
@@ -1038,15 +1042,8 @@ class CardUI {
       main.appendChild(mvEl);
     }
 
-    const choose = document.createElement('button');
-    choose.type = 'button';
-    choose.className = 'market-row-buy';
-    choose.textContent = 'Choose';
-    choose.addEventListener('click', () => {
-      onChosen(card.key);
-      overlay.classList.add('hidden');
-    });
-    main.appendChild(choose);
+    // Full portrait art — nothing cropped (see _makeTileArt).
+    row.appendChild(this._makeTileArt(card));
 
     const effectDesc = this._specialDescription(card.specialEffect);
     if (effectDesc) {
@@ -1069,6 +1066,20 @@ class CardUI {
 
       row.appendChild(sub);
     }
+
+    const foot = document.createElement('div');
+    foot.className = 'market-row-foot';
+    row.appendChild(foot);
+
+    const choose = document.createElement('button');
+    choose.type = 'button';
+    choose.className = 'market-row-buy';
+    choose.textContent = 'Choose';
+    choose.addEventListener('click', () => {
+      onChosen(card.key);
+      overlay.classList.add('hidden');
+    });
+    foot.appendChild(choose);
 
     return row;
   }

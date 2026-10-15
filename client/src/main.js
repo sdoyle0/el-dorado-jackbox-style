@@ -1686,62 +1686,62 @@ document.addEventListener('DOMContentLoaded', () => {
       body.view-phone #shop-slots { flex-direction: column; }
       body.view-phone .market-reserve-section { border-left: none;
         border-top: 1px solid var(--border); padding-left: 0; }
-      /* Compact rows replace card art on phone. */
-      body.view-phone .market-row-list { display: flex; flex-direction: column;
-        gap: 0.35rem; }
+      /* EXPERIMENT (Oct 2026): phone market = tile grid in the same card
+         language as the hand: compact terrain header + full portrait art +
+         buy bar, 3-across. Tabs are kept (Market default, Reserve one tap
+         away) so the buy flow stays one screen; Transmitter stacks both
+         sections as before. Revert notes in tv-phone.css experiment block. */
+      body.view-phone .market-row-list { display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem;
+        width: 100%; max-width: 34rem; margin-inline: auto; }
       body.view-phone .market-row-item { display: flex; flex-direction: column;
-        align-items: stretch; gap: 0.2rem; min-height: 44px; padding: 0.35rem 0.55rem;
+        align-items: stretch; min-width: 0; min-height: 44px; overflow: hidden;
         border: 1px solid var(--border-mid, rgba(201,162,39,0.32));
-        border-left-width: 4px;
         background: rgba(22,39,61,0.9); color: #e8e0d0; border-radius: 8px; }
-      /* Line 1: same slots for every card (name · [moves] · left · cost · Buy).
-         Line 2 (specials only): ℹ️ + effect one-liner grouped on the left,
-         clear of the Buy button above. */
-      /* Terrain colour reference: left border per card terrain (matches the
-         header-strip bars on hand/full cards). Hues are the HexRenderer
-         TERRAIN inner-face fills, not neon — one consistent mapping
-         everywhere. Wild gets a neutral light-grey edge (#b0b0b0, same as
-         the phone hand wild glow): it matches ANY terrain, so it needs a
-         visible frame that doesn't imply a single tile colour — transparent
-         read as broken/missing, and black vanishes on the dark row. */
-      body.view-phone .market-row-item.terrain-jungle { border-left-color: #347a20; }
-      body.view-phone .market-row-item.terrain-water { border-left-color: #2068b0; }
-      body.view-phone .market-row-item.terrain-village { border-left-color: #c08828; }
-      body.view-phone .market-row-item.terrain-wild { border-left-color: #b0b0b0; }
-      body.view-phone .market-row-item.terrain-empty { border-left-color: #9050e0; }
       body.view-phone .market-row-main { display: flex; align-items: center;
-        gap: 0.5rem; width: 100%; }
+        gap: 4px; width: 100%; min-width: 0; padding: 4px 5px;
+        font-size: 0.62rem; font-weight: 800; }
+      /* Terrain headers — same mapping as the hand tiles. */
+      body.view-phone .market-row-item.terrain-jungle .market-row-main { background: #0a2a0a; color: #8fe88f; }
+      body.view-phone .market-row-item.terrain-water .market-row-main { background: #041528; color: #8ab8ee; }
+      body.view-phone .market-row-item.terrain-village .market-row-main { background: #4d3a00; color: #ffe066; }
+      body.view-phone .market-row-item.terrain-wild .market-row-main { background: #0e0e0e; color: #c0c0c0; }
+      body.view-phone .market-row-item.terrain-empty .market-row-main { background: #2a0a44; color: #c8a0f0; }
+      /* Full portrait art — nothing cropped; tiles size to the 848×1264 ratio. */
+      body.view-phone .market-tile-art { display: block; width: 100%; height: auto;
+        aspect-ratio: 848 / 1264; object-fit: cover; background: #0b1420; }
       body.view-phone .market-row-sub { display: flex; align-items: center;
-        gap: 0.5rem; width: 100%; padding-left: 0; }
+        gap: 0.4rem; width: 100%; padding: 2px 5px; }
       body.view-phone .market-row-sub .market-row-effect { flex: 1 1 auto; min-width: 0; }
       /* Movement value: what the card does for green/blue/yellow. */
-      body.view-phone .market-row-moves { font-weight: 800; font-size: 0.9rem;
-        white-space: nowrap; flex-shrink: 0; }
+      body.view-phone .market-row-moves { font-weight: 800; font-size: 0.85rem;
+        white-space: nowrap; flex-shrink: 0; margin-left: auto; }
       body.view-phone .market-row-item.can-afford {
         box-shadow: 0 0 0 2px #3adf3a, 0 2px 10px rgba(58,223,58,0.2); }
       body.view-phone .market-row-item.cant-afford { opacity: 0.7; }
-      body.view-phone .market-row-name { font-weight: 700; font-size: 0.85rem;
+      body.view-phone .market-row-name { font-weight: 800; font-size: 0.62rem; flex: 1 1 auto;
+        min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      body.view-phone .market-row-effect { font-size: 0.6rem; color: #9aabbf;
         white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      body.view-phone .market-row-effect { font-size: 0.7rem; color: #9aabbf; }
-      /* Push amount-left/cost/Buy to the right so line 1 lines up whether or
-         not the card has a moves value or a line-2 effect. */
-      body.view-phone .market-row-left { font-size: 0.68rem; color: #9aabbf;
-        white-space: nowrap; margin-left: auto; flex-shrink: 0; }
-      body.view-phone .market-row-cost { font-size: 0.8rem; font-weight: 800;
+      /* Buy bar: amount-left + cost + Buy on their own bottom line. */
+      body.view-phone .market-row-foot { display: flex; align-items: center;
+        justify-content: space-between; gap: 0.3rem; width: 100%;
+        padding: 5px 6px 6px; margin-top: auto; }
+      body.view-phone .market-row-left { font-size: 0.62rem; color: #9aabbf;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 1; min-width: 0; }
+      body.view-phone .market-row-cost { font-size: 0.72rem; font-weight: 800;
         color: #ffd700; white-space: nowrap; flex-shrink: 0; }
       /* .card-info-btn is absolute-positioned for full cards (main.css) —
-         rows need it back in normal flow, or it floats above its row.
-         On line 2 it stays compact so the extra-info row doesn't bloat. */
-      body.view-phone .market-row-main .market-row-buy { margin-left: 0; }
-      body.view-phone .reserve-pick-row .market-row-main .market-row-buy { margin-left: auto; }
+         tiles need it back in normal flow inside the effect line. */
       body.view-phone .market-row-sub .market-row-info { position: static; min-width: 32px; min-height: 32px;
         display: inline-grid; place-items: center; font-size: 1rem;
         cursor: pointer; flex-shrink: 0; }
-      body.view-phone .market-row-buy { min-height: 44px; padding: 0.5rem 0.9rem;
+      body.view-phone .market-row-buy { min-height: 44px; padding: 0.5rem 0.7rem;
         border: 1px solid var(--gold-mid, #c9a227); background: #2a4a2a;
-        color: #fff; border-radius: 6px; font-size: 0.85rem; font-weight: 700;
+        color: #fff; border-radius: 6px; font-size: 0.8rem; font-weight: 700;
         cursor: pointer; flex-shrink: 0; }
       body.view-phone .market-row-buy:disabled { opacity: 0.35; cursor: not-allowed; }
+      body.view-phone .reserve-pick-row .market-row-buy { flex: 1 1 auto; }
       /* Pool audit chips under the header. */
       body.view-phone #pool-chips { display: flex; flex-wrap: wrap; gap: 0.3rem;
         padding: 0.35rem 0; }
@@ -1752,18 +1752,16 @@ document.addEventListener('DOMContentLoaded', () => {
         background: rgba(201,162,39,0.15); color: #ffe066; font-size: 0.75rem;
         font-weight: 600; cursor: pointer; }
       body.view-phone .pool-chip-x { font-weight: 800; }
-      /* Market/reserve row thumbnails: same PNG art as hand rows, cropped
-         to the 44px row height. */
-      body.view-phone .market-row-thumb { width: 40px; height: 40px; flex: none;
-        border-radius: 8px; object-fit: cover;
-        border: 1px solid rgba(255,255,255,0.18);
-        background: rgba(0,0,0,0.3); }
+      /* Full portrait art in market + reserve tiles (see _makeTileArt). */
+      body.view-phone .market-row-thumb { display: none; }
       /* Pooling rule reminder under the header (one static line). */
       body.view-phone #pool-rule { flex: none; }
       body.view-phone #reserve-picker-box { max-height: 86dvh; overflow-y: auto;
         -webkit-overflow-scrolling: touch; }
-      body.view-phone #reserve-cards { flex-direction: column; }
-      body.view-phone #reserve-cards .market-row-item { width: 100%; }
+      body.view-phone #reserve-cards { display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem;
+        width: 100%; max-width: 34rem; margin-inline: auto; }
+      body.view-phone #reserve-cards .market-row-item { width: auto; }
       body.view-phone .card-info-modal-close { min-height: 44px; }
     `;
     document.head.appendChild(style);

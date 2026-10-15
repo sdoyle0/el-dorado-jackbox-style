@@ -363,21 +363,36 @@ body.view-phone #player-hand-ui {
   gap: 0.5rem;
 }
 
-/* ── Phone hand: vertical full-width rows, not a squeezed 4-across strip ──
-   Desktop .card-btn is a fixed 140px art card with a 0.74rem header — on a
-   400px phone that crams 4 across and clips the movement value. Phone rows
-   stack vertically: name + large movement stat always visible, art hidden. */
+/* ── EXPERIMENT (Oct 2026): phone 4-across hand + market-open chips ──────
+    Decision: hand tiles 4-across full-art; while the market is open the hand
+    collapses to imageless compact chips (wallet mode) and swaps back on
+    close. Market tiles stay 3-across with tabs (Option D).
+    Files in this experiment: tv-phone.css (this block + market-open chips
+    block below), client/src/main.js (market-phone-styles tile grid),
+    client/src/game/CardUI.js (tile DOM: _makeTileArt, _makeMarketRowEl,
+    _makeReservePickRowEl). No server/shared changes.
+    REVERT: commit this slice on its own so revert = `git revert <hash>`;
+    without a commit, `git stash`/`git checkout -- <files above>` returns to
+    full-width rows. */
 /* Hand stacks from the top (no flex growth pushing buttons away); long
    hands scroll inside the list so the action buttons stay reachable. */
+/* ── Phone hand: 4-across full-art tile grid, same card language as the ──
+    phone market (compact terrain header + uncropped portrait art). 4 cards =
+    one row; 6–8 card draw hands wrap to a second row. Tiles are fluid
+    (minmax(0,1fr) + min-width:0 chain) and the grid is width-capped so
+    narrow-desktop viewports scale the same as phones instead of ballooning. */
 body.view-phone #hand-cards {
   order: 0;
   margin-right: 0;
+  margin-inline: auto;
+  width: 100%;
+  max-width: 34rem;
   min-height: 0;
   flex: none;
-  max-height: 46dvh;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
+  max-height: 60dvh;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-content: start;
   overflow-x: hidden;
   overflow-y: auto;
   gap: 0.5rem;
@@ -386,25 +401,42 @@ body.view-phone #hand-cards {
 
 body.view-phone #hand-cards .card-btn {
   width: 100%;
-  min-height: 60px;
+  min-width: 0;
+  min-height: 44px;
   flex-shrink: 0;
   flex-direction: column;
   align-items: stretch;
-  animation: none;
+  border-radius: 10px;
+  overflow: hidden;
 }
 
-/* Art column hidden on phone rows: it caused the tall-card / clipped-header
-   squeeze and adds nothing tappable. Terrain colour on the header remains. */
+/* Full portrait art — the tile sizes itself to the 848×1264 ratio, so
+   nothing is ever cropped (head to boots, unlike the old square thumbs). */
 body.view-phone #hand-cards .card-body-area {
-  display: none;
+  display: flex;
+  order: 2;
+  min-width: 0;
+  padding: 0;
+  background: #0b1420;
+}
+
+body.view-phone #hand-cards .card-body-area img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 848 / 1264;
+  object-fit: cover;
+  border-radius: 0;
 }
 
 body.view-phone #hand-cards .card-header-strip {
+  order: 1;
+  min-width: 0;
+  overflow: hidden;
   height: auto;
-  min-height: 60px;
-  padding: 0.55rem 0.7rem;
-  font-size: 1rem;
-  gap: 0.6rem;
+  min-height: 0;
+  padding: 3px 4px;
+  font-size: 0.6rem;
+  gap: 3px;
 }
 
 body.view-phone #hand-cards .card-name {
@@ -416,55 +448,65 @@ body.view-phone #hand-cards .card-name {
   text-align: left;
 }
 
-/* Movement value: never shrink, never clip — the whole point of the row. */
+/* Movement value: compact badge pinned at the header's end. */
 body.view-phone #hand-cards .card-stat-line {
   flex-shrink: 0;
   margin-left: auto;
-  font-size: 1.45rem;
+  font-size: 0.8rem;
   font-weight: 800;
   white-space: nowrap;
 }
 
-/* Purple reminder lives inside the header row (right of the name) so the
-   row keeps its 60px height. It inherits the header's purple background —
-   no separate band. The block line below the header is desktop-only. */
+/* Purple reminder as a sub-line under the art (order 3, after the body),
+   so narrow headers never truncate it. The old header-inline reminder is
+   hidden — at 3-across it stole the name's room. Desktop keeps both. */
 body.view-phone #hand-cards .card-effect-line {
-  display: none;
-}
-body.view-phone #hand-cards .card-effect-inline {
-  display: inline;
-  flex: 0 1 auto;
-  min-width: 0;
+  display: block;
+  order: 3;
+  font-size: 0.55rem;
+  padding: 2px 4px 4px;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-  text-align: left;
-  font-size: 0.78rem;
-  font-weight: 500;
-  line-height: 1.25;
-  opacity: 0.75;
+}
+body.view-phone #hand-cards .card-effect-inline {
+  display: none;
 }
 
-/* ℹ️ stays tappable without covering the movement stat: vertically centred
-   in a reserved gutter, only on cards that have one. The reservation lives
-   on the header strip (the terrain-coloured surface) rather than the button
-   itself — .card-btn is transparent, so button-level padding opened an
-   unpainted gutter around the icon on purple/info cards. */
+/* Single-use signpost on tiles is the red badge over the art (bottom-left,
+   already in the DOM) — the header pill would crowd the narrow header, so
+   it stays desktop-only. */
+body.view-phone #hand-cards .card-onetime-pill {
+  display: none;
+}
+
+/* ℹ️ floats over the art's top-right (below the header), while the red
+   single-use badge keeps the bottom-left — on single-use purple cards
+   (Transmitter, Compass) both overlays exist and must never stack. */
 body.view-phone #hand-cards .card-btn:has(.card-info-btn) .card-header-strip {
-  padding-right: 52px;
+  padding-right: 5px;
 }
 
 body.view-phone #hand-cards .card-info-btn {
   position: absolute;
-  top: 50%;
+  top: 30px;
   bottom: auto;
   right: 4px;
-  transform: translateY(-50%);
+  transform: none;
   min-width: 44px;
   min-height: 44px;
   display: inline-grid;
   place-items: center;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+}
+
+/* Single-use badge over the art's bottom-left, compact for narrow tiles. */
+body.view-phone #hand-cards .card-onetime-line {
+  left: 6px;
+  bottom: 6px;
+  font-size: 0.55rem;
+  padding: 3px 5px;
 }
 
 /* Pool chips under the header (audit strip) need no gutter work here. */
@@ -634,9 +676,59 @@ body.view-phone.market-open #player-hand-ui {
 body.view-phone.market-open #hand-cards {
   flex: 0 1 auto;
   min-height: 0;
-  max-height: 50dvh;
+  max-height: 54dvh;
   overflow-y: auto;
   overflow-x: hidden;
+}
+
+/* ── EXPERIMENT: market-open compact chips (wallet mode) ────────────────
+    While buying, the hand is just the wallet: imageless single-column chips
+    so the market sheet owns the screen (the full-tile hand hogged half of it
+    and read as equal priority to the market). Tapping still pools — same
+    .in-pool pink states, same ≥44px targets, same delegated handler. The
+    swap is a single class switch (CardUI.openMarket/closeMarket toggles
+    body.market-open), so close restores tiles with nothing per-card to undo.
+    ℹ️ hides in wallet mode (pooling needs no rules text; details are one
+    Close-tap away). Purple one-liners hide with the art for the same reason.
+    REVERT: delete this block and the hand stays 4-across tiles in market
+    (pooling still works, sheet just gets less room). */
+body.view-phone.market-open #hand-cards {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.4rem;
+  max-height: 40dvh;
+}
+body.view-phone.market-open #hand-cards .card-btn {
+  border-radius: 8px;
+}
+body.view-phone.market-open #hand-cards .card-body-area,
+body.view-phone.market-open #hand-cards .card-effect-line,
+body.view-phone.market-open #hand-cards .card-info-btn,
+body.view-phone.market-open #hand-cards .card-onetime-line {
+  display: none;
+}
+body.view-phone.market-open #hand-cards .card-header-strip {
+  min-height: 44px;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.85rem;
+  gap: 0.5rem;
+}
+body.view-phone.market-open #hand-cards .card-stat-line {
+  min-width: 30px;
+  height: 30px;
+  font-size: 0.95rem;
+}
+
+/* ── EXPERIMENT follow-up: pool-chips strip removed (phone) ────────────
+    The pooled-cards audit chips above the market duplicated what the wallet
+    already shows (pink .in-pool highlight per card + "N pooled" in the live
+    total) while popping in/out caused a layout shift and ate sheet space.
+    _renderPoolChips() still runs harmlessly into a hidden container.
+    !important beats the injected #market-phone-styles display:flex (that
+    <style> lands after stylesheets, same as the hand-chrome hides above).
+    REVERT: delete this block. */
+body.view-phone #pool-chips,
+body.view-phone #pool-chips.hidden {
+  display: none !important;
 }
 
 /* ── Phone debug bar: permanent in-flow sticky strip, not an overlay ─────
@@ -677,13 +769,15 @@ body.view-phone #debug-toggle-btn {
 }
 
 /* ── Phone hand richness (slice 6b, phones) ───────────────────────────────
-   The phone hand was pure utility next to the finished lobby/board. These
-   rules dress rows in the same light language — gradient wash, glowing
-   terrain edge, TV-rhyming stat badges, deal motion, art thumbnails — with
-   no row-height, order, or touch-target changes (paint + transform only). */
+    These rules dress tiles in the same light language — gradient wash,
+    TV-rhyming stat badges, deal motion — with no layout or touch-target
+    changes (paint + transform only). The old glowing leading edge was
+    removed (see follow-up block below): the fully-tinted header + the
+    edgeless market tiles made it redundant. */
 
-/* Terrain glow: gradient wash over the terrain base, glowing leading edge.
-   Inset shadows paint without layout — borders would squeeze the 60px row. */
+/* Terrain glow: gradient wash over the terrain base. (The glowing leading
+   edge used to live here as inset shadows — removed: borders would squeeze
+   narrow tiles and the tint already carries terrain. See follow-up below.) */
 body.view-phone #hand-cards .card-header-strip {
   background-image: linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(0,0,0,0.20) 100%);
 }
@@ -703,19 +797,32 @@ body.view-phone #hand-cards .card-btn.terrain-empty .card-header-strip {
   box-shadow: inset 3px 0 0 #a070f0, inset 0 1px 0 rgba(255,255,255,0.14);
 }
 
+/* ── EXPERIMENT follow-up: no left-edge treatments on phone tiles ───────
+    The tile header is already fully terrain-tinted, so the main.css hue bar
+    (border-left) and the glow edge above only duplicated the signal in a
+    clashing shade — and the market tiles never had either, hence the
+    inconsistency. Keep the gradient wash + top light; drop both edges.
+    Double-id specificity beats both source rules regardless of order.
+    Desktop keeps its treatments (out of scope).
+    REVERT: delete this block. */
+body.view-phone #player-hand-ui #hand-cards .card-btn .card-header-strip {
+  border-left: none;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.14);
+}
+
 /* Movement stat as a badge — rhymes with the TV's numbered destination
-   badges (dark disc, light ring). 40px fits the 60px row with padding. */
+    badges (dark disc, light ring). 24px fits the 4-across tile header. */
 body.view-phone #hand-cards .card-stat-line {
   background: rgba(0,0,0,0.55);
-  border: 2px solid rgba(255,255,255,0.85);
+  border: 1.5px solid rgba(255,255,255,0.85);
   border-radius: 50%;
-  min-width: 40px;
-  height: 40px;
-  padding: 0 4px;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 2px;
 }
 
 /* Deal motion: subtle staggered slide-in (renderHand still staggers via
-   inline animation-delay). Replaces the flat `animation: none` above. */
+   inline animation-delay). */
 body.view-phone #hand-cards .card-btn {
   animation: phone-row-in 0.3s ease backwards;
 }
@@ -729,21 +836,14 @@ body.view-phone #hand-cards .card-btn {
   }
 }
 
-/* Art thumbnails: the PNG art already ships (desktop body), phone just hid
-   the whole body column. A 44px crop rides in the header strip inside the
-   existing 60px row height. Hidden everywhere but phone hand rows. */
+/* The header thumbnail is retired: the tile shows the full portrait below,
+   so a 44px crop in the narrow header would only crowd the name. The PNG
+   art still ships (desktop body + phone tile body). Hidden on phone tiles. */
 .card-thumb {
   display: none;
 }
 body.view-phone #hand-cards .card-thumb {
-  display: block;
-  flex: none;
-  width: 44px;
-  height: 44px;
-  border-radius: 8px;
-  object-fit: cover;
-  border: 1px solid rgba(255,255,255,0.18);
-  background: rgba(0,0,0,0.3);
+  display: none;
 }
 
 /* Gold turn language: End Turn goes lobby-gold when it's tappable, matching
