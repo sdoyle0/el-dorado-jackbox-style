@@ -480,11 +480,15 @@ body.view-phone #hand-cards .card-onetime-pill {
   display: none;
 }
 
-/* ℹ️ floats over the art's top-right (below the header), while the red
-   single-use badge keeps the bottom-left — on single-use purple cards
-   (Transmitter, Compass) both overlays exist and must never stack. */
+/* ℹ️ lives in the effect sub-line under the art (full-width row: icon +
+   one-liner), in normal flow — never floating over the portrait. The old
+   floating overlay (44px invisible hit area on top of the art) swallowed
+   most taps: the glyph looked tiny or invisible, yet the modal opened
+   everywhere except the header edge. Native was reported first; every
+   special card shared the bug. Sub-line placement keeps the icon always
+   visible and the whole art + header tappable for play. */
 body.view-phone #hand-cards .card-btn:has(.card-info-btn) .card-header-strip {
-  padding-right: 5px;
+  padding-right: 4px;
 }
 
 body.view-phone #hand-cards .card-info-btn {
@@ -499,6 +503,36 @@ body.view-phone #hand-cards .card-info-btn {
   place-items: center;
   font-size: 1.1rem;
   text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+}
+
+/* Phone tiles use the effect-sub-line ℹ️ (full-width row under the art),
+   not the header one: narrow 4-across headers keep name + movement badge
+   readable, and the icon gets its own tappable row instead of covering art.
+   Higher specificity than the legacy absolute rule above, so static wins. */
+body.view-phone #hand-cards .card-header-strip .card-info-header {
+  display: none;
+}
+body.view-phone #hand-cards .card-effect-line {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+body.view-phone #hand-cards .card-effect-line .card-info-line {
+  position: static;
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  min-width: 28px;
+  min-height: 28px;
+  font-size: 0.85rem;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+}
+body.view-phone #hand-cards .card-effect-line .card-effect-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Pool chips under the header (audit strip) need no gutter work here. */

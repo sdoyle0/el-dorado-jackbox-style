@@ -1205,6 +1205,10 @@ body.view-phone .market-onetime-pill {
 }
 
 /* ── Card info button ─────────────────────────────────────────────────────── */
+/* Legacy floating placement (kept so any out-of-header ℹ️ still shows above
+   art). Hand + desktop market cards now render the button in-flow inside
+   .card-header-strip (see .card-info-header below) so it never covers the
+   playable portrait. */
 .card-info-btn {
   position: absolute;
   bottom: 10px;
@@ -1218,6 +1222,30 @@ body.view-phone .market-onetime-pill {
 .card-info-btn:hover {
   transform: scale(1.25);
   background: rgba(255,255,255,0.2);
+}
+/* In-header ℹ️ (hand + desktop market/reserve full cards): static flex item
+   pinned after the movement badge — always visible, never over the art, so
+   art/effect taps always reach the card. Compact by design: the header also
+   carries name (+ badge), so the button stays glyph-sized with a modest
+   hover grow instead of a 44px overlay. */
+.card-btn .card-header-strip .card-info-btn,
+.market-card .card-header-strip .card-info-btn {
+  position: static;
+  flex-shrink: 0;
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  min-height: 22px;
+  font-size: 13px;
+  line-height: 1;
+  border-radius: 6px;
+  z-index: auto;
+}
+/* Phone variant lives inside the effect sub-line (see tv-phone.css) — never
+   rendered on desktop: the block line itself is display:none here, and this
+   keeps any stray line-icon out of the header flow. */
+.card-btn .card-effect-line .card-info-line {
+  display: none;
 }
 
 /* ── Card info modal ──────────────────────────────────────────────────────── */

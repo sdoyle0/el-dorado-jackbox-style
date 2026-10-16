@@ -731,6 +731,9 @@ class CardUI {
          </div>` : '';
 
     const effectDesc = this._specialDescription(card.specialEffect);
+    // Phone tiles show the one-liner as a sub-line under the art with the ℹ️
+    // inline (see .card-info-line) — full width, no header crowding, art
+    // untouched. Desktop hides the block line and uses the header ℹ️.
     const effectLine = effectDesc
       ? `<div class="card-effect-line">${effectDesc}</div>` : '';
     // Phone hand rows are single-line: the same one-liner lives inside the
@@ -753,19 +756,38 @@ class CardUI {
 
     const fullDesc = this._specialFullDescription(card.specialEffect);
 
-    const infoBtn  = fullDesc
-      ? `<span class="card-info-btn" data-effect="${card.specialEffect}" title="Details">ℹ️</span>` : '';
+    // Info button placement (no art overlay anywhere). The old floating ℹ️
+    // over the portrait put a 44px invisible hit area on top of the play
+    // target: on narrow phone tiles most taps landed on the transparent
+    // padding around the tiny glyph, so the details modal opened even though
+    // no icon was visible, and only header-edge taps played the card. Native
+    // was reported first, but every special card (Transmitter, Cartographer,
+    // Compass, Scientist, Travel Log, Native) shares this factory and the bug.
+    // Two in-flow homes, one per view (CSS shows exactly one):
+    //   desktop → header strip after the badge (140px cards, room to spare);
+    //   phone   → inside the effect sub-line under the art (full-width row,
+    //           so narrow 4-across headers keep name + badge readable).
+    // Art + header (minus the icon itself) always reach the card. Phone
+    // wallet mode hides both (pooling needs no details; see tv-phone.css).
+    const infoAttrs = fullDesc
+      ? `data-effect="${card.specialEffect}" title="Details" role="button" aria-label="${card.cardName} details"` : '';
+    const infoHeader = fullDesc
+      ? `<span class="card-info-btn card-info-header" ${infoAttrs}>ℹ️</span>` : '';
+    const infoLine = fullDesc
+      ? `<span class="card-info-btn card-info-line" ${infoAttrs}>ℹ️</span>` : '';
+    const effectLineWithInfo = effectDesc
+      ? `<div class="card-effect-line">${infoLine}<span class="card-effect-text">${effectDesc}</span></div>` : '';
 
     btn.innerHTML = `
-      ${infoBtn}
       <div class="card-header-strip">
         <img class="card-thumb" src="/shared/images/${card.key}.png" alt="" loading="lazy" onerror="this.style.display='none'">
         <span class="card-name">${card.cardName}</span>
         ${effectInline}
         ${oneTimePill}
         ${movesLine}
+        ${infoHeader}
       </div>
-      ${effectLine}
+      ${effectLineWithInfo}
       <div class="card-body-area">
         ${cardImage}
       </div>`;
