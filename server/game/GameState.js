@@ -16,8 +16,8 @@ class GameStateManager {
     this.transmitterActive = false;
     this.pendingReserveSlot = null;
     // Rulebook p4: "You can buy up to 1 card per turn." Enforced
-    // server-side; cleared on every endTurn. Transmitter free picks go
-    // through purchaseCard too, so they count as the 1.
+    // server-side; cleared on every endTurn. Transmitter free takes are
+    // NOT purchases, so they neither check nor set this flag.
     this.purchasedThisTurn = false;
     // ── Final-round tracking ──────────────────────────────────────────────────
     this.finalRoundTriggered = false;
@@ -401,9 +401,15 @@ class GameStateManager {
   }
 
   // ── Purchase a card from the market ───────────────────────────────────────
+  // Rulebook: Transmitter ("take any expedition card without paying for it")
+  // is NOT a purchase — it neither consumes nor counts toward the 1 buy per
+  // turn (rulebook p4). It goes through purchaseCard only as a transport
+  // (same market overlay), so the two paths split here:
+  //   - transmitterActive → free take: no power check, no pooled cards, no
+  //     purchasedThisTurn set/check, no shop replenish (no market slide).
+  //   - otherwise → normal buy: 1 per turn, power check, lock set.
   purchaseCard(playerId, cardKey, handCardsUsed = [], cardMarket) {
     if (!this._isCurrentPlayer(playerId)) return { ok: false, error: 'not your turn' };
-    if (this.purchasedThisTurn) return { ok: false, error: 'already purchased this turn' };
     // Purchases happen before/after movement, never mid-card. The played
     // card stays in hand until disposed, so without this guard it would
     // still resolve as purchase cash (Issue 2). Transmitter is unaffected:
@@ -426,28 +432,54 @@ class GameStateManager {
       return { ok: false, error: 'invalid hand cards' };
     }
 
-    let power = spentCards.reduce((sum, c) => sum + (c.purchasingPower ?? 0), 0);
-    if (this.transmitterActive) power += TRANSMITTER_PURCHASE_POWER;
+    // ── Transmitter free take (not a purchase) ──────────────────────────
+    if (this.transmitterActive) {
+      // Free means free — pooling cards alongside the take would silently
+      // waste them (old code added +20 AND spent the pool). Force the
+      // free pick to resolve first; the normal buy stays available after.
+      if (handCardsUsed.length > 0) {
+        return { ok: false, error: 'transmitter take is free — take your free card first' };
+      }
+      let card = cardMarket.getCard(cardKey, false);
+      let fromReserve = false;
+      if (!card) {
+        card = cardMarket.getCard(cardKey, true);
+        fromReserve = true;
+      }
+      if (!card) return { ok: false, error: 'card not in market' };
 
-    let card = cardMarket.getCard(cardKey, false);
-    let fromReserve = false;
-    if (!card && this.transmitterActive) {
-      card = cardMarket.getCard(cardKey, true);
-      fromReserve = true;
+      const taken = cardMarket.buyCard(cardKey, fromReserve);
+      if (!taken) return { ok: false, error: 'card sold out' };
+      player.discardPile.push(taken);
+
+      this.transmitterActive = false;
+      // NOTE: purchasedThisTurn untouched, and no reserve replenish prompt
+      // — a free take causes no market slide (BGG ruling).
+
+      this.emit('card_purchased', { playerId, cardKey, viaTransmitter: true });
+      this.emit('hand_updated', { playerId, hand: player.hand });
+      this.emit('market_updated', { market: cardMarket.getShopState() });
+      this.emit('purchase_closed', { playerId, viaTransmitter: true });
+      return { ok: true };
     }
+
+    if (this.purchasedThisTurn) return { ok: false, error: 'already purchased this turn' };
+
+    const power = spentCards.reduce((sum, c) => sum + (c.purchasingPower ?? 0), 0);
+
+    const card = cardMarket.getCard(cardKey, false);
     if (!card) return { ok: false, error: 'card not in market' };
     if (power < card.cost) return { ok: false, error: `need ${card.cost} power, have ${power}` };
 
     for (const c of spentCards) player.playCard(c.instanceId);
 
-    const purchased = cardMarket.buyCard(cardKey, fromReserve);
+    const purchased = cardMarket.buyCard(cardKey, false);
     if (!purchased) return { ok: false, error: 'card sold out' };
     player.discardPile.push(purchased);
 
     this.purchasedThisTurn = true;
-    this.transmitterActive = false;
 
-    if (!fromReserve && cardMarket.shopCardSoldOut(cardKey)) {
+    if (cardMarket.shopCardSoldOut(cardKey)) {
       const available = cardMarket.getAvailableReserve();
       if (available.length > 0) {
         this.pendingReserveSlot = cardKey;

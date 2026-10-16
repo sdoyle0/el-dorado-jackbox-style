@@ -208,8 +208,12 @@ class CardUI {
   _handleMarketPoolClick(instanceId, btn) {
     // 1-buy-per-turn lock: hand taps do nothing while locked (the market
     // explains why via the open toast + locked total line) instead of
-    // pooling into dead Buy buttons.
+    // pooling into dead Buy buttons. Transmitter free takes bypass the
+    // lock (see _onMarketCardClicked/_updateAffordability), but pooling
+    // itself stays disabled there — the take is free, so pooled cards
+    // would only be silently wasted.
     if (this._purchaseLocked) return;
+    if (this._transmitterBonus > 0) return;
     const card = this._currentHand.find(c => c.instanceId === instanceId);
     if (!card) return;
 
@@ -809,6 +813,13 @@ class CardUI {
   }
 
   _onMarketCardClicked(card) {
+    // Transmitter free take is NOT a purchase — it bypasses the 1-buy lock
+    // in both directions (take-then-buy and buy-then-take both work). It is
+    // always free, so no pooling and no power check.
+    if (this._transmitterBonus > 0) {
+      this.onMarketCard?.({ cardKey: card.key, handCardsUsed: [] });
+      return;
+    }
     if (this._purchaseLocked) {
       if (this.totalEl) {
         this.totalEl.style.color = '#e74c3c';
@@ -845,6 +856,12 @@ class CardUI {
   // True while the buyer is pooling (overlay visible in market mode).
   isMarketOpen() {
     return this._mode === 'market' && !this.marketEl.classList.contains('hidden');
+  }
+
+  // Transmitter free take pending (server purchase_opened bonus). Main.js
+  // uses this to bypass the 1-buy lock for the free pick.
+  isTransmitterTakeActive() {
+    return this._transmitterBonus > 0;
   }
 
   _updatePurchaseTotal() {
@@ -894,9 +911,10 @@ class CardUI {
   }
 
   _updateAffordability() {
-    // 1-buy-per-turn lock overrides affordability — including FREE
-    // Transmitter rows (NaN cost → always enabled below).
-    if (this._purchaseLocked) {
+    // 1-buy-per-turn lock overrides affordability — but NOT Transmitter
+    // free takes (rulebook: the take is not a purchase, so a prior buy
+    // must not lock it, and it must not lock a later buy).
+    if (this._purchaseLocked && !(this._transmitterBonus > 0)) {
       this.shopEl.querySelectorAll('.market-card-wrapper:not(.empty):not(.reserve-locked)').forEach(wrapper => {
         wrapper.classList.toggle('cant-afford', true);
         wrapper.classList.toggle('can-afford', false);

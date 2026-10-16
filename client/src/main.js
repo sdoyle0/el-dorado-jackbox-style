@@ -1544,8 +1544,10 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   cardUI.onMarketCard = ({ cardKey, handCardsUsed }) => {
     // Rulebook p4: 1 buy per turn (server enforces; this just saves a
-    // round-trip and explains why the Buy buttons went dead).
-    if (hasPurchasedThisTurn) {
+    // round-trip and explains why the Buy buttons went dead). Transmitter
+    // free takes are not purchases, so they bypass the lock — CardUI
+    // already sends them with an empty pool.
+    if (hasPurchasedThisTurn && !cardUI.isTransmitterTakeActive()) {
       showToast('Only 1 card per turn — already bought this turn.', { icon: '💰', type: 'info', duration: 2500 });
       return;
     }
@@ -2155,21 +2157,24 @@ document.addEventListener('DOMContentLoaded', () => {
   // GameClient exposes no card_purchased hook, so listen on the raw socket
   // (main.js only — no GameClient.js change). Gives phones a confirmation
   // toast/log for own and opponent purchases.
-  socket.on('card_purchased', ({ playerId, cardKey } = {}) => {
+  socket.on('card_purchased', ({ playerId, cardKey, viaTransmitter } = {}) => {
     playSfx('buy');
     const buyer = allPlayers.find(p => p.id === playerId);
     const buyerName = buyer?.name || 'Someone';
     const pretty = (cardKey || 'card').replace(/_/g, ' ');
     if (playerId === client.playerId) {
-      hasPurchasedThisTurn = true;
-      cardUI.setPurchaseLocked(true);
-      showToast(`Purchased ${pretty}!`, { icon: '💰', type: 'accent' });
-      log(`You purchased ${pretty}.`, 'purchase');
+      // Transmitter free takes are not purchases — no 1-buy lock.
+      if (!viaTransmitter) {
+        hasPurchasedThisTurn = true;
+        cardUI.setPurchaseLocked(true);
+      }
+      showToast(viaTransmitter ? `Transmitter took ${pretty}!` : `Purchased ${pretty}!`, { icon: '💰', type: 'accent' });
+      log(viaTransmitter ? `Transmitter took ${pretty}.` : `You purchased ${pretty}.`, 'purchase');
     } else {
       // Phones hide the log, so purchases need a toast — otherwise nobody
       // notices the market changed behind the scenes.
-      showToast(`${buyerName} bought ${pretty}.`, { icon: '💰', type: 'info' });
-      log(`${buyerName} purchased ${pretty}.`, 'purchase');
+      showToast(viaTransmitter ? `${buyerName} took ${pretty} (Transmitter).` : `${buyerName} bought ${pretty}.`, { icon: '💰', type: 'info' });
+      log(viaTransmitter ? `${buyerName} took ${pretty} (Transmitter).` : `${buyerName} purchased ${pretty}.`, 'purchase');
     }
   });
 
