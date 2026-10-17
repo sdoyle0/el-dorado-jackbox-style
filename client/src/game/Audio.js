@@ -1,15 +1,18 @@
 // client/src/game/Audio.js
 //
-// Slice 6c: procedural SFX + generative jungle-ambient background music.
-// No audio assets — the LAN party is offline, so everything is synthesized
-// with WebAudio (oscillators + envelopes only, no samples, no dependencies).
+// Slice 6c: procedural SFX + MP3 background track.
+// SFX are synthesized with WebAudio (oscillators + envelopes only, no
+// samples, no dependencies — the LAN party is offline so SFX stay local).
+// Music is a vendored loop at client/assets/background.mp3, played through
+// a looping <audio> element (gapless enough for a first pass; swap the file
+// later for a seamless-loop mastered version).
 //
 // Usage (main.js owns all calls; this module never touches game state):
 //   ElDoradoAudio.unlock()            — call on first user gesture (autoplay
 //                                       policy blocks sound before one)
 //   ElDoradoAudio.sfx('move'|...)     — one-shot UI sounds (no-ops safely)
 //   ElDoradoAudio.startMusic()        — begin the ambient loop (idempotent)
-//   ElDoradoAudio.stopMusic()         — end it (pads ring out naturally)
+//   ElDoradoAudio.stopMusic()         — end it
 //   ElDoradoAudio.setMuted(bool)      — persisted to localStorage
 //   ElDoradoAudio.isMuted() / hasStoredPref()
 //
@@ -18,6 +21,8 @@
 // be chaos, so main.js defaults phones to muted (still one tap to unmute).
 (function () {
   const MUTE_KEY = 'eldorado-muted';
+  const MUSIC_SRC = 'assets/background.mp3';
+  const MUSIC_VOLUME = 0.35;
 
   let ctx = null;
   let master = null;
@@ -25,14 +30,10 @@
   let sfxBus = null;
   let muted = false;
   let musicOn = false;
-  let musicTimer = null;
-  // Music loop state: PARKED for now — the generative loop wasn't landing
-  // (retune 1 read as "drawn-out tones", arguably worse than the organ).
-  // Blind timbre iteration (no ears on the output) converges too slowly, so
-  // the loop is off while SFX stay live. Come back with either vendored
-  // royalty-free loops or a better generative design; everything below is
-  // intact — setMusicEnabled(true) brings it back.
-  let MUSIC_ENABLED = false;
+  // File-backed loop: enabled by default. setMusicEnabled(false) parks it
+  // (same escape hatch the old generative loop had, for tests / settings).
+  let MUSIC_ENABLED = true;
+  let bgAudio = null;
 
   try {
     muted = localStorage.getItem(MUTE_KEY) === '1';
@@ -71,6 +72,9 @@
 
   function unlock() {
     ac();
+    // Autoplay policy: the first play() often rejects until a gesture.
+    // Every tap retries while music was requested.
+    updatePlayback();
   }
 
   // enveloped oscillator blip; `when` offsets into the future for arpeggios.
@@ -120,95 +124,49 @@
     } catch (_) { /* sound must never break gameplay */ }
   }
 
-  // ── Generative music: expedition-ambient loop ─────────────────────────────
-  // Slow Am – F – C – G swells (soft sine stacks through an airy lowpass,
-  // root drone an octave down), a quiet frame-drum heartbeat (3 soft thumps
-  // per 8s), plus 2–4 sparse pentatonic plucks per chord on a loose rhythm.
-  // Quiet, endless, no two loops identical. Pads are fire-and-forget
-  // oscillators (stop themselves). Retuned away from triangle-pad organ
-  // territory: sines + drone + drum carry the expedition feel.
-  const CHORDS = [
-    [220.0, 261.6, 329.6], // Am
-    [174.6, 220.0, 261.6], // F
-    [261.6, 329.6, 392.0], // C
-    [196.0, 246.9, 293.7], // G
-  ];
-  const PENTA = [440.0, 523.3, 587.3, 659.3, 784.0, 880.0];
-  const CHORD_SECS = 8;
-  let chordIdx = 0;
-
-  function padChord(freqs) {
-    const c = ac();
-    if (!c) return;
-    const t = c.currentTime;
-    const filt = c.createBiquadFilter();
-    filt.type = 'lowpass';
-    filt.frequency.value = 1200;
-    const g = c.createGain();
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.linearRampToValueAtTime(0.5, t + 2.5);
-    g.gain.setValueAtTime(0.5, t + CHORD_SECS - 2);
-    g.gain.linearRampToValueAtTime(0.0001, t + CHORD_SECS + 1);
-    filt.connect(g);
-    g.connect(musicBus);
-    freqs.forEach((f) => {
-      [-5, 5].forEach((det) => {
-        const o = c.createOscillator();
-        o.type = 'sine';
-        o.frequency.value = f;
-        o.detune.value = det;
-        o.connect(filt);
-        o.start(t);
-        o.stop(t + CHORD_SECS + 1.2);
-      });
-    });
-    // Expedition drone: chord root an octave down, same swell.
-    const drone = c.createOscillator();
-    drone.type = 'sine';
-    drone.frequency.value = freqs[0] / 2;
-    drone.connect(filt);
-    drone.start(t);
-    drone.stop(t + CHORD_SECS + 1.2);
-  }
-
-  // Frame-drum heartbeat: soft low thumps, same pattern every loop so the
-  // ear has something steady to hold (pads + plucks drift around it).
-  function drumbeats() {
-    [0, 3, 5.5].forEach((w) => {
-      tone({ freq: 72, freqEnd: 44, dur: 0.28, gain: 0.22, when: w, bus: musicBus });
-    });
-  }
-
-  function tick() {
-    if (muted) return;
-    if (!ac()) return;
-    padChord(CHORDS[chordIdx % CHORDS.length]);
-    chordIdx += 1;
-    drumbeats();
-    // Plucks on a loose rhythm (even-ish spacing + human jitter) instead of
-    // fully random scatter — reads as melody, not stray notes.
-    const n = 2 + Math.floor(Math.random() * 3);
-    for (let i = 0; i < n; i++) {
-      const f = PENTA[Math.floor(Math.random() * PENTA.length)];
-      const when = 1 + (i * (CHORD_SECS - 2)) / n + (Math.random() * 0.5 - 0.25);
-      tone({ freq: f, dur: 1.4, type: 'triangle', gain: 0.12, when, bus: musicBus });
+  // ── Background music: vendored MP3 loop ─────────────────────────────────
+  // client/assets/background.mp3 served same-origin (LAN-safe, no CDN).
+  // <audio loop> is gapless enough for a first pass; if the loop clicks,
+  // remaster the file with a seamless tail — no code change needed.
+  function ensureTrack() {
+    if (bgAudio) return bgAudio;
+    try {
+      const a = new Audio(MUSIC_SRC);
+      a.loop = true;
+      a.preload = 'auto';
+      a.volume = MUSIC_VOLUME;
+      bgAudio = a;
+      return a;
+    } catch (_) {
+      return null;
     }
+  }
+
+  function updatePlayback() {
+    if (!bgAudio) return;
+    if (!MUSIC_ENABLED || !musicOn || muted) {
+      try { bgAudio.pause(); } catch (_) { /* silent */ }
+      return;
+    }
+    try {
+      bgAudio.muted = false;
+      bgAudio.volume = MUSIC_VOLUME;
+      const p = bgAudio.play();
+      if (p && typeof p.catch === 'function') p.catch(() => { /* autoplay blocked — unlock() retries */ });
+    } catch (_) { /* sound must never break gameplay */ }
   }
 
   function startMusic() {
     if (!MUSIC_ENABLED) return;
-    if (musicOn) return;
-    if (!ac()) return;
+    if (!ensureTrack()) return;
     musicOn = true;
-    tick();
-    musicTimer = setInterval(tick, CHORD_SECS * 1000);
+    updatePlayback();
   }
 
   function stopMusic() {
     musicOn = false;
-    if (musicTimer !== null) {
-      clearInterval(musicTimer);
-      musicTimer = null;
+    if (bgAudio) {
+      try { bgAudio.pause(); } catch (_) { /* silent */ }
     }
   }
 
@@ -218,17 +176,25 @@
       localStorage.setItem(MUTE_KEY, muted ? '1' : '0');
     } catch (_) { /* preference lost — sound state still applies */ }
     if (master) master.gain.value = muted ? 0 : 1;
+    updatePlayback();
   }
 
   function isMuted() {
     return muted;
   }
 
-  // Parked-loop switch (see MUSIC_ENABLED above). Exposed so the loop stays
-  // testable and a future settings UI can revive it without code changes.
+  // Kill-switch (see MUSIC_ENABLED above). Exposed so the loop stays
+  // testable and a future settings UI can toggle it without code changes.
   function setMusicEnabled(on) {
     MUSIC_ENABLED = !!on;
-    if (!MUSIC_ENABLED) stopMusic();
+    if (!MUSIC_ENABLED) {
+      musicOn = false;
+      if (bgAudio) {
+        try { bgAudio.pause(); } catch (_) { /* silent */ }
+      }
+    } else {
+      updatePlayback();
+    }
   }
 
   window.ElDoradoAudio = {
