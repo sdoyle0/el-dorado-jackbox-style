@@ -228,6 +228,10 @@ class CardUI {
       btn.classList.add('in-pool');
     }
     this._updatePurchaseTotal();
+    // Public seam for the tutorial (and anything else that needs to react
+    // to pooling) — fires only when a click actually changed the pool,
+    // never when the purchase lock / transmitter guard swallowed it.
+    this.onPoolChanged?.(instanceId);
   }
 
   _handleRubblePoolClick(instanceId, btn) {
@@ -408,6 +412,12 @@ class CardUI {
 
   openMarketWithBonus(totalPurchasePower) {
     this.openMarket(totalPurchasePower);
+  }
+
+  // Public seam for the tutorial: switch between the Market and Reserve
+  // tabs without reaching into the private _changeMarketView.
+  changeMarketView(isReserve) {
+    this._changeMarketView(isReserve);
   }
 
   _changeMarketView(isReserve) {

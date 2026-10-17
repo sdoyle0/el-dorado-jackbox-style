@@ -830,17 +830,22 @@ class HexRenderer {
   // animate: uses smooth scroll behaviour
   // Block 7 TV polish: default punch-in zoom raised 2.0 → 2.4 so a focused
   // tile fills more of a living-room screen. Display-only, no rules change.
+  //
+  // Returns a Promise that resolves once the pan/zoom has settled, so
+  // callers (the tutorial) can read getBoundingClientRect() of the target
+  // tiles without racing the smooth scroll. Resolves immediately when
+  // there is nothing to do.
   zoomToTiles(tileIds, { animate = true, maxZoom = 2.4 } = {}) {
-    if (!tileIds || tileIds.length === 0) return;
+    if (!tileIds || tileIds.length === 0) return Promise.resolve();
 
     const inner = this._getScrollInner();
-    if (!inner) return;
+    if (!inner) return Promise.resolve();
 
     const entries = tileIds
       .map(id => this.tileEls.get(id))
       .filter(Boolean);
 
-    if (entries.length === 0) return;
+    if (entries.length === 0) return Promise.resolve();
 
     // ── 1. Set zoom ───────────────────────────────────────────────────────
     if (!inner.dataset.naturalWidth) {
@@ -858,7 +863,7 @@ class HexRenderer {
       const svgW = Math.max(...centers.map(c => c.cx)) - Math.min(...centers.map(c => c.cx)) + HEX_R * 4;
       const svgH = Math.max(...centers.map(c => c.cy)) - Math.min(...centers.map(c => c.cy)) + HEX_R * 4;
       const vb = this.svg.viewBox.baseVal;
-      if (!vb || vb.width === 0) return;
+      if (!vb || vb.width === 0) return Promise.resolve();
       const pxPerUnitX = naturalW / vb.width;
       const pxPerUnitY = naturalH / vb.height;
       const container = this._scrollContainer;
@@ -889,12 +894,76 @@ class HexRenderer {
     // scrollIntoView reads layout.
     void inner.offsetWidth;
 
-    requestAnimationFrame(() => {
-      closest.g.scrollIntoView({
-        behavior: animate ? 'smooth' : 'instant',
-        block: 'center',
-        inline: 'center',
+    return new Promise(resolve => {
+      requestAnimationFrame(() => {
+        closest.g.scrollIntoView({
+          behavior: animate ? 'smooth' : 'instant',
+          block: 'center',
+          inline: 'center',
+        });
+        // Smooth-scroll duration is browser- and distance-dependent, so
+        // callers must wait for settle rather than guessing a timeout.
+        this._waitForScrollSettle(animate ? 1500 : 300).then(resolve);
       });
+    });
+  }
+
+  // Resolve when the board container (and the document, in case
+  // scrollIntoView scrolled an ancestor too) has stopped scrolling.
+  // Preferred signal is the scrollend event; fallback polls scroll offsets
+  // until they hold still for a few frames. A hard timeout guarantees the
+  // promise always settles on browsers with neither.
+  _waitForScrollSettle(timeoutMs = 1500) {
+    return new Promise(resolve => {
+      const scroller = this._getScrollInner() && this._scrollContainer;
+      if (!scroller) { resolve(); return; }
+
+      let done = false;
+      let frames = 0;
+      let stable = 0;
+      let rafId = 0;
+      let timerId = 0;
+      const listeners = [];
+
+      const snapshot = () => [
+        scroller.scrollLeft, scroller.scrollTop,
+        window.scrollX || 0, window.scrollY || 0,
+      ];
+      let last = snapshot();
+
+      const cleanup = () => {
+        done = true;
+        if (rafId) cancelAnimationFrame(rafId);
+        if (timerId) clearTimeout(timerId);
+        for (const [target, type, fn] of listeners) target.removeEventListener(type, fn);
+        listeners.length = 0;
+      };
+      const finish = () => { if (done) return; cleanup(); resolve(); };
+
+      timerId = setTimeout(finish, timeoutMs);
+
+      if (typeof window !== 'undefined' && 'onscrollend' in window) {
+        for (const target of [scroller, document]) {
+          const fn = () => finish();
+          target.addEventListener('scrollend', fn);
+          listeners.push([target, 'scrollend', fn]);
+        }
+      }
+
+      const poll = () => {
+        if (done) return;
+        frames++;
+        const now = snapshot();
+        const moved = now.some((v, i) => v !== last[i]);
+        last = now;
+        if (moved) stable = 0;
+        // Require a grace period before trusting stability, so a scroll
+        // animation that hasn't started moving yet isn't mistaken for done.
+        else if (frames > 6) stable++;
+        if (stable >= 3) { finish(); return; }
+        rafId = requestAnimationFrame(poll);
+      };
+      rafId = requestAnimationFrame(poll);
     });
   }
 
