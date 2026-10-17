@@ -1252,10 +1252,10 @@ class CardUI {
     const cardWord = this._rubbleNeeded === 1 ? 'card' : 'cards';
     const destLine = (this._rubbleDestLabel != null && this._rubbleDestCost != null)
       ? (isCamp
-        ? `Entering ${this._rubbleDestLabel} — camp ×${this._rubbleDestCost}: trash ${this._rubbleNeeded} ${cardWord}. Your turn continues with new cards.`
+        ? `Entering ${this._rubbleDestLabel} — camp ×${this._rubbleDestCost}: your played card is trashed. Your turn continues with new cards.`
         : `Crossing to ${this._rubbleDestLabel} — rubble ×${this._rubbleDestCost}, you stop here.`)
       : (isCamp
-        ? `Camp — trash ${this._rubbleNeeded} ${cardWord}. Your turn continues with new cards.`
+        ? `Camp — your played card is trashed. Your turn continues with new cards.`
         : `Cost ${this._rubbleNeeded + 1} rubble — you stop here.`);
 
     const prompt = document.createElement('div');
@@ -1273,12 +1273,12 @@ class CardUI {
     prompt.appendChild(dest);
 
     // Committed-card note: rubble's mover pays entry, extras pay the
-    // remainder; camp's mover pays nothing — extras are trashed to enter.
+    // remainder; camp's mover is trashed along with any extras.
     const nameNote = document.createElement('div');
     nameNote.className = 'rubble-committed-note';
     nameNote.style.cssText = 'font-size:.8rem;color:#e8e0d0;margin-top:.15rem;';
     if (this._tollKind === 'camp') {
-      nameNote.textContent = `Pick ${this._rubbleNeeded} ${cardWord} of any type to trash — your played card is spent like normal.`;
+      nameNote.textContent = `Your played card will be trashed. Pick ${this._rubbleNeeded} more ${cardWord} to trash.`;
     } else if (this._rubbleExcludeName) {
       const lock = document.createElement('span');
       lock.className = 'rubble-committed-card';

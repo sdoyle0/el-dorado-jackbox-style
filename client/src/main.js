@@ -822,8 +822,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!selectedValidMoves.includes(tileId)) return;
     const tile = clientBoard.getTile(tileId);
     const isToll = tile?.terrainType === 'rubble' && tile.movementCost > 1;
-    // Rulebook p3 + p6: camp entry trashes N hand cards and movement
-    // continues. Native ignores the requirement and moves directly.
+    // Rulebook p3 + p6: camp entry trashes N cards total (mover + extras)
+    // and movement continues. Native ignores the requirement and moves directly.
     const isNativeMover = selectedCard?.specialEffect === 'native';
     const isCampToll = tile?.terrainType === 'camp' && !isNativeMover;
     if (rubblePendingTileId) {
@@ -842,7 +842,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       if (isCampToll) {
         rubblePendingTileId = tileId;
-        rubbleCardsNeeded = tile.movementCost ?? 1;
+        rubbleCardsNeeded = (tile.movementCost ?? 1) - 1;
         cardUI.updateCampTarget(rubbleCardsNeeded, { label: destLabelFor(tileId), cost: tile.movementCost });
         markPendingRubbleDest(tileId);
         log(`⛺ Camp switched: ${destLabelFor(tileId)} (camp ×${tile.movementCost}) — pick ${rubbleCardsNeeded} card(s) to trash. Your turn continues.`, 'system');
@@ -858,7 +858,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (isCampToll) {
       rubblePendingTileId = tileId;
-      rubbleCardsNeeded = tile.movementCost ?? 1;
+      rubbleCardsNeeded = (tile.movementCost ?? 1) - 1;
       cardUI.enterCampPaymentMode(rubbleCardsNeeded, selectedCard?.instanceId, () => {
         const cardIds = cardUI.getRubblePaymentCards();
         client.moveToCamp(tileId, cardIds);

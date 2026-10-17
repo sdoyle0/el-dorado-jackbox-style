@@ -123,13 +123,12 @@ class HexBoard {
     }
 
     // Rulebook p3 + p6 example (Anne's turn): camp entry trashes N cards
-    // from hand (N = symbols) and movement continues with other cards.
-    // The mover itself is never the trashed card, so a mover in flight needs
-    // at least N *other* cards in hand. Native ignores the requirement.
+    // total (N = symbols) and movement continues with other cards. The
+    // mover is one of the trashed cards. Native ignores the requirement.
     if (terrain === _ElDoradoBoardDeps.TerrainType.CAMP) {
       if (playedCard.specialEffect === _ElDoradoBoardDeps.CardEffect.NATIVE) return true;
       if (movesRemaining < 1) return false;
-      return handSize >= cost + 1;
+      return handSize >= cost;
     }
 
     const enoughMoves = cost <= movesRemaining;

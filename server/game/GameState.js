@@ -362,10 +362,10 @@ class GameStateManager {
   }
 
   // ── Move pawn onto a camp tile (rulebook p3 + p6) ─────────────────────────
-  // Camp entry trashes `cost` cards from hand (all camps cost 1 on the
-  // current map). The mover is spent like normal and the turn continues
-  // with new cards — only the extras are trashed. Native ignores the
-  // requirement and must use plain move_pawn instead.
+  // Camp entry trashes `cost` cards total (all camps cost 1 on the current
+  // map). The mover is one of the trashed cards — it is removed from the
+  // game along with any extras. The turn continues with new cards. Native
+  // ignores the requirement and must use plain move_pawn instead.
   movePawnToCamp(playerId, tileId, extraCardIds = []) {
     if (!this._isCurrentPlayer(playerId)) return { ok: false, error: 'not your turn' };
     if (this.state !== GS.AWAITING_MOVE) return { ok: false, error: 'wrong state' };
@@ -379,16 +379,12 @@ class GameStateManager {
     if (this.playedCardData && this.playedCardData.specialEffect === CardEffect.NATIVE) {
       return { ok: false, error: 'native ignores camp requirements — move directly' };
     }
-    const needed = tile.movementCost ?? 1;
+    const needed = (tile.movementCost ?? 1) - 1;
 
-    // Extras are trashed (removed from game), never the in-flight mover.
     if (extraCardIds.length !== needed) {
       return { ok: false, error: `camp requires trashing ${needed} card(s), got ${extraCardIds.length}` };
     }
     if (new Set(extraCardIds).size !== extraCardIds.length) {
-      return { ok: false, error: 'invalid hand cards' };
-    }
-    if (this.playedCardData && extraCardIds.includes(this.playedCardData.instanceId)) {
       return { ok: false, error: 'invalid hand cards' };
     }
 
@@ -400,6 +396,7 @@ class GameStateManager {
     }
 
     for (const card of extraCards) player.removeCardPermanently(card.instanceId);
+    if (this.playedCardData) player.removeCardPermanently(this.playedCardData.instanceId);
 
     player.currentTileId = tileId;
     this.emit('pawn_moved', { playerId, tileId });
@@ -419,7 +416,8 @@ class GameStateManager {
 
         if (isLastPlayerOfRound) {
           this.state = GS.GAME_OVER;
-          this._disposeFinishedCard(player);
+          this.playedCardData = null;
+          this.movesRemaining = 0;
           this.emit('game_won', this._gameWonPayload());
           return { ok: true };
         }
@@ -430,15 +428,18 @@ class GameStateManager {
         });
       }
 
-      this._disposeFinishedCard(player);
+      this.playedCardData = null;
+      this.movesRemaining = 0;
       this.endTurn(playerId);
       return { ok: true };
     }
 
-    // Like rubble, the mover is spent (discarded — or trashed if it is a
-    // one-time-use card) and any leftover is lost. The turn continues: the
-    // player may play new cards. Only the extras are trashed.
-    this._disposeFinishedCard(player);
+    // The mover is trashed (removed from game) and the turn continues: the
+    // player may play new cards.
+    this.playedCardData = null;
+    this.movesRemaining = 0;
+    this.state = GS.AWAITING_CARD;
+    this.emit('card_disposed', { playerId: player.id });
     return { ok: true };
   }
 
