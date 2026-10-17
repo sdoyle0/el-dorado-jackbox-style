@@ -1917,6 +1917,7 @@ body.view-phone .market-onetime-pill {
   inset: 0;
   margin: auto;
   width: fit-content;
+  max-width: calc(100vw - 32px);
   height: fit-content;
   max-height: calc(100vh - 250px - 48px); /* viewport minus hand minus some breathing room */
   display: flex;
@@ -1954,6 +1955,12 @@ body.view-phone .market-onetime-pill {
   min-height: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  /* overflow-y:auto forces overflow-x to compute to auto (CSS spec), so
+     #shop-slots clips in both directions. The can-afford green outline is a
+     2px box-shadow on .market-card-wrapper that extends outside the
+     wrapper's border box — without this padding it gets clipped at the
+     scroll-container edge on top/bottom/left. 2px matches the shadow spread. */
+  padding: 2px;
 }
 
 #card-market.hidden { animation: none; }
