@@ -15,6 +15,7 @@ file is now the single future-features list.
 
 | # | Feature | Complexity (1-5, effort) | Value (1-5, to game) | Status |
 |---|---------|--------------------------|----------------------|--------|
+| 9 | **Tutorial playthrough repair** | 2-3 — client-only (`Tutorial.js`, CSS) | 5 — first impression for every new player; currently misleading | ⬜ **HIGH PRIORITY** — zoom/highlight broken, market/reserve steps don't display |
 | 4 | Rubble-toll UX revisit | 2 — client-only (`main.js`, `CardUI.js`) | 4 — fixes live tester confusion | ✅ Done (`41cb736`; Option B only if two-phase model still confuses) |
 | 5 | Multiple map layouts | 3 — per-map JSON + seams + picker, `loadMap` already generic | 4.5 — biggest replayability win, no rule risk | ⬜ Open — suggested next |
 | 1 | Two-pawn duel (2P) | 4.5 — win logic, occupancy, per-card picker on all views | 3.5 — only matters for 2P games | ⬜ Open — high cost, defer |
@@ -38,6 +39,7 @@ file is now the single future-features list.
 
 ## Left for future sessions
 
+0. **#9 Tutorial playthrough repair** (HIGH PRIORITY) — zoom targets wrong tiles or none; some later steps (market, reserve) don't show at all. Unknown if built on different monitor dimensions or broken by intervening changes. Details below.
 1. **#5 Multiple map layouts** (suggested next) — only rulebook layout built; transcribe more arrangements + room-level picker + confirm blockade pool per layout.
 2. **Music loop revisit** — parked behind `setMusicEnabled` in `client/src/game/Audio.js`. Either vendor royalty-free seamless loops (MP3+OGG under `client/`, `<audio loop>`, keep mute wiring) or re-attempt generative with ears on it. Feel keywords: hand drums + kalimba, minor pentatonic, 80–90 BPM, no vocals.
 3. **Purchase fly-to-discard** — needs a discard-pile element in the UI first (nothing to fly to today).
@@ -242,3 +244,28 @@ the two screens; remove the bridge and the problem goes away.
   unless playtesting says the orientation loss is worse than the tap cost.
 - Start at: `client/src/main.js` (`renderMoveList`, `moveLabelFor`),
   `client/src/game/HexRenderer.js` (`setValidMoves`, TERRAIN fills).
+
+## 9. Tutorial playthrough repair (HIGH PRIORITY)
+
+The self-contained tutorial (`client/src/game/Tutorial.js`) is significantly
+broken. Reported symptoms:
+- Most zoom-and-highlight steps never highlight the correct tiles, or don't
+  highlight at all.
+- Later steps that try to highlight market or reserve cards don't show anything.
+- Unknown root cause: may have been built on a monitor with different dimensions,
+  or intervening changes (board rendering, CSS, market UI) broke it over time.
+
+Why high priority: this is the first thing every new player sees. A broken
+tutorial teaches wrong mechanics and creates a bad first impression.
+
+Scope: client-only. The tutorial module is self-contained (no server calls
+beyond fetching `mapData.json`). Likely fixes involve:
+- `zoomToTiles` targeting / coordinate math
+- `_spotlightTiles` reading stale or incorrect `getBoundingClientRect()` values
+- Market/reserve steps referencing DOM selectors that no longer exist or render
+  differently
+- Possible CSS changes to `#tutorial-screen` overlay or spotlight hole
+
+Start at: `client/src/game/Tutorial.js` (`_buildSteps`, `_spotlightTiles`,
+  `zoomToTiles` calls), `client/src/styles/tutorial.css`, and
+  `client/src/game/HexRenderer.js` (`zoomToTiles` implementation).
