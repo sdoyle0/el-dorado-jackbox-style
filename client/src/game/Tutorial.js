@@ -39,10 +39,19 @@ const TUTORIAL_BLOCKADES = (() => {
   return seam ? [{ ...seam, terrainType: 'jungle' }] : [];
 })();
 
-// ── Tutorial hand: the REAL 8-card starter deck ─────────────────────────────
-// Matches STARTER_DECK_TEMPLATE (3 Explorer / 1 Sailor / 4 Traveler) so the
-// Starting Deck step's copy is true and the hand matches the real game.
-const TUTORIAL_HAND = window.ElDoradoCards?.buildStarterDeck?.() ?? [];
+// ── Tutorial hand: a curated 4-card demo hand ───────────────────────────────
+// A real turn shows 4 cards, and an 8-card fixture reads as "my hand will
+// look like this" — which it never will. Pull one Explorer, two Travelers
+// and one Sailor out of the real starter deck so the player still sees
+// every card type (and step 12's deck copy stays about the deck, not the
+// hand). Built from the real card definitions so stats can't drift.
+const TUTORIAL_HAND = (() => {
+  const deck = window.ElDoradoCards?.buildStarterDeck?.() ?? [];
+  const want = ['explorer-0', 'traveler-0', 'traveler-1', 'sailor-0'];
+  return want
+    .map(instanceId => deck.find(c => c.instanceId === instanceId))
+    .filter(Boolean);
+})();
 
 class Tutorial {
   constructor({ renderer, cardUI }) {
@@ -253,9 +262,17 @@ class Tutorial {
   // reposition it beside the hole — trying below/right/above/left and
   // picking whichever placement covers the least hole area. Falls back to
   // the best partial overlap when the hole leaves no clear band.
-  _keepCalloutClearOfHole(hole) {
+  // The originally requested position is always tried first, so steps
+  // that already fit keep their intended placement.
+  _keepCalloutClearOfHole(hole, preferred = 'above') {
     const callout = this._calloutEl;
+    // The callout glides to its new spot via the CSS top/left transition —
+    // reading it mid-flight reports the animated (wrong) position, which
+    // can hide a real overlap. Measure the resting rect instead.
+    const prevTransition = callout.style.transition;
+    callout.style.transition = 'none';
     const cr = callout.getBoundingClientRect();
+    callout.style.transition = prevTransition;
     if (cr.width === 0 || cr.height === 0) return;
 
     const overlaps = (r) => !(
@@ -270,7 +287,8 @@ class Tutorial {
     };
 
     let best = null;
-    for (const pos of ['below', 'right', 'above', 'left']) {
+    const alternates = ['below', 'above', 'right', 'left'].filter(p => p !== preferred);
+    for (const pos of [preferred, ...alternates]) {
       const { top, left } = this._computeCalloutPosNearRect(hole, pos);
       const rect = { left, top, right: left + cr.width, bottom: top + cr.height };
       const score = overlapArea(rect);
@@ -300,13 +318,27 @@ class Tutorial {
     const selectors = Array.isArray(target) ? target : [target];
     let el = null;
     for (const selector of selectors) {
-      el = document.querySelector(selector);
+      // try/catch: fallback selectors may use :has(), which older engines
+      // reject at parse time — skip to the next selector instead of dying.
+      try { el = document.querySelector(selector); } catch (_) { el = null; }
       if (el) break;
     }
 
     if (!el) {
       console.warn(`[Tutorial] anchor target not found (${selectors.join(' | ')}) — callout stays centered.`);
       return;
+    }
+
+    // The market panel (#shop-slots) is its own scroll container, and
+    // reserve cards live below its fold — measuring them where they would
+    // be (rather than where they are) puts the hole half over the shop
+    // window and half over the map. Pull the target into view inside its
+    // scrollable ancestors first; 'nearest' is a no-op when already
+    // visible, and instant means the rect below is already final.
+    try {
+      el.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' });
+    } catch (_) {
+      el.scrollIntoView(); // very old browsers: no options object
     }
 
     const rect = el.getBoundingClientRect();
@@ -317,16 +349,52 @@ class Tutorial {
 
     const padding = 8;
 
-    // Show the spotlight hole over the element
+    // Clamp the hole to each scrollable ancestor and to the viewport, so
+    // a tall target (e.g. a reserve card) hanging below a panel's fold —
+    // or past the screen edge — only highlights its visible part instead
+    // of spilling onto whatever lies outside the panel.
+    let hole = {
+      top: rect.top - padding,
+      left: rect.left - padding,
+      right: rect.right + padding,
+      bottom: rect.bottom + padding,
+    };
+    for (let p = el.parentElement; p; p = p.parentElement) {
+      const style = getComputedStyle(p);
+      if (!/(auto|scroll)/.test(style.overflow + style.overflowY + style.overflowX)) continue;
+      const pr = p.getBoundingClientRect();
+      hole = {
+        top: Math.max(hole.top, pr.top),
+        left: Math.max(hole.left, pr.left),
+        right: Math.min(hole.right, pr.right),
+        bottom: Math.min(hole.bottom, pr.bottom),
+      };
+    }
+    hole = {
+      top: Math.max(hole.top, 0),
+      left: Math.max(hole.left, 0),
+      right: Math.min(hole.right, window.innerWidth),
+      bottom: Math.min(hole.bottom, window.innerHeight),
+    };
+    if (hole.right <= hole.left || hole.bottom <= hole.top) {
+      console.warn(`[Tutorial] anchor target is fully outside its scroll container (${selectors.join(' | ')}) — callout stays centered.`);
+      return;
+    }
+
+    // Show the spotlight hole over the (visible part of the) element
     this._holeEl.style.display = 'block';
-    this._holeEl.style.top = (rect.top - padding) + 'px';
-    this._holeEl.style.left = (rect.left - padding) + 'px';
-    this._holeEl.style.width = (rect.width + padding * 2) + 'px';
-    this._holeEl.style.height = (rect.height + padding * 2) + 'px';
+    this._holeEl.style.top = hole.top + 'px';
+    this._holeEl.style.left = hole.left + 'px';
+    this._holeEl.style.width = (hole.right - hole.left) + 'px';
+    this._holeEl.style.height = (hole.bottom - hole.top) + 'px';
     this._backdropEl.style.display = 'none';
 
-    // Position the callout adjacent to the element
+    // Position the callout adjacent to the element, then — when viewport
+    // clamping would slam it on top of the highlight (short screens, a
+    // target pinned near an edge) — nudge it to the clearest side, same
+    // as board-spotlight steps use.
     this._positionCalloutNearRect(rect, position);
+    this._keepCalloutClearOfHole(hole, position);
   }
 
   // Compute the clamped top/left for placing the callout next to a rect.
@@ -799,7 +867,14 @@ class Tutorial {
         body: 'Notice some cards carry a red <strong>1×&nbsp;USE</strong> badge — in your hand, in the market, and in the reserve. When you play one, it is removed from the game and will not be reshuffled into your deck.',
         onEnter: () => {
           this.cardUI.changeMarketView(true);
+          // Anchor to the whole CARD that carries the badge (not the 30px
+          // pill): clearer highlight, and a target big enough that viewport
+          // clamping can't slam the callout onto it on short screens.
+          // :has() selectors first, plain pill selectors as old-engine
+          // fallbacks; desktop card then phone row.
           this._anchorCalloutToElement([
+            '#shop-slots .market-reserve-section .card-btn:has(.card-onetime-pill)',
+            '#shop-slots .market-reserve-section .market-row-item:has(.market-onetime-pill)',
             '#shop-slots .market-reserve-section .card-onetime-pill',
             '#shop-slots .market-reserve-section .market-onetime-pill',
           ], 'above');

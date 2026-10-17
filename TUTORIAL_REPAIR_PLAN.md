@@ -48,6 +48,24 @@ steps + interactions + exit cleanup + restart) and at 390×844
 (`?view=phone`, steps 19–24 anchor to compact rows; zero console warnings
 in both).
 
+**Follow-up round (2026-10-17, after playtest feedback):**
+- Demo hand is a curated **4 cards** (1 Explorer / 2 Travelers / 1 Sailor,
+  pulled from the real `buildStarterDeck()` definitions) — an 8-card hand
+  read as "my hand will look like this", which it never will. Step 12's
+  copy is about the *deck*, so it stays as-is.
+- `_anchorCalloutToElement` now: (a) `scrollIntoView({block:'nearest'})`
+  the target inside its scrollable ancestors before measuring, (b) clamps
+  the hole to those ancestors' folds + the viewport so tall reserve cards
+  can't spill the highlight outside the shop window, (c) nudges the
+  callout clear of the hole with the requested position tried first —
+  measuring the callout with its CSS transition briefly disabled, since
+  mid-flight `getBoundingClientRect()` hid real overlaps.
+- Step 24 anchors to the whole card carrying the `1× USE` badge
+  (`:has()` selectors with plain-pill fallbacks) instead of the 30px pill,
+  so the highlight and callout placement survive short viewports.
+- Re-verified at 1920×1080, 1920×850 (reproduced the original
+  callout-over-pill collision there first), and 390×844 phone.
+
 **Agreed process (from prior session):**
 - Analysis was read-only until fixes were agreed. Fixes are then made in
   **one round + one commit** — not drip-fed.
