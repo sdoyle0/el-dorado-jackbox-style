@@ -455,6 +455,11 @@ class GameRoom {
     if (!result.ok) this.io.to(socketId).emit('action_error', { message: result.error });
   }
 
+  handleMoveToCamp(socketId, tileId, extraCardIds) {
+    const result = this.gameState.movePawnToCamp(socketId, tileId, extraCardIds);
+    if (!result.ok) this.io.to(socketId).emit('action_error', { message: result.error });
+  }
+
   handleCancelCard(socketId) {
     const result = this.gameState.cancelCard(socketId);
     if (!result.ok) this.io.to(socketId).emit('action_error', { message: result.error });

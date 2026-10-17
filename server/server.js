@@ -169,6 +169,11 @@ io.on('connection', (socket) => {
     if (room) room.handleMoveToRubble(socket.id, tileId, extraCardIds);
   });
 
+  socket.on('move_to_camp', ({ tileId, extraCardIds }) => {
+    const room = gameManager.getRoomForSocket(socket.id);
+    if (room) room.handleMoveToCamp(socket.id, tileId, extraCardIds);
+  });
+
   socket.on('break_blockade', ({ blockadeId }) => {
     const room = gameManager.getRoomForSocket(socket.id);
     if (room) room.handleBreakBlockade(socket.id, blockadeId);

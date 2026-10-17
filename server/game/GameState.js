@@ -215,6 +215,18 @@ class GameStateManager {
       return { ok: false, error: 'rubble toll: use extra cards to cross' };
     }
 
+    // Rulebook p3 + p6: camp entry trashes N hand cards (N = symbols);
+    // the mover is spent like normal and the turn continues with new
+    // cards. Only Native (ignores requirements) may enter via plain
+    // move_pawn; everything else goes through move_to_camp.
+    if (tile && tile.terrainType === TerrainType.CAMP) {
+      const isNative = this.playedCardData
+        && this.playedCardData.specialEffect === CardEffect.NATIVE;
+      if (!isNative) {
+        return { ok: false, error: 'camp: choose cards to trash' };
+      }
+    }
+
     player.currentTileId = tileId;
     this.emit('pawn_moved', { playerId, tileId });
 
@@ -254,8 +266,9 @@ class GameStateManager {
       // Cost-2+ rubble is rejected above; cost-1 ends movement (like blockades).
       this.movesRemaining = 0;
     } else if (terrain === TerrainType.CAMP) {
-      this.movesRemaining = 0;
-      this.playedCardData.oneTimeUse = true;
+      // Only reachable by Native bypass (see above) — it ignores the trash
+      // requirement, spends 1 move like a normal step, and continues.
+      this.movesRemaining -= cost;
     } else {
       if (this.playedCardData.movementTerrain === TerrainType.WILD && !this.wildCardTerrain) {
         this.wildCardTerrain = terrain;
@@ -344,6 +357,87 @@ class GameStateManager {
       return { ok: true };
     }
 
+    this._disposeFinishedCard(player);
+    return { ok: true };
+  }
+
+  // ── Move pawn onto a camp tile (rulebook p3 + p6) ─────────────────────────
+  // Camp entry trashes `cost` cards from hand (all camps cost 1 on the
+  // current map). The mover is spent like normal and the turn continues
+  // with new cards — only the extras are trashed. Native ignores the
+  // requirement and must use plain move_pawn instead.
+  movePawnToCamp(playerId, tileId, extraCardIds = []) {
+    if (!this._isCurrentPlayer(playerId)) return { ok: false, error: 'not your turn' };
+    if (this.state !== GS.AWAITING_MOVE) return { ok: false, error: 'wrong state' };
+    if (!this.validMoves.includes(tileId)) return { ok: false, error: 'invalid move' };
+
+    const player = this.currentPlayer;
+    const tile = this.board.getTile(tileId);
+    if (!tile || tile.terrainType !== TerrainType.CAMP) {
+      return { ok: false, error: 'not a camp tile' };
+    }
+    if (this.playedCardData && this.playedCardData.specialEffect === CardEffect.NATIVE) {
+      return { ok: false, error: 'native ignores camp requirements — move directly' };
+    }
+    const needed = tile.movementCost ?? 1;
+
+    // Extras are trashed (removed from game), never the in-flight mover.
+    if (extraCardIds.length !== needed) {
+      return { ok: false, error: `camp requires trashing ${needed} card(s), got ${extraCardIds.length}` };
+    }
+    if (new Set(extraCardIds).size !== extraCardIds.length) {
+      return { ok: false, error: 'invalid hand cards' };
+    }
+    if (this.playedCardData && extraCardIds.includes(this.playedCardData.instanceId)) {
+      return { ok: false, error: 'invalid hand cards' };
+    }
+
+    const extraCards = extraCardIds
+      .map(id => player.hand.find(c => c.instanceId === id))
+      .filter(Boolean);
+    if (extraCards.length !== needed) {
+      return { ok: false, error: `camp requires trashing ${needed} card(s), got ${extraCards.length}` };
+    }
+
+    for (const card of extraCards) player.removeCardPermanently(card.instanceId);
+
+    player.currentTileId = tileId;
+    this.emit('pawn_moved', { playerId, tileId });
+
+    // A camp finishing tile (none on the current map, but future maps may
+    // have one) follows the normal final-round flow — record the finisher
+    // instead of ending outright so blockade tiebreaks still apply.
+    if (tile.isFinishing) {
+      this._recordFinisher(playerId);
+      this._relocateFinisher(player);
+
+      const isLastPlayerOfRound = this.currentPlayerIndex === this.players.length - 1;
+
+      if (!this.finalRoundTriggered) {
+        this.finalRoundTriggered = true;
+        this.finalRoundTriggerPlayerIndex = this.currentPlayerIndex;
+
+        if (isLastPlayerOfRound) {
+          this.state = GS.GAME_OVER;
+          this._disposeFinishedCard(player);
+          this.emit('game_won', this._gameWonPayload());
+          return { ok: true };
+        }
+
+        this.emit('final_round_started', {
+          triggeredByPlayerId: playerId,
+          winnerId: this.firstWinnerId,
+        });
+      }
+
+      this._disposeFinishedCard(player);
+      this.endTurn(playerId);
+      return { ok: true };
+    }
+
+    // Like rubble, the mover is spent (discarded — or trashed if it is a
+    // one-time-use card) and any leftover is lost. The turn continues: the
+    // player may play new cards. Only the extras are trashed.
     this._disposeFinishedCard(player);
     return { ok: true };
   }

@@ -5,7 +5,7 @@ const TerrainType = {
   WATER:    'water',
   VILLAGE:  'village',   // yellow tiles — entered by yellow (village) cards
   MOUNTAIN: 'mountain',  // impassable
-  CAMP:     'camp',      // ends movement; card is one-time-use
+  CAMP:     'camp',      // trash N hand cards to enter (N = symbols); movement continues
   RUBBLE:   'rubble',    // costs extra cards from hand
   WILD:     'wild',      // card type only — matches any terrain
   EMPTY:    'empty',     // purple card terrain — no movement, special effect only

@@ -822,6 +822,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!selectedValidMoves.includes(tileId)) return;
     const tile = clientBoard.getTile(tileId);
     const isToll = tile?.terrainType === 'rubble' && tile.movementCost > 1;
+    // Rulebook p3 + p6: camp entry trashes N hand cards and movement
+    // continues. Native ignores the requirement and moves directly.
+    const isNativeMover = selectedCard?.specialEffect === 'native';
+    const isCampToll = tile?.terrainType === 'camp' && !isNativeMover;
     if (rubblePendingTileId) {
       if (tileId === rubblePendingTileId) return;
       if (isToll) {
@@ -836,9 +840,51 @@ document.addEventListener('DOMContentLoaded', () => {
         syncDiscardButton();
         return;
       }
+      if (isCampToll) {
+        rubblePendingTileId = tileId;
+        rubbleCardsNeeded = tile.movementCost ?? 1;
+        cardUI.updateCampTarget(rubbleCardsNeeded, { label: destLabelFor(tileId), cost: tile.movementCost });
+        markPendingRubbleDest(tileId);
+        log(`⛺ Camp switched: ${destLabelFor(tileId)} (camp ×${tile.movementCost}) — pick ${rubbleCardsNeeded} card(s) to trash. Your turn continues.`, 'system');
+        if (VIEW === 'phone') {
+          showToast(`Camp: ${destLabelFor(tileId)}, trash ${rubbleCardsNeeded} to enter.`, { icon: '⛺', type: 'info', duration: 3000 });
+        }
+        syncDiscardButton();
+        return;
+      }
       // Retargeted to a non-toll tile: drop the toll, picks evaporate with
       // the panel (nothing was ever sent), and move normally.
       exitRubblePaymentMode();
+    }
+    if (isCampToll) {
+      rubblePendingTileId = tileId;
+      rubbleCardsNeeded = tile.movementCost ?? 1;
+      cardUI.enterCampPaymentMode(rubbleCardsNeeded, selectedCard?.instanceId, () => {
+        const cardIds = cardUI.getRubblePaymentCards();
+        client.moveToCamp(tileId, cardIds);
+        // Like rubble, the mover is spent — but the turn continues, so the
+        // player may play a new card. Clear mover state; the server's
+        // hand_updated re-renders the hand.
+        isMidMove = false;
+        selectedCard = null;
+        selectedValidMoves = [];
+        currentBreakableBlockades = [];
+        renderer.clearHighlights();
+        renderer.setBreakableBlockades([], []);
+        clearMoveList();
+        exitRubblePaymentMode();
+        syncDiscardButton();
+      }, () => {
+        exitRubblePaymentMode();
+        syncDiscardButton();
+      }, { label: destLabelFor(tileId), cost: tile.movementCost });
+      markPendingRubbleDest(tileId);
+      log(`⛺ Camp: ${destLabelFor(tileId)} (camp ×${tile.movementCost}) — pick ${rubbleCardsNeeded} card(s) to trash. Your turn continues.`, 'system');
+      if (VIEW === 'phone') {
+        showToast(`Camp: ${destLabelFor(tileId)}, trash ${rubbleCardsNeeded} to enter — turn continues.`, { icon: '⛺', type: 'info', duration: 4000 });
+      }
+      syncDiscardButton();
+      return;
     }
     if (isToll) {
       rubblePendingTileId = tileId;

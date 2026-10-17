@@ -88,7 +88,10 @@ class CardUI {
     // gate only — the server flag is authoritative.
     this._purchaseLocked = false;
 
-    // ── Rubble state ────────────────────────────────────────────────────────
+    // ── Rubble / camp toll state ────────────────────────────────────────────
+    // Both tolls share one panel: rubble extras are discarded and movement
+    // ends; camp extras are trashed (removed) and movement continues.
+    this._tollKind        = 'rubble'; // 'rubble' | 'camp'
     this._rubbleNeeded    = 0;
     this._rubblePool      = new Map(); // instanceId → card
     this._rubbleExcludeId = null;
@@ -1138,6 +1141,28 @@ class CardUI {
   // ── Rubble payment mode ──────────────────────────────────────────────────
 
   enterRubblePaymentMode(count, excludeInstanceId, onConfirm, onCancel, destInfo = null) {
+    this._tollKind        = 'rubble';
+    this._rubbleNeeded    = count;
+    this._rubbleExcludeId = excludeInstanceId ?? null;
+    this._rubblePool      = new Map();
+    this._rubbleOnConfirm = onConfirm;
+    this._rubbleOnCancel  = onCancel;
+    this._rubbleDestLabel = destInfo?.label ?? null;
+    this._rubbleDestCost   = destInfo?.cost ?? null;
+
+    const excludedCard = excludeInstanceId
+      ? this._currentHand.find(c => c.instanceId === excludeInstanceId)
+      : null;
+    this._rubbleExcludeName = excludedCard?.cardName ?? excludedCard?.key ?? null;
+
+    this._setMode('rubble');
+    this._renderRubbleControls();
+  }
+
+  // Camp entry (rulebook p3 + p6): trash N hand cards, mover untouched,
+  // movement continues. Same panel as rubble, camp copy + trash semantics.
+  enterCampPaymentMode(count, excludeInstanceId, onConfirm, onCancel, destInfo = null) {
+    this._tollKind        = 'camp';
     this._rubbleNeeded    = count;
     this._rubbleExcludeId = excludeInstanceId ?? null;
     this._rubblePool      = new Map();
@@ -1160,6 +1185,7 @@ class CardUI {
   // (drop the most recently picked first), then re-render the panel with the
   // new target header. Pool entries stay valid — they're still in hand.
   updateRubbleTarget(count, destInfo = null) {
+    this._tollKind = 'rubble';
     this._rubbleNeeded = count;
     this._rubbleDestLabel = destInfo?.label ?? null;
     this._rubbleDestCost   = destInfo?.cost ?? null;
@@ -1180,7 +1206,21 @@ class CardUI {
     this._renderRubbleControls();
   }
 
+  updateCampTarget(count, destInfo = null) {
+    this._tollKind = 'camp';
+    this._rubbleNeeded = count;
+    this._rubbleDestLabel = destInfo?.label ?? null;
+    this._rubbleDestCost   = destInfo?.cost ?? null;
+    while (this._rubblePool.size > this._rubbleNeeded) {
+      const ids = [...this._rubblePool.keys()];
+      this._rubblePool.delete(ids[ids.length - 1]);
+    }
+    this._setMode('rubble');
+    this._renderRubbleControls();
+  }
+
   exitRubblePaymentMode() {
+    this._tollKind          = 'rubble';
     this._rubblePool        = new Map();
     this._rubbleNeeded      = 0;
     this._rubbleExcludeId   = null;
@@ -1208,17 +1248,22 @@ class CardUI {
     const messages = document.getElementById('hand-messages');
     messages.innerHTML = '';
 
+    const isCamp = this._tollKind === 'camp';
     const cardWord = this._rubbleNeeded === 1 ? 'card' : 'cards';
     const destLine = (this._rubbleDestLabel != null && this._rubbleDestCost != null)
-      ? `Crossing to ${this._rubbleDestLabel} — rubble ×${this._rubbleDestCost}, you stop here.`
-      : `Cost ${this._rubbleNeeded + 1} rubble — you stop here.`;
+      ? (isCamp
+        ? `Entering ${this._rubbleDestLabel} — camp ×${this._rubbleDestCost}: trash ${this._rubbleNeeded} ${cardWord}. Your turn continues with new cards.`
+        : `Crossing to ${this._rubbleDestLabel} — rubble ×${this._rubbleDestCost}, you stop here.`)
+      : (isCamp
+        ? `Camp — trash ${this._rubbleNeeded} ${cardWord}. Your turn continues with new cards.`
+        : `Cost ${this._rubbleNeeded + 1} rubble — you stop here.`);
 
     const prompt = document.createElement('div');
     prompt.className = 'rubble-prompt';
 
     const header = document.createElement('div');
     header.className = 'rubble-prompt-header';
-    header.textContent = '🪨 Rubble toll';
+    header.textContent = isCamp ? '⛺ Camp — trash to enter' : '🪨 Rubble toll';
     prompt.appendChild(header);
 
     const dest = document.createElement('div');
@@ -1227,11 +1272,14 @@ class CardUI {
     dest.textContent = destLine;
     prompt.appendChild(dest);
 
-    // Committed-card note: the mover pays entry, extras pay the remainder.
+    // Committed-card note: rubble's mover pays entry, extras pay the
+    // remainder; camp's mover pays nothing — extras are trashed to enter.
     const nameNote = document.createElement('div');
     nameNote.className = 'rubble-committed-note';
     nameNote.style.cssText = 'font-size:.8rem;color:#e8e0d0;margin-top:.15rem;';
-    if (this._rubbleExcludeName) {
+    if (this._tollKind === 'camp') {
+      nameNote.textContent = `Pick ${this._rubbleNeeded} ${cardWord} of any type to trash — your played card is spent like normal.`;
+    } else if (this._rubbleExcludeName) {
       const lock = document.createElement('span');
       lock.className = 'rubble-committed-card';
       lock.textContent = `🔒 ${this._rubbleExcludeName} pays 1 — pick ${this._rubbleNeeded} more ${cardWord}.`;
@@ -1264,7 +1312,7 @@ class CardUI {
     confirm.style.cssText = 'background:#e74c3c;color:#fff;border:none;border-radius:4px;'
       + 'padding:.6rem 1rem;cursor:not-allowed;opacity:.4;font-size:.9rem;font-weight:600;'
       + 'min-height:44px;flex:1 1 auto;';
-    confirm.textContent = 'Cross Rubble';
+    confirm.textContent = this._tollKind === 'camp' ? 'Trash & Enter Camp' : 'Cross Rubble';
     confirm.onclick = () => this._rubbleOnConfirm?.();
     actions.appendChild(confirm);
 

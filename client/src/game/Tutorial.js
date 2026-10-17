@@ -24,6 +24,7 @@ const TUTORIAL_TILE_GROUPS = {
   mountain: ['3_-7'],
   camp: ['7_-17'],
   more_requirements: ['11_-10'],
+  blockade: ['0_-3', '0_-4', '1_-3', '1_-4'],
 };
 
 // ── Phase 3: Tutorial hand fixture ───────────────────────────────────────────
@@ -382,7 +383,9 @@ class Tutorial {
         title: 'El Dorado 🏆',
         body: 'The tiles with a <strong>dashed gold border</strong> and a 🏁 flag '
           + 'are <strong>finishing tiles</strong>. The first player to land on one '
-          + 'triggers the final round — Each player left in that round will now play their final turn. Once the round is completed, the game is over.',
+          + 'triggers the final round — the game automatically moves that pawn onto '
+          + '<strong>El Dorado</strong>, freeing the finishing tile for the next finisher. '
+          + 'Everyone then finishes the current round so all players have had the same number of turns, then the game is over.',
         onEnter: () => {
           const ids = [...TUTORIAL_TILE_GROUPS.finishing, ...TUTORIAL_TILE_GROUPS.elDorado];
           r.zoomToTiles(ids);
@@ -427,7 +430,7 @@ class Tutorial {
       {
         title: '⛺ Camp Tiles',
         body: 'Cards you play to move onto a base camp space aren’t discarded. Instead, they are completely'
-          + ' removed from the game. They won’t be used again this game. Use camp tiles intentionally to purge weak starter cards.',
+          + ' removed from the game. They won’t be used again this game. You keep moving afterward, so a camp works as a trash stop along the way. Use camp tiles intentionally to purge weak starter cards.',
         onEnter: () => {
           r.zoomToTiles(TUTORIAL_TILE_GROUPS.camp);
           setTimeout(() => this._spotlightTiles(TUTORIAL_TILE_GROUPS.camp), 550);
@@ -456,6 +459,18 @@ class Tutorial {
         onEnter: () => {
           r.zoomToTiles(TUTORIAL_TILE_GROUPS.more_requirements);
           setTimeout(() => this._spotlightTiles(TUTORIAL_TILE_GROUPS.more_requirements), 550);
+        },
+      },
+
+      // ── Step 9b: Blockades ────────────────────────────────────────────────
+      {
+        title: '🚧 Blockades',
+        body: 'Thick walls across the path are <strong>blockades</strong>. Each shows a terrain symbol — play a card matching it from the tile next to the wall to break through. '
+          + 'A rubble blockade accepts any fresh card but spends the whole card, like a rubble tile. Breaking one costs 1 move otherwise and opens that whole wall for everyone; you keep the blockade as a token. '
+          + 'If several players reach El Dorado in the final round, the one with the <strong>most blockade tokens</strong> wins.',
+        onEnter: () => {
+          r.zoomToTiles(TUTORIAL_TILE_GROUPS.blockade);
+          setTimeout(() => this._spotlightTiles(TUTORIAL_TILE_GROUPS.blockade), 550);
         },
       },
 
@@ -568,7 +583,8 @@ class Tutorial {
       {
         title: 'The Market — Purchasing Power',
         body: 'To use the cards in your hand to purchase stronger cards, click the market button to open the shop. To buy a card, you can <strong>click one or more cards from your hand</strong> '
-          + 'to pool purchasing power. Any <strong>yellow card</strong> is worth the number of movement points shown on the card. All other cards are woth 1/2 coin each.',
+          + 'to pool purchasing power. Any <strong>yellow card</strong> is worth the number of movement points shown on the card. All other cards are worth 1/2 coin each. '
+          + 'You can buy up to <strong>1 card per turn</strong> — pooled cards are spent — and you cannot buy in the middle of moving.',
         onEnter: () => {
           const tutorialMarket = window.ElDoradoCards.buildShopState();
           this.cardUI.renderHand(TUTORIAL_HAND);
@@ -628,16 +644,16 @@ class Tutorial {
         },
       },
 
-      // ── Step 19c: Special Cards ────────────────────────────────────────────
+      // ── Step 19b: Wild Cards ───────────────────────────────────────────────
       {
         title: 'Wild Cards',
-        body: 'Black cards are <strong>wild</strong> and can be used as any color. However, you have to commit them to a single color when playing; you can\'t cross multiple different types of terrain with a single move.',
+        body: 'Black cards are <strong>wild</strong> and can be used as any color. The first terrain you enter locks the card to that color for the rest of the move — until then it matches anything. The same lock applies when breaking a blockade. Rubble and camp never lock it.',
         onEnter: () => {
           this._anchorCalloutToElement('.card-btn.terrain-wild.market-reserve', 'above');
         },
       },
 
-      // ── Step 19b: Special Cards ────────────────────────────────────────────
+      // ── Step 19c: Special Cards ────────────────────────────────────────────
       {
         title: 'Special Cards',
         body: 'Purple cards have unique, very special abilities. Each one has an clickable information button that explains what it does and how to use it.',
@@ -646,7 +662,7 @@ class Tutorial {
         },
       },
 
-      // ── Step 19c: One-Time Use cards ────────────────────────────────────────────
+      // ── Step 19d: One-Time Use cards ───────────────────────────────────────
       {
         title: 'One Time Use Cards',
         body: 'Notice some cards carry a red <strong>1×&nbsp;USE</strong> badge — in your hand, in the market, and in the reserve. When you play one, it is removed from the game and will not be reshuffled into your deck.',

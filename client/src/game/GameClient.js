@@ -108,6 +108,7 @@ class GameClient {
   finishRemove() { this.socket.emit('finish_remove'); }
   movePawn(tileId) { this.socket.emit('move_pawn', { tileId }); }
   moveToRubble(tileId, extraCardIds) { this.socket.emit('move_to_rubble', { tileId, extraCardIds }); }
+  moveToCamp(tileId, extraCardIds) { this.socket.emit('move_to_camp', { tileId, extraCardIds }); }
   endTurn() { this.socket.emit('end_turn'); }
   purchaseCard(cardKey, handCardsUsed = []) { this.socket.emit('purchase_card', { cardKey, handCardsUsed }); }
   discardCard(cardKey) { this.socket.emit('discard_card', { cardKey }); }
