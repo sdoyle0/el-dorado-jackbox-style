@@ -33,10 +33,12 @@ function getLanIpv4() {
 }
 
 // Served same-origin (no internet CDN): the client builds
-// http://<lan-ip>:<PORT>/?view=phone&room=<CODE> from this, then loads the
-// QR pixels from /api/qr below.
+// <protocol>://<host>/?view=phone&room=<CODE> from this, then loads the
+// QR pixels from /api/qr below. The Host header is the DNS name when
+// deployed (e.g. on Render) or the IP:port on a LAN — always routable.
 app.get('/api/server-info', (req, res) => {
-  res.json({ lanIp: getLanIpv4(), port: PORT });
+  const proto = (req.headers['x-forwarded-proto'] || req.protocol || 'http').split(',')[0].trim();
+  res.json({ host: req.get('host'), protocol: proto, lanIp: getLanIpv4(), port: PORT });
 });
 
 // QR pixels as PNG. Text is the join URL above; capped so the endpoint

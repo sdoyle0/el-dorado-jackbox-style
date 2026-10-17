@@ -1142,6 +1142,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const img = document.getElementById('join-qr-img');
     const urlEl = document.getElementById('join-qr-url');
     if (!code || !img || !urlEl) return;
+    let host = null;
+    let proto = null;
     let lanIp = null;
     let port = null;
     try {
@@ -1149,12 +1151,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const r = await fetch('/api/server-info', { cache: 'no-store' });
         if (r.ok) serverInfoCache = await r.json();
       }
+      host = serverInfoCache?.host || null;
+      proto = serverInfoCache?.protocol || null;
       lanIp = serverInfoCache?.lanIp || null;
       port = serverInfoCache?.port || null;
     } catch (e) { /* offline fallback below — URL text still shows */ }
-    const host = lanIp || window.location.hostname || 'localhost';
-    const portStr = String(port || window.location.port || '3000');
-    const joinUrl = `http://${host}:${portStr}/?view=phone&room=${code}`;
+    const authority = host || (lanIp ? `${lanIp}:${port || window.location.port || '3000'}` : window.location.host);
+    const scheme = proto || window.location.protocol.replace(':', '') || 'http';
+    const joinUrl = `${scheme}://${authority}/?view=phone&room=${code}`;
     if (joinUrl === joinQrUrl && !img.classList.contains('hidden')) return;
     joinQrUrl = joinUrl;
     urlEl.textContent = joinUrl;
