@@ -1976,15 +1976,16 @@ document.addEventListener('DOMContentLoaded', () => {
       body.view-phone #market-header { position: static; flex: none;
         background: linear-gradient(180deg, #0d1e30 0%, #091525 100%);
         padding-top: 0.7rem;
-        flex-wrap: wrap; }                      /* never clip ✕ Close on narrow phones */
+        flex-wrap: wrap;
+        justify-content: flex-start; }              /* buttons stay left-aligned together */
       body.view-phone #transmitter-banner, body.view-phone #pool-chips, body.view-phone #purchase-locked-banner { flex: none; }
       body.view-phone #shop-slots { flex: 1 1 auto; min-height: 0; overflow-y: auto;
         -webkit-overflow-scrolling: touch; }
       body.view-phone #purchase-total { font-size: 1.05rem; font-weight: 800;
         white-space: nowrap;
-        margin-left: 0; min-width: 0; }         /* stop hoarding space that pushes ✕ Close off-screen */
+        order: 2; flex-basis: 100%; width: 100%; }  /* own full-width line below buttons */
       body.view-phone #cancel-purchase-btn { min-height: 44px; padding: 0.5rem 1rem;
-        margin-left: auto; }                    /* pin ✕ Close to the right edge */
+        margin-left: auto; order: 1; }              /* right-aligned on the button line */
       body.view-phone #shop-slots { flex-direction: column; }
       body.view-phone .market-reserve-section { border-left: none;
         border-top: 1px solid var(--border); padding-left: 0; }
