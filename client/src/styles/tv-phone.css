@@ -324,6 +324,9 @@ body.view-phone #game-screen.active {
   overflow-y: auto;
   height: 100vh;
   height: 100dvh;
+  /* Stop mobile browsers from treating a drag past the top edge as a
+     pull-to-refresh / page swipe, which reloaded the game mid-round. */
+  overscroll-behavior: none;
 }
 
 /* Block 5b — Phone HUD declutter: turn banner / legend / log live on TV.
