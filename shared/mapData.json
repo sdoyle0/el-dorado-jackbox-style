@@ -1528,8 +1528,7 @@
       "q": 24,
       "r": -10,
       "terrainType": "jungle",
-      "movementCost": 1,
-      "isFinishing": true
+      "movementCost": 1
     },
     {
       "id": "25_-14",
@@ -1550,34 +1549,56 @@
       "q": 25,
       "r": -12,
       "terrainType": "jungle",
-      "movementCost": 1,
-      "isFinishing": true
+      "movementCost": 1
     },
     {
       "id": "25_-11",
       "q": 25,
       "r": -11,
       "terrainType": "jungle",
-      "movementCost": 1,
-      "isFinishing": true
+      "movementCost": 1
     },
     {
       "id": "26_-12",
       "q": 26,
       "r": -12,
-      "terrainType": "el_dorado",
-      "movementCost": 1
+      "terrainType": "jungle",
+      "movementCost": 1,
+      "isFinishing": true
     },
     {
       "id": "26_-11",
       "q": 26,
       "r": -11,
-      "terrainType": "el_dorado",
-      "movementCost": 1
+      "terrainType": "jungle",
+      "movementCost": 1,
+      "isFinishing": true
     },
     {
       "id": "25_-10",
       "q": 25,
+      "r": -10,
+      "terrainType": "jungle",
+      "movementCost": 1,
+      "isFinishing": true
+    },
+    {
+      "id": "27_-12",
+      "q": 27,
+      "r": -12,
+      "terrainType": "el_dorado",
+      "movementCost": 1
+    },
+    {
+      "id": "27_-11",
+      "q": 27,
+      "r": -11,
+      "terrainType": "el_dorado",
+      "movementCost": 1
+    },
+    {
+      "id": "26_-10",
+      "q": 26,
       "r": -10,
       "terrainType": "el_dorado",
       "movementCost": 1

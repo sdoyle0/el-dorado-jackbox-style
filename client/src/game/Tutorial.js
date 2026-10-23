@@ -19,8 +19,8 @@
 // BLK_BC seam so every rendered plank from TUTORIAL_BLOCKADES is on screen.
 const TUTORIAL_TILE_GROUPS = {
   start: ['-3_3', '-3_2', '-3_1', '-3_0'],
-  elDorado: ['26_-12', '26_-11', '25_-10'],
-  finishing: ['24_-10', '25_-12', '25_-11'],
+  elDorado: ['27_-12', '27_-11', '26_-10'],
+  finishing: ['26_-12', '26_-11', '25_-10'],
   basic: ['-1_-1', '-1_0', '0_-1'],
   rubble: ['1_-5'],
   mountain: ['3_-7'],
