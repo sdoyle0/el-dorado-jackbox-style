@@ -2005,21 +2005,36 @@ document.addEventListener('DOMContentLoaded', () => {
         flex-wrap: nowrap; gap: 4px; width: 100%; min-width: 0; padding: 4px 5px;
         font-size: 0.62rem; font-weight: 800; box-sizing: border-box;
         min-height: 30px; overflow: hidden; }
+      /* Market-only info strip above the card: ×N left at left edge, cost at
+         right edge — each piece sits at its edge, nothing in the middle. */
+      body.view-phone .market-row-meta { display: flex; align-items: center;
+        justify-content: space-between; width: 100%; padding: 4px 6px;
+        font-size: 0.62rem; font-weight: 600; box-sizing: border-box;
+        background: rgba(0,0,0,0.15); border-bottom: 1px solid rgba(255,255,255,0.08); }
+      body.view-phone .market-row-meta .market-row-cost { color: #ffd700;
+        white-space: nowrap; flex-shrink: 0; }
+      body.view-phone .market-row-meta .market-row-left { color: #9aabbf;
+        white-space: nowrap; flex-shrink: 0; font-size: 0.55rem; }
       /* Terrain headers — same mapping as the hand tiles. */
       body.view-phone .market-row-item.terrain-jungle .market-row-main { background: #0a2a0a; color: #8fe88f; }
       body.view-phone .market-row-item.terrain-water .market-row-main { background: #041528; color: #8ab8ee; }
       body.view-phone .market-row-item.terrain-village .market-row-main { background: #4d3a00; color: #ffe066; }
       body.view-phone .market-row-item.terrain-wild .market-row-main { background: #0e0e0e; color: #c0c0c0; }
       body.view-phone .market-row-item.terrain-empty .market-row-main { background: #2a0a44; color: #c8a0f0; }
-      /* Full portrait art — nothing cropped; tiles size to the 848×1264 ratio. */
+      /* Full portrait art — nothing cropped; tiles size to the 848×1264 ratio.
+         Stays at natural size (no stretching/distortion); tiny bottom margin so
+         the Buy button is never flush against the art even when there's no
+         effect text between them. Buy buttons align at the bottom of their
+         grid cell via margin-top: auto below. */
       body.view-phone .market-tile-art { display: block; width: 100%; height: auto;
-        aspect-ratio: 848 / 1264; object-fit: cover; background: #0b1420; }
+        aspect-ratio: 848 / 1264; object-fit: cover; background: #0b1420;
+        margin-bottom: 0.15rem; }
       body.view-phone .market-row-sub { display: flex; align-items: flex-start;
         gap: 0.35rem; width: 100%; padding: 3px 5px 2px; min-height: 2.1em; box-sizing: border-box; }
       body.view-phone .market-row-sub .market-row-effect { flex: 1 1 auto; min-width: 0; }
       /* Movement value: what the card does for green/blue/yellow. */
       body.view-phone .market-row-moves { font-weight: 800; font-size: 0.85rem;
-        white-space: nowrap; flex-shrink: 0; margin-left: auto; }
+        white-space: nowrap; flex-shrink: 0; }
       body.view-phone .market-row-item.can-afford {
         box-shadow: 0 0 0 2px #3adf3a, 0 2px 10px rgba(58,223,58,0.2); }
       body.view-phone .market-row-item.cant-afford { opacity: 0.7; }
@@ -2036,23 +2051,21 @@ document.addEventListener('DOMContentLoaded', () => {
          row art started at uneven heights. Headers share min-height above. */
       body.view-phone .market-row-main .market-onetime-pill { font-size: 0.55rem;
         padding: 2px 6px; line-height: 1; flex-shrink: 0; }
-      /* Buy bar: amount-left + cost + Buy on their own bottom line. */
-      body.view-phone .market-row-foot { display: flex; align-items: center;
-        justify-content: space-between; gap: 0.3rem; width: 100%;
-        padding: 5px 6px 6px; margin-top: auto; }
-      body.view-phone .market-row-left { font-size: 0.62rem; color: #9aabbf;
-        white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 1; min-width: 0; }
-      body.view-phone .market-row-cost { font-size: 0.72rem; font-weight: 800;
-        color: #ffd700; white-space: nowrap; flex-shrink: 0; }
       /* .card-info-btn is absolute-positioned for full cards (main.css) —
          tiles need it back in normal flow inside the effect line. */
       body.view-phone .market-row-sub .market-row-info { position: static; min-width: 32px; min-height: 32px;
         display: inline-grid; place-items: center; font-size: 1rem;
         cursor: pointer; flex-shrink: 0; margin-top: -4px; }
-      body.view-phone .market-row-buy { min-height: 44px; padding: 0.5rem 0.7rem;
-        border: 1px solid var(--gold-mid, #c9a227); background: #2a4a2a;
-        color: #fff; border-radius: 6px; font-size: 0.8rem; font-weight: 700;
-        cursor: pointer; flex-shrink: 0; }
+      /* Buy button below the card — wider and shorter so it never competes
+         with the header text. Spans the full card width. margin-top: auto
+         pushes it to the bottom of each grid cell so Buy buttons align across
+         the row even when some cards have extra purple effect text below
+         the art — without stretching or distorting the portrait art. */
+      body.view-phone .market-row-buy { display: block; width: 100%;
+        min-height: 36px; padding: 0.45rem 0; border: 1px solid var(--gold-mid, #c9a227);
+        background: #2a4a2a; color: #fff; border-radius: 6px; font-size: 0.8rem;
+        font-weight: 700; cursor: pointer; flex-shrink: 0; margin-top: auto;
+        box-sizing: border-box; }
       body.view-phone .market-row-buy:disabled { opacity: 0.35; cursor: not-allowed; }
       body.view-phone .reserve-pick-row .market-row-buy { flex: 1 1 auto; width: 100%; }
       /* Reserve stock meta (×N left · 💰 cost) sits on its own line above the

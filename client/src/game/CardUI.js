@@ -639,10 +639,29 @@ class CardUI {
     const lastCopy = !isReserve && card.remaining === 1;
 
     // Phone tile — same card language as the phone hand grid (compact header
-    // + full portrait art + buy bar). Class names stay row-compatible so
+    // + full portrait art). Class names stay row-compatible so
     // _updateAffordability (cost/buy queries) works unchanged; only the
     // layout is new (see market-phone-styles in main.js). Terrain reads from
     // the tile header background, matching the hand tiles.
+
+    // Market-only info strip above the card: cost + remaining copies.
+    // Keeps the card itself clean (name/art/moves only) so nothing gets
+    // cut off on narrow screens.
+    const meta = document.createElement('div');
+    meta.className = 'market-row-meta';
+    const costEl = document.createElement('span');
+    costEl.className = 'market-row-cost';
+    costEl.textContent = transmitterActive ? 'FREE' : `💰 ${card.cost}`;
+    meta.appendChild(costEl);
+    const sep = document.createElement('span');
+    sep.textContent = ' · ';
+    meta.appendChild(sep);
+    const leftEl = document.createElement('span');
+    leftEl.className = 'market-row-left';
+    leftEl.textContent = lastCopy ? '×1 left' : `×${card.remaining} left`;
+    meta.appendChild(leftEl);
+    row.appendChild(meta);
+
     const main = document.createElement('div');
     main.className = 'market-row-main';
     row.appendChild(main);
@@ -674,8 +693,8 @@ class CardUI {
     // Full portrait art — nothing cropped (see _makeTileArt).
     row.appendChild(this._makeTileArt(card));
 
-    // Purple specials: effect one-liner under the art, far from Buy in the
-    // foot bar below, so a fat-finger tap on details can't accidentally buy.
+    // Purple specials: effect one-liner under the art, far from Buy so a
+    // fat-finger tap on details can't accidentally buy.
     if (effectDesc) {
       const sub = document.createElement('div');
       sub.className = 'market-row-sub';
@@ -699,24 +718,8 @@ class CardUI {
       row.appendChild(sub);
     }
 
-    // Buy bar: amount-left + cost + Buy on their own bottom line.
-    const foot = document.createElement('div');
-    foot.className = 'market-row-foot';
-    row.appendChild(foot);
-
-    const leftEl = document.createElement('span');
-    leftEl.className = 'market-row-left';
-    // Last-copy hint: buying this empties the slot and earns a reserve pick.
-    leftEl.textContent = lastCopy
-      ? `×1 left · → reserve pick`
-      : `×${card.remaining} left`;
-    foot.appendChild(leftEl);
-
-    const costEl = document.createElement('span');
-    costEl.className = 'market-row-cost';
-    costEl.textContent = transmitterActive ? 'FREE' : `💰 ${card.cost}`;
-    foot.appendChild(costEl);
-
+    // Buy button outside the card, below it — wider and shorter so it never
+    // competes with the header text or push other content around.
     const buy = document.createElement('button');
     buy.type = 'button';
     buy.className = 'market-row-buy';
@@ -725,7 +728,7 @@ class CardUI {
     if (!locked) {
       buy.addEventListener('click', () => this._onMarketCardClicked(card));
     }
-    foot.appendChild(buy);
+    row.appendChild(buy);
 
     return row;
   }
