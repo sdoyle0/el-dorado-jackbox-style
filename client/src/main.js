@@ -1611,7 +1611,15 @@ document.addEventListener('DOMContentLoaded', () => {
   cardUI.onMarketBlocked = () => {
     showToast('Finish the toll first — Cross Rubble or Change destination.', { icon: '🪨', type: 'info', duration: 3000 });
   };
-  cardUI.onMarketOpened = (transmitterBonus = 0) => {
+  cardUI.onMarketOpened = (transmitterBonus = 0, readOnly = false) => {
+    // Read-only browse (opponent's turn): no movement to cancel, no
+    // purchases — just looking. Advise and bail before any side-effects so
+    // no events fire and no state is disturbed.
+    if (readOnly) {
+      showToast("Opponent's turn — browsing only (can't buy).", { icon: '👀', type: 'info', duration: 2500 });
+      syncDiscardButton();
+      return;
+    }
     // Safety net: a programmatic open (e.g. Transmitter free pick) fired
     // while the toll panel was up. The market overlay is already visible, so
     // close it and re-show the toll with its picks intact — never silently
@@ -1800,8 +1808,10 @@ document.addEventListener('DOMContentLoaded', () => {
     renderer.setBreakableBlockades([], []);
     clearMoveList();
     clearRemovePrompt();
-    // Block 5: never leave a stale purchase pool open on someone else's turn.
-    if (nextPlayerId !== client.playerId) cardUI.closeMarket();
+    // Block 5: never leave a stale purchase pool / read-only browse open on
+    // someone else's turn. Always reset so the next player opens fresh
+    // (purchase mode on your turn, read-only browsing on opponents').
+    cardUI.closeMarket();
     // Fresh turn → fresh buy (1 per turn). Covers both "my new turn" and
     // "opponent's turn started" so the flag is always correct when it
     // becomes my turn again.
@@ -2471,6 +2481,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     renderPlayerLegend(currentPlayerId);
     cardUI.setControlsEnabled(isMe);
+    cardUI.setMarketReadOnly(!isMe);
     syncDiscardButton();
     // v3: turn changes re-centre/re-caption the persistent phone map (idle on
     // my fresh turn, watching on opponents'). No-op off-phone.

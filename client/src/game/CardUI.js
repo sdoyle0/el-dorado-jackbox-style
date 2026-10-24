@@ -87,6 +87,10 @@ class CardUI {
     // (own card_purchased → true, turn_ended/game_started → false). Display
     // gate only — the server flag is authoritative.
     this._purchaseLocked = false;
+    // Read-only market/reserve browsing allowed on opponents' turns. No
+    // pooling, no purchases, no movement side-effects — just looking. Set via
+    // setMarketReadOnly() from main.js each turn change.
+    this._marketReadOnly = false;
 
     // ── Rubble / camp toll state ────────────────────────────────────────────
     // Both tolls share one panel: rubble extras are discarded and movement
@@ -209,6 +213,8 @@ class CardUI {
   }
 
   _handleMarketPoolClick(instanceId, btn) {
+    // Read-only browsing (opponent's turn): hand taps do nothing — no pooling.
+    if (this._marketReadOnly) return;
     // 1-buy-per-turn lock: hand taps do nothing while locked (the market
     // explains why via the open toast + locked total line) instead of
     // pooling into dead Buy buttons. Transmitter free takes bypass the
@@ -365,10 +371,20 @@ class CardUI {
 
   // ── Market open / close ──────────────────────────────────────────────────
 
-  openMarket(transmitterBonus = 0) {
+  openMarket(transmitterBonus = 0, readOnly = null) {
+    // readOnly defaults to the turn-based flag set by main.js (true on
+    // opponents' turns → read-only browsing; false → purchase mode on your
+    // turn). Explicit args (Transmitter, tutorial) override.
+    const readonly = readOnly === null ? this._marketReadOnly : !!readOnly;
+    this._marketReadOnly = readonly;
     this._transmitterBonus = transmitterBonus;
     this._purchasePool.clear();
     this.marketEl.classList.remove('hidden');
+    this.marketEl.classList.toggle('market-readonly', readonly);
+    // Read-only browsing (opponent's turn): hide the hand — nothing pools
+    // here, no cards get selected, and hiding it gives more room for the
+    // market/reserve cards. Restored on closeMarket.
+    document.getElementById('hand-cards')?.classList.toggle('hidden', readonly);
     // Phone reclaim: body.market-open lets view-phone CSS hide the hand
     // chrome (buttons/pill/messages) and grow the sheet while buying.
     // Scoped to phones via body.view-phone.market-open selectors — desktop/TV unaffected.
@@ -394,14 +410,18 @@ class CardUI {
     // Bonus > 0 is the server-driven Transmitter free pick (the played card
     // is already disposed server-side) — the handler clears UI only and must
     // not emit a cancel. Plain opens are the buyer changing intention.
-    this.onMarketOpened?.(transmitterBonus);
+    this.onMarketOpened?.(transmitterBonus, readonly);
   }
 
   closeMarket() {
     this._transmitterBonus = 0;
     this._purchasePool.clear();
+    this._marketReadOnly = false;
     this.marketEl.classList.add('hidden');
+    this.marketEl.classList.remove('market-readonly');
     document.body?.classList?.remove('market-open');
+    // Restore the hand cards hidden during read-only browsing.
+    document.getElementById('hand-cards')?.classList.remove('hidden');
     this.poolChipsEl.innerHTML = '';
     this.poolChipsEl.classList.add('hidden');
     this.poolRuleEl?.classList.add('hidden');
@@ -858,6 +878,9 @@ class CardUI {
   }
 
   _onMarketCardClicked(card) {
+    // Read-only browsing (opponent's turn): Buy does nothing — no purchase
+    // event fires, so the server is never involved.
+    if (this._marketReadOnly) return;
     // Transmitter free take is NOT a purchase — it bypasses the 1-buy lock
     // in both directions (take-then-buy and buy-then-take both work). It is
     // always free, so no pooling and no power check.
@@ -910,6 +933,17 @@ class CardUI {
   }
 
   _updatePurchaseTotal() {
+    // Read-only browsing (opponent's turn): no purchasing power, no pooling.
+    if (this._marketReadOnly) {
+      if (this.totalEl) this.totalEl.textContent = '👀 Browsing only';
+      // Hide the pooling chips + rule reminder — nothing pools here, and the
+      // line would otherwise confuse ("you can't pool on an opponent's turn").
+      this.poolChipsEl.innerHTML = '';
+      this.poolChipsEl.classList.add('hidden');
+      this.poolRuleEl?.classList.add('hidden');
+      this._updateAffordability();
+      return;
+    }
     // Locked: pooling is disabled so the pool stays empty and the normal
     // short total fits the header. The why lives in the banner row below
     // the header (never in #purchase-total — long header text pushes
@@ -923,9 +957,15 @@ class CardUI {
   }
 
   // Phone audit strip: pooled cards as removable chips (tap ✕ to un-pool).
-  // Desktop: no-op (container stays hidden).
+  // Desktop: no-op (container stays hidden). Never renders in read-only
+  // browse mode — nothing pools on an opponent's turn.
   _renderPoolChips() {
     if (!this.poolChipsEl) return;
+    if (this._marketReadOnly) {
+      this.poolChipsEl.innerHTML = '';
+      this.poolChipsEl.classList.add('hidden');
+      return;
+    }
     if (!(this._mode === 'market' && this._isPhoneView()) || this._purchasePool.size === 0) {
       this.poolChipsEl.innerHTML = '';
       this.poolChipsEl.classList.add('hidden');
@@ -956,6 +996,24 @@ class CardUI {
   }
 
   _updateAffordability() {
+    // Read-only browsing (opponent's turn): nothing is buyable — disable all
+    // shop Buy buttons so no purchase can fire, but keep the cards visible.
+    if (this._marketReadOnly) {
+      this.shopEl.querySelectorAll('.market-card-wrapper:not(.empty):not(.reserve-locked)').forEach(wrapper => {
+        wrapper.classList.toggle('cant-afford', true);
+        wrapper.classList.toggle('can-afford', false);
+      });
+      this.shopEl.querySelectorAll('.market-row-item:not(.reserve-locked)').forEach(row => {
+        row.classList.toggle('cant-afford', true);
+        row.classList.toggle('can-afford', false);
+        const buyBtn = row.querySelector('.market-row-buy');
+        if (buyBtn) buyBtn.disabled = true;
+      });
+      this.shopEl.querySelectorAll('.market-card').forEach(btn => {
+        if (!btn.closest('.reserve-locked')) btn.disabled = true;
+      });
+      return;
+    }
     // 1-buy-per-turn lock overrides affordability — but NOT Transmitter
     // free takes (rulebook: the take is not a purchase, so a prior buy
     // must not lock it, and it must not lock a later buy).
@@ -1021,10 +1079,20 @@ class CardUI {
 
   setControlsEnabled(enabled) {
     document.getElementById('end-turn-btn').disabled    = !enabled;
-    document.getElementById('open-market-btn').disabled = !enabled;
+    // The Market button stays enabled on every turn: opening the market /
+    // reserve is read-only browsing on opponents' turns (purchase actions
+    // remain gated by _marketReadOnly / the server). Only End Turn and
+    // Discard are restricted to your own turn.
     // Discard also needs your turn — and a selected card (synced separately
     // via setDiscardEnabled). Never leave it enabled on someone else's turn.
     if (!enabled) this.setDiscardEnabled(false);
+  }
+
+  // Called by main.js each turn change: true = read-only browsing on an
+  // opponent's turn (market/reserve visible but nothing can be bought);
+  // false = normal purchase mode on your own turn.
+  setMarketReadOnly(readOnly) {
+    this._marketReadOnly = !!readOnly;
   }
 
   setDiscardEnabled(enabled) {
