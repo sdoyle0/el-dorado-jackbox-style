@@ -33,7 +33,7 @@ const CARD_DEFINITIONS = [
 
   // ── BLUE (Water movement) ─────────────────────────────────────────────────
   { key:'sailor',        cardName:'Sailor',         color:'blue',   cost:0, oneTimeUse:false, specialEffect:'none',         movementTerrain:'water',   movementTotal:1 },
-  { key:'captain',       cardName:'Captain',        color:'blue',   cost:2, oneTimeUse:false, specialEffect:'none',         movementTerrain:'water',   movementTotal:2 },
+  { key:'captain',       cardName:'Captain',        color:'blue',   cost:2, oneTimeUse:false, specialEffect:'none',         movementTerrain:'water',   movementTotal:3 },
 
   // ── YELLOW (Village / purchasing power) ───────────────────────────────────
   { key:'traveler',      cardName:'Traveler',       color:'yellow', cost:0, oneTimeUse:false, specialEffect:'none',         movementTerrain:'village', movementTotal:1 },
