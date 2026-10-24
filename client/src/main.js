@@ -1962,7 +1962,7 @@ document.addEventListener('DOMContentLoaded', () => {
          Desktop keeps the centered fixed overlay. */
       body.view-phone #card-market { position: sticky !important; top: 0 !important;
         left: auto !important; right: auto !important; bottom: auto !important;
-        inset: auto !important; margin: 0 !important; width: auto !important;
+        inset: auto !important; margin: 0 !important; width: 100% !important;
         height: auto !important; max-height: 42dvh !important;
         flex: none !important;
         display: flex; flex-direction: column; overflow: hidden;
