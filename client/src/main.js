@@ -2047,11 +2047,14 @@ document.addEventListener('DOMContentLoaded', () => {
       body.view-phone .market-row-effect { font-size: 0.6rem; line-height: 1.25; color: #9aabbf;
         white-space: normal; overflow: hidden; display: -webkit-box;
         -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: break-word; }
-      /* Compact 1× USE pill so the header stays single-line: the old
-         4px 8px pill forced pill headers taller than plain ones and the
-         row art started at uneven heights. Headers share min-height above. */
-      body.view-phone .market-row-main .market-onetime-pill { font-size: 0.55rem;
-        padding: 2px 6px; line-height: 1; flex-shrink: 0; }
+      /* Compact 1× USE pill — now a wide banner overlaying the top of the
+         portrait art instead of crowding the header next to long card names. */
+      body.view-phone .market-tile-wrap { position: relative; }
+      body.view-phone .market-tile-wrap .market-onetime-pill { position: absolute;
+        top: 2px; left: 8px; right: 8px; width: auto; text-align: center;
+        background: #c0392b; color: #fff; font-size: 0.65rem;
+        font-weight: 800; padding: 3px 10px; z-index: 2;
+        border-radius: 4px; border: 1px solid #e74c3c; }
       /* .card-info-btn is absolute-positioned for full cards (main.css) —
          tiles need it back in normal flow inside the effect line. */
       body.view-phone .market-row-sub .market-row-info { position: static; min-width: 32px; min-height: 32px;

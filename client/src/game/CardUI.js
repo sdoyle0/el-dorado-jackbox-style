@@ -671,16 +671,6 @@ class CardUI {
     nameEl.textContent = card.cardName || card.key;
     main.appendChild(nameEl);
 
-    // One-time-use pill — same signal as the full-card header pill, inline
-    // in the header so single-use tiles read at a glance.
-    if (card.oneTimeUse) {
-      const onceEl = document.createElement('span');
-      onceEl.className = 'market-onetime-pill';
-      onceEl.title = 'Single use — removed from the game after you play it';
-      onceEl.textContent = '1× USE';
-      main.appendChild(onceEl);
-    }
-
     // What you're buying: movement value. Number only — the card's terrain
     // colour (tile header) carries the terrain link.
     if (card.movementTotal > 0) {
@@ -691,7 +681,24 @@ class CardUI {
     }
 
     // Full portrait art — nothing cropped (see _makeTileArt).
-    row.appendChild(this._makeTileArt(card));
+    // Wrapped in a positioned container so the one-time-use pill can overlay
+    // the top of the art as a wide banner instead of crowding the header.
+    const artWrap = document.createElement('div');
+    artWrap.className = 'market-tile-wrap';
+    artWrap.style.position = 'relative';
+    const art = this._makeTileArt(card);
+    artWrap.appendChild(art);
+    row.appendChild(artWrap);
+
+    // One-time-use pill: wide banner across the top of the portrait art so
+    // the header stays clean for long card names. Overlays the art itself.
+    if (card.oneTimeUse) {
+      const onceEl = document.createElement('span');
+      onceEl.className = 'market-onetime-pill';
+      onceEl.title = 'Single use — removed from the game after you play it';
+      onceEl.textContent = '1× USE';
+      artWrap.appendChild(onceEl);
+    }
 
     // Purple specials: effect one-liner under the art, far from Buy so a
     // fat-finger tap on details can't accidentally buy.
