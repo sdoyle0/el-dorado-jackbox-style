@@ -1050,25 +1050,29 @@ body {
 .card-onetime-line {
   display: none; /* retired: the header pill is the single signal now */
 }
-/* ── One-time-use header pill (hand + market + reserve full cards) ─────────
-   Lives in .card-header-strip so it survives layouts that hide
-   .card-body-area (phone hand rows). Compact by design: the header also
-   carries the name + movement stat + info button, so the pill stays small
-   with room to breathe on 140px cards. */
+/* ── One-time-use art overlay (hand + market + reserve full cards) ──────── */
+.card-art-wrap {
+  position: relative;
+}
 .card-onetime-pill {
-  flex-shrink: 0;
+  position: absolute;
+  top: 2px;
+  left: 8px;
+  right: 8px;
+  z-index: 2;
+  width: auto;
+  text-align: center;
   font-family: 'Inter', sans-serif;
-  font-size: 0.52rem;
+  font-size: 0.65rem;
   font-weight: 800;
   letter-spacing: 0.06em;
   line-height: 1;
   white-space: nowrap;
   color: #fff;
   background: #c0392b;
-  border: 1px solid #ff8a7a;
-  border-radius: 999px;
-  padding: 2px 6px;
-  margin: 0 4px 0 2px;
+  border: 1px solid #e74c3c;
+  border-radius: 4px;
+  padding: 3px 10px;
   cursor: help;
 }
 /* ── One-time-use pill for phone compact rows (market + reserve picker) ───

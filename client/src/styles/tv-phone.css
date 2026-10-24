@@ -476,13 +476,6 @@ body.view-phone #hand-cards .card-effect-inline {
   display: none;
 }
 
-/* Single-use signpost on tiles is the red badge over the art (bottom-left,
-   already in the DOM) — the header pill would crowd the narrow header, so
-   it stays desktop-only. */
-body.view-phone #hand-cards .card-onetime-pill {
-  display: none;
-}
-
 /* ℹ️ lives in the effect sub-line under the art (full-width row: icon +
    one-liner), in normal flow — never floating over the portrait. The old
    floating overlay (44px invisible hit area on top of the art) swallowed

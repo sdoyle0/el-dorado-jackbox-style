@@ -649,6 +649,14 @@ class CardUI {
     return art;
   }
 
+  _makeOneTimeUsePill(className) {
+    const pill = document.createElement('span');
+    pill.className = className;
+    pill.title = 'Single use — removed from the game after you play it';
+    pill.textContent = '1× USE';
+    return pill;
+  }
+
   _makeMarketRowEl(card, isReserve, transmitterActive = false) {    const locked = isReserve && !transmitterActive;
     const row = document.createElement('div');
     row.className = `market-row-item terrain-${card.movementTerrain || 'empty'}` + (isReserve ? ' is-reserve' : '');
@@ -705,7 +713,6 @@ class CardUI {
     // the top of the art as a wide banner instead of crowding the header.
     const artWrap = document.createElement('div');
     artWrap.className = 'market-tile-wrap';
-    artWrap.style.position = 'relative';
     const art = this._makeTileArt(card);
     artWrap.appendChild(art);
     row.appendChild(artWrap);
@@ -713,11 +720,7 @@ class CardUI {
     // One-time-use pill: wide banner across the top of the portrait art so
     // the header stays clean for long card names. Overlays the art itself.
     if (card.oneTimeUse) {
-      const onceEl = document.createElement('span');
-      onceEl.className = 'market-onetime-pill';
-      onceEl.title = 'Single use — removed from the game after you play it';
-      onceEl.textContent = '1× USE';
-      artWrap.appendChild(onceEl);
+      artWrap.appendChild(this._makeOneTimeUsePill('market-onetime-pill'));
     }
 
     // Purple specials: effect one-liner under the art, far from Buy so a
@@ -785,16 +788,6 @@ class CardUI {
     const effectInline = effectDesc
       ? `<span class="card-effect-inline">${effectDesc}</span>` : '';
 
-    // One-time-use indicator — a single explicit text pill in the header
-    // strip, so it reads at a glance in the hand, the market, and the
-    // reserve picker (all three render through this shared factory). The
-    // header survives every layout (phone wallet mode hides .card-body-area
-    // entirely), so one pill here covers all views with no double badges,
-    // outlines, or washes anywhere.
-    const ONETIME_TITLE = 'Single use — removed from the game after you play it';
-    const oneTimePill = card.oneTimeUse
-      ? `<span class="card-onetime-pill" title="${ONETIME_TITLE}">1×&nbsp;USE</span>` : '';
-
     const cardImage = `<img src="/shared/images/${card.key}.png" alt="" loading="lazy" onerror="this.style.display='none'">`;
 
     const fullDesc = this._specialFullDescription(card.specialEffect);
@@ -826,14 +819,20 @@ class CardUI {
         <img class="card-thumb" src="/shared/images/${card.key}.png" alt="" loading="lazy" onerror="this.style.display='none'">
         <span class="card-name">${card.cardName}</span>
         ${effectInline}
-        ${oneTimePill}
         ${movesLine}
         ${infoHeader}
       </div>
       ${effectLineWithInfo}
       <div class="card-body-area">
-        ${cardImage}
+        <div class="card-art-wrap" style="position:relative">${cardImage}</div>
       </div>`;
+
+    // One-time-use pill overlaid on the card art so the header
+    // stays clean for long card names — same signal as the phone market rows.
+    if (card.oneTimeUse) {
+      const wrap = btn.querySelector('.card-art-wrap');
+      wrap?.appendChild(this._makeOneTimeUsePill('card-onetime-pill'));
+    }
 
     if (isMarket) {
       btn.classList.add('market-card');
@@ -1151,14 +1150,6 @@ class CardUI {
     nameEl.textContent = card.cardName || card.key;
     main.appendChild(nameEl);
 
-    if (card.oneTimeUse) {
-      const onceEl = document.createElement('span');
-      onceEl.className = 'market-onetime-pill';
-      onceEl.title = 'Single use — removed from the game after you play it';
-      onceEl.textContent = '1× USE';
-      main.appendChild(onceEl);
-    }
-
     if (card.movementTotal > 0) {
       const mvEl = document.createElement('span');
       mvEl.className = 'market-row-moves';
@@ -1167,7 +1158,13 @@ class CardUI {
     }
 
     // Full portrait art — nothing cropped (see _makeTileArt).
-    row.appendChild(this._makeTileArt(card));
+    const artWrap = document.createElement('div');
+    artWrap.className = 'market-tile-wrap';
+    artWrap.appendChild(this._makeTileArt(card));
+    if (card.oneTimeUse) {
+      artWrap.appendChild(this._makeOneTimeUsePill('market-onetime-pill'));
+    }
+    row.appendChild(artWrap);
 
     const effectDesc = this._specialDescription(card.specialEffect);
     if (effectDesc) {
