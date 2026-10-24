@@ -1996,7 +1996,7 @@ document.addEventListener('DOMContentLoaded', () => {
          sections as before. Revert notes in tv-phone.css experiment block. */
       body.view-phone .market-row-list { display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem;
-        width: 100%; max-width: 34rem; margin-inline: auto; }
+        width: 100%; margin-inline: auto; }
       body.view-phone .market-row-item { display: flex; flex-direction: column;
         align-items: stretch; min-width: 0; min-height: 44px; overflow: hidden;
         border: 1px solid var(--border-mid, rgba(201,162,39,0.32));
