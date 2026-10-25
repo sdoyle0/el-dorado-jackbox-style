@@ -1,5 +1,5 @@
-/* Block 2 — ?view=tv / ?view=phone layout split (scaffolding only).
-   No game logic here. TV hides hand input and enlarges turn/legend.
+/* Block 2 — ?view=tv / ?view=phone layout split.
+   TV hides hand input and enlarges turn/legend.
    Phone stacks hand + primary buttons first, board collapsed behind a toggle.
    Default (no ?view=) layout is untouched. */
 
@@ -12,18 +12,16 @@
 /* ── TV: board-first living-room layout ────────────────────────────────────
    Block 7b: the board owns the screen. A slim top status strip carries turn +
    legend chips; the old log sidebar is gone (📓 Notes opens it as an
-   overlay). Block 7c: the Market+Reserve sidebar is parked (hidden, CSS
-   kept below) — board goes full-bleed. Display only — no game logic. */
+   overlay). A persistent market panel shares the screen with the board. */
 
-/* Grid: slim status strip on top, board full-bleed below. (The Market
-   sidebar is parked — see below — so there is no second column for now.) */
+/* Grid: status strip above the flexible board and fixed-width market panel. */
 body.view-tv #game-screen.active {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) clamp(260px, 18vw, 340px);
   grid-template-areas:
-    "status"
-    "board";
+    "status status"
+    "board market";
   overflow: hidden;
 }
 
@@ -36,6 +34,7 @@ body.view-tv #board-and-hand-container {
   min-width: 0;
   min-height: 0;
   max-width: none;
+  width: 100%;
 }
 
 /* ── Status strip: turn banner + legend chips, one slim row ───────────────── */
@@ -172,48 +171,86 @@ body.view-tv #log-scroll p {
   font-size: 1.1rem;
 }
 
-/* ── Market sidebar PARKED (Block 7c) ──────────────────────────────────────
-   The always-visible Market+Reserve sidebar made the cards compete with the
-   board, so the TV hides #card-market for now and goes board-full-bleed.
-   Nothing was ripped out: CardUI still renders into #shop-slots on every
-   market_updated (phones use their own sheet), and the sidebar styling
-   below stays intact — flip this rule back to `display: flex` (and restore
-   the grid `market` column above) to bring it back. */
+/* ── TV market overview ────────────────────────────────────────────────────
+   The read-only market is a permanent grid column, separate from the map.
+   SVG scales itself to the remaining board pane without any JS zoom logic. */
 body.view-tv #card-market,
 body.view-tv #card-market.hidden {
   display: none !important;
 }
 
-body.view-tv #market-header {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  margin: 0 -0.6rem 0;
-  padding: 0.6rem 0.6rem 0.5rem;
-  background: linear-gradient(180deg, #0d1e30 0%, #091525 100%);
-  border-bottom: 1px solid var(--border);
-}
-
-/* Buyer controls stay hidden on TV; a static title takes their place. */
-body.view-tv #marketShopButton,
-body.view-tv #marketReserveButton,
-body.view-tv #purchase-total,
-body.view-tv #cancel-purchase-btn {
+body:not(.view-tv) #tv-market-panel {
   display: none;
 }
 
-#market-tv-title {
-  display: none; /* TV-only; unhidden below */
+body.view-tv #tv-market-panel {
+  grid-area: market;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  min-width: 0;
+  min-height: 0;
+  padding: 1rem;
+  overflow-y: auto;
+  border-left: 1px solid var(--border);
+  background: linear-gradient(180deg, #0f1c2e 0%, #0b1522 100%);
 }
 
-body.view-tv #market-tv-title {
-  display: block;
-  font-family: 'Cinzel', serif;
-  font-size: 0.8rem;
-  font-weight: 600;
+body.view-tv #tv-market-panel h2 {
+  flex: none;
+  color: var(--gold-mid);
+  font: 600 1rem 'Cinzel', Georgia, serif;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--gold-mid);
+}
+
+body.view-tv #tv-market-cards {
+  display: grid;
+  align-content: start;
+  gap: 0.5rem;
+}
+
+body.view-tv .tv-market-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.25rem;
+  min-height: 68px;
+  padding: 0.65rem 0.75rem;
+  border-left: 3px solid var(--text-mid);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+body.view-tv .tv-market-card.terrain-jungle { border-left-color: #4cff4c; }
+body.view-tv .tv-market-card.terrain-water { border-left-color: #4ab8f0; }
+body.view-tv .tv-market-card.terrain-village { border-left-color: #ffd700; }
+body.view-tv .tv-market-card.terrain-wild { border-left-color: #aaa; }
+body.view-tv .tv-market-card.terrain-empty { border-left-color: #bd8bf0; }
+
+body.view-tv .tv-market-card-name {
+  overflow: hidden;
+  color: var(--text-bright);
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.view-tv .tv-market-card-details {
+  flex: none;
+  color: var(--text-mid);
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+body.view-tv .tv-market-card.sold-out {
+  opacity: 0.55;
+}
+
+body.view-tv .tv-market-card.sold-out .tv-market-card-details {
+  color: #ff9d91;
 }
 
 /* Both sections stack in the sidebar; reserve is no longer tab-gated. */

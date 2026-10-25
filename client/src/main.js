@@ -108,6 +108,31 @@ document.addEventListener('DOMContentLoaded', () => {
     e.currentTarget.title = open ? 'Hide Field Notes' : 'Show Field Notes';
   });
 
+  const tvMarketCards = document.getElementById('tv-market-cards');
+
+  function renderMarket(market) {
+    cardUI.renderMarket(market);
+    if (VIEW !== 'tv' || !tvMarketCards) return;
+
+    tvMarketCards.replaceChildren(...(market?.shop || []).map((card) => {
+      const row = document.createElement('div');
+      row.className = `tv-market-card terrain-${card.movementTerrain || 'empty'}`;
+      row.setAttribute('role', 'listitem');
+
+      const name = document.createElement('span');
+      name.className = 'tv-market-card-name';
+      name.textContent = card.cardName || card.key;
+
+      const details = document.createElement('span');
+      details.className = 'tv-market-card-details';
+      details.textContent = `${card.cost} gold · ${card.remaining} left`;
+
+      if (card.remaining <= 0) row.classList.add('sold-out');
+      row.append(name, details);
+      return row;
+    }));
+  }
+
   // ── Lobby UI refs ──────────────────────────────────────────────────────────
   const nameInput = document.getElementById('player-name-input');
   const lobbyStatus = document.getElementById('lobby-status');
@@ -1494,7 +1519,7 @@ document.addEventListener('DOMContentLoaded', () => {
       : null;
     renderer.renderBlockades(activeBlockades);
 
-    cardUI.renderMarket(market);
+    renderMarket(market);
     currentTurnPlayerId = currentPlayerId;
     updateTurnLabel(currentPlayerId);
 
@@ -1932,7 +1957,7 @@ document.addEventListener('DOMContentLoaded', () => {
       : null;
     renderer.renderBlockades(activeBlockades);
 
-    if (snap.market) cardUI.renderMarket(snap.market);
+    if (snap.market) renderMarket(snap.market);
     currentTurnPlayerId = snap.currentPlayerId || null;
     // 1-buy-per-turn lock for rejoiners (see game_snapshot purchasedThisTurn).
     hasPurchasedThisTurn = !!snap.purchasedThisTurn;
@@ -2127,7 +2152,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   ensureMarketPhoneStyles();
 
-  client.onMarketUpdated = ({ market }) => { cardUI.renderMarket(market); cardUI.showMarket(false); };
+  client.onMarketUpdated = ({ market }) => { renderMarket(market); cardUI.showMarket(false); };
   client.onPurchaseOpened = ({ totalPurchasePower }) => {
     // Transmitter free pick: only the acting player's phone opens the market.
     // TV (spectator) and opponent phones ignore it and stay display-only.
