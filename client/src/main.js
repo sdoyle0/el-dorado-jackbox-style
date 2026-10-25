@@ -96,8 +96,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('lobby-divider-or')?.style.setProperty('display', 'none');
   }
   // Phone is boardless: the board lives on the TV and is hidden on phones
-  // via CSS (body.view-phone #board-container). Moves, blockades, and the
-  // market all work through tappable lists, so there is no Show-board toggle.
+  // via CSS (body.view-phone #board-container). Moves and blockades use the
+  // mini-map; the market remains available as a tappable list.
   // (Removed: the old board-collapsed toggle setup used to live here.)
 
   // TV board-first layout: Field Notes live behind a toggle (hidden by
@@ -545,9 +545,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!miniMap) {
       miniMap = new window.ElDoradoMiniMap.MiniMap(svg);
       miniMap.onSelect = (tileId) => attemptMoveToTile(tileId);
+      miniMap.onBreakBlockade = (blockadeId) => attemptBreakBlockade(blockadeId);
     } else if (miniMap.svg !== svg) {
       miniMap = new window.ElDoradoMiniMap.MiniMap(svg);
       miniMap.onSelect = (tileId) => attemptMoveToTile(tileId);
+      miniMap.onBreakBlockade = (blockadeId) => attemptBreakBlockade(blockadeId);
     }
     const isMe = !!(currentTurnPlayerId && client.playerId
       && currentTurnPlayerId === client.playerId);
@@ -557,7 +559,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // (server echo) gates arming: the local select preview paints the map a
     // beat early, but taps stay off until the server confirms the play, so an
     // instant tap can't fire move_pawn ahead of play_card and eat an error.
-    const interactive = isMe && isMidMove && selectedValidMoves.length > 0
+    const interactive = isMe && isMidMove
+      && (selectedValidMoves.length > 0 || currentBreakableBlockades.length > 0)
       && (!!selectedCard || !!rubblePendingTileId);
     const movesForRender = interactive ? selectedValidMoves : [];
     const myIdx = Math.max(0, allPlayers.findIndex(p => p.id === client.playerId));
@@ -572,6 +575,8 @@ document.addEventListener('DOMContentLoaded', () => {
       pawns,
       myColor: PAWN_COLORS[myIdx % PAWN_COLORS.length],
       pendingTileId: rubblePendingTileId,
+      blockades: activeBlockades,
+      breakableBlockades: interactive ? currentBreakableBlockades : [],
       contextRings: MINIMAP_RINGS,
     });
     if (!drawn) {
@@ -586,7 +591,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const budget = (moveMovementTotal > 0 && typeof moveMovesRemaining === 'number')
           ? ` · ${moveMovesRemaining} left`
           : '';
-        titleEl.textContent = `🗺 ${cardName}${budget} — tap a tile`;
+        titleEl.textContent = `🗺 ${cardName}${budget} — tap a tile or barrier`;
       } else if (isMe) {
         titleEl.textContent = '🗺 Your move — play a card';
       } else {
@@ -596,7 +601,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cap) {
       const n = movesForRender.length;
       if (interactive) {
-        cap.textContent = `You are ● — tap a yellow tile (${n} option${n === 1 ? '' : 's'}). Numbers match the TV.`;
+        const hasBreakableBlockade = currentBreakableBlockades.length > 0;
+        cap.textContent = hasBreakableBlockade
+          ? `You are ● — tap a yellow tile or highlighted barrier${n ? ` (${n} move option${n === 1 ? '' : 's'})` : ''}.`
+          : `You are ● — tap a yellow tile (${n} option${n === 1 ? '' : 's'}). Numbers match the TV.`;
       } else if (isMe) {
         cap.textContent = 'You are ● — play a card to light up your options.';
       } else {
@@ -641,6 +649,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const cardName = selectedCard?.cardName || selectedCard?.key || 'card';
     const moveCount = validMoves ? validMoves.length : 0;
     const blockadeCount = breakableIds ? breakableIds.length : 0;
+    const blockadeButtonsFallback = MINIMAP_DISABLED
+      || typeof window.ElDoradoMiniMap?.MiniMap !== 'function';
     // Budget tells a Jungle ×3 → ×1 question at a glance: header shows what
     // is left, each button's tiny hint shows what that option costs.
     const budget = (moveMovementTotal > 0 && typeof moveMovesRemaining === 'number')
@@ -652,7 +662,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!validMoves || validMoves.length === 0) {
       // Map-only mode hides the chip grid (with its "No valid moves" div),
       // so the empty state must live in the sub-line to stay visible.
-      const emptyText = blockadeCount > 0 ? 'No moves — break a blockade below.' : 'No valid moves';
+      const emptyText = blockadeCount > 0
+        ? (blockadeButtonsFallback
+          ? 'No moves — break a blockade below.'
+          : 'No moves — tap a highlighted barrier on the map.')
+        : 'No valid moves';
       subEl.textContent = SHOW_CHIPS
         ? (blockadeCount > 0 ? emptyText : '')
         : emptyText;
@@ -708,7 +722,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Block 6: breakable blockades as tappable rows (phone has no board, so
     // renderer.onBlockadeClick is unreachable there). Server already accepts
     // break_blockade; this only exposes it in the list.
-    if (breakableIds && breakableIds.length > 0) {
+    if (blockadeButtonsFallback && breakableIds && breakableIds.length > 0) {
       blockadeHeaderEl.classList.remove('hidden');
       blockadeHeaderEl.textContent = `🚧 Break blockade — ${selectedCard?.cardName || selectedCard?.key || 'card'} (${breakableIds.length})`;
       breakableIds.forEach((blockadeId) => {
@@ -961,12 +975,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Block 6: phone blockade breaking. Desktop/TV-host taps the highlighted
-  // blockade on the board (renderer.onBlockadeClick); phones have no board,
-  // so the move-list panel renders the same breakableBlockades as buttons.
-  // Server validates adjacency + terrain + turn — this only emits the event.
+  // The server remains authoritative for adjacency, terrain, and turn checks.
   function attemptBreakBlockade(blockadeId) {
-    if (!currentBreakableBlockades.includes(blockadeId)) return;
+    if (!isMidMove || currentTurnPlayerId !== client.playerId
+      || !currentBreakableBlockades.includes(blockadeId)) return;
     const btn = document.querySelector(`.blockade-break-btn[data-blockade="${blockadeId}"]`);
     if (btn) btn.disabled = true;
     client.breakBlockade(blockadeId);
@@ -1523,12 +1535,17 @@ document.addEventListener('DOMContentLoaded', () => {
     currentTurnPlayerId = currentPlayerId;
     updateTurnLabel(currentPlayerId);
 
+    isMidMove = false;
     hasPurchasedThisTurn = false;
     cardUI.setPurchaseLocked(false);
     selectedCard = null;
     selectedValidMoves = [];
+    currentBreakableBlockades = [];
+    moveMovesRemaining = null;
+    moveMovementTotal = 0;
     clearMoveList();
     syncDiscardButton();
+    try { refreshPersistentMap(); } catch (e) { /* map optional */ }
 
     showToast('Expedition begun! Good luck.', { icon: '🗺️', type: 'accent' });
     log('Game started!', 'system');
@@ -1570,6 +1587,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (currentTurnPlayerId && currentTurnPlayerId === client.playerId && selectedCard) {
       renderMoveList(selectedValidMoves, currentBreakableBlockades);
     }
+    try { refreshPersistentMap(); } catch (e) { /* map optional */ }
 
     const icon = BLOCKADE_TERRAIN_ICONS[terrainType] || '🚧';
     showToast(`${brokenByName} broke a ${terrainType} blockade!`, { icon, type: 'accent', duration: 4000 });
@@ -1607,8 +1625,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── Blockade click ────────────────────────────────────────────────────────
   renderer.onBlockadeClick = (blockadeId) => {
-    if (!currentBreakableBlockades.includes(blockadeId)) return;
-    client.breakBlockade(blockadeId);
+    attemptBreakBlockade(blockadeId);
   };
 
   // ── Cards ──────────────────────────────────────────────────────────────────
@@ -1873,6 +1890,7 @@ document.addEventListener('DOMContentLoaded', () => {
       log(msg, 'move');
       showToast(msg, { icon: '🃏', type: 'info', duration: 4000 });
     }
+    try { refreshPersistentMap(); } catch (e) { /* map optional */ }
   };
 
   // ── Final round ────────────────────────────────────────────────────────────
@@ -1962,12 +1980,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // 1-buy-per-turn lock for rejoiners (see game_snapshot purchasedThisTurn).
     hasPurchasedThisTurn = !!snap.purchasedThisTurn;
     cardUI.setPurchaseLocked(hasPurchasedThisTurn);
+    isMidMove = false;
     selectedCard = null;
     selectedValidMoves = [];
+    currentBreakableBlockades = [];
     moveMovesRemaining = null;
     moveMovementTotal = 0;
     clearMoveList();
     updateTurnLabel(currentTurnPlayerId);
+    try { refreshPersistentMap(); } catch (e) { /* map optional */ }
     syncDiscardButton();
 
     if (snap.finalRound && snap.finalRound.triggered) {

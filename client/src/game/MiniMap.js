@@ -4,8 +4,9 @@
 // The phone today shows numbered chips (1..N) that must be matched to numbered
 // badges on the TV — eyes go TV → phone → TV for every option. This renderer
 // draws a small SVG excerpt around the acting pawn (current tile + legal
-// destinations + context rings) reusing the TV's terrain colours, so taps hit
-// tiles directly with no number-matching. Phone-only, display + tap routing;
+// destinations + context rings) reusing the TV's terrain colours, with active
+// barriers drawn across their seams. Taps hit tiles or breakable barriers
+// directly with no number-matching. Phone-only, display + tap routing;
 // the server still validates every move_pawn / move_to_rubble event.
 //
 // Design notes:
@@ -52,6 +53,13 @@
     el_dorado: '#0e4a30',
   };
 
+  var BLOCKADE_COLOR = {
+    jungle: '#4cff4c',
+    water: '#4ab8f0',
+    village: '#ffd700',
+    rubble: '#898681',
+  };
+
   var AXIAL_DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]];
 
   function centerOf(tile) {
@@ -76,6 +84,7 @@
     if (!svgEl) throw new Error('MiniMap needs an <svg> element');
     this.svg = svgEl;
     this.onSelect = null; // (tileId) => void — wired by main.js to attemptMoveToTile
+    this.onBreakBlockade = null; // (blockadeId) => void
   }
 
   // opts: {
@@ -85,6 +94,8 @@
   //   pawns: [{ tileId, color }] (opponents in view get dots),
   //   myColor: css color for the acting pawn,
   //   pendingTileId: rubble-toll target (red outline), or null,
+  //   blockades: active blockade objects with edges and terrainType,
+  //   breakableBlockades: blockade IDs the current card can break,
   //   dimContext: bool (default true — fade non-destination context tiles),
   //   contextRings: number (default 2 — number of pawn-centered rings)
   // }
@@ -147,6 +158,9 @@
       frontier = nextFrontier;
     }
     var validSet = new Set(validMoves.map(String));
+    var breakableSet = new Set(
+      (Array.isArray(o.breakableBlockades) ? o.breakableBlockades : []).map(String)
+    );
     validMoves.forEach(function (id) {
       var t = byId.get(String(id));
       if (!t) return;
@@ -183,7 +197,8 @@
       (minX - pad) + ' ' + (minY - pad) + ' ' +
       ((maxX - minX) + pad * 2) + ' ' + ((maxY - minY) + pad * 2));
     this.svg.setAttribute('role', 'group');
-    this.svg.setAttribute('aria-label', 'Mini map around your pawn. Tap a highlighted tile to move.');
+    this.svg.setAttribute('aria-label',
+      'Mini map around your pawn. Tap a highlighted tile to move or a highlighted barrier to break it.');
 
     var numberById = new Map();
     validMoves.forEach(function (id, i) { numberById.set(String(id), i + 1); });
@@ -343,6 +358,99 @@
       }
 
       self.svg.appendChild(g);
+    });
+
+    // Barriers sit on the shared seams between tiles. Only draw edges whose
+    // two endpoints are in this excerpt; this keeps the mini-map truthful at
+    // its clipped boundary instead of showing partial, misleading walls.
+    (Array.isArray(o.blockades) ? o.blockades : []).forEach(function (blockade) {
+      if (!blockade || !Array.isArray(blockade.edges)) return;
+      var isBreakable = breakableSet.has(String(blockade.id));
+      var group = mk('g');
+      group.setAttribute('data-minimap-blockade', String(blockade.id));
+      var edgeCount = 0;
+
+      blockade.edges.forEach(function (edge) {
+        if (!Array.isArray(edge) || edge.length < 2) return;
+        var tileA = byId.get(String(edge[0]));
+        var tileB = byId.get(String(edge[1]));
+        if (!tileA || !tileB || !include.has(String(tileA.id)) || !include.has(String(tileB.id))) return;
+
+        var a = centerOf(tileA);
+        var b = centerOf(tileB);
+        var dx = b.cx - a.cx;
+        var dy = b.cy - a.cy;
+        var length = Math.hypot(dx, dy);
+        if (!length) return;
+        var midpointX = (a.cx + b.cx) / 2;
+        var midpointY = (a.cy + b.cy) / 2;
+        var halfSpan = 22;
+        var offsetX = -dy / length * halfSpan;
+        var offsetY = dx / length * halfSpan;
+        var attrs = {
+          x1: (midpointX - offsetX).toFixed(1),
+          y1: (midpointY - offsetY).toFixed(1),
+          x2: (midpointX + offsetX).toFixed(1),
+          y2: (midpointY + offsetY).toFixed(1),
+          'stroke-linecap': 'round',
+        };
+
+        if (isBreakable) {
+          var halo = mk('line');
+          Object.keys(attrs).forEach(function (name) { halo.setAttribute(name, attrs[name]); });
+          halo.setAttribute('stroke', '#ffee00');
+          halo.setAttribute('stroke-width', '18');
+          halo.setAttribute('opacity', '0.75');
+          halo.setAttribute('pointer-events', 'none');
+          group.appendChild(halo);
+        }
+
+        var body = mk('line');
+        Object.keys(attrs).forEach(function (name) { body.setAttribute(name, attrs[name]); });
+        body.setAttribute('stroke', '#1a1008');
+        body.setAttribute('stroke-width', '14');
+        body.setAttribute('pointer-events', 'none');
+        group.appendChild(body);
+
+        var stripe = mk('line');
+        Object.keys(attrs).forEach(function (name) { stripe.setAttribute(name, attrs[name]); });
+        stripe.setAttribute('stroke', BLOCKADE_COLOR[blockade.terrainType] || '#ff9f43');
+        stripe.setAttribute('stroke-width', '8');
+        stripe.setAttribute('pointer-events', 'none');
+        group.appendChild(stripe);
+
+        if (isBreakable) {
+          var hit = mk('line');
+          Object.keys(attrs).forEach(function (name) { hit.setAttribute(name, attrs[name]); });
+          hit.setAttribute('stroke', 'transparent');
+          hit.setAttribute('stroke-width', '32');
+          hit.setAttribute('pointer-events', 'stroke');
+          group.appendChild(hit);
+        }
+        edgeCount++;
+      });
+
+      if (!edgeCount) return;
+      if (isBreakable) {
+        var label = (blockade.label || blockade.id || 'blockade');
+        group.setAttribute('role', 'button');
+        group.setAttribute('tabindex', '0');
+        group.setAttribute('aria-label', 'Break ' + (blockade.terrainType || '') +
+          ' blockade ' + label + ', costs 1 move');
+        group.style.cursor = 'pointer';
+        group.addEventListener('click', function () {
+          self.onBreakBlockade && self.onBreakBlockade(blockade.id);
+        });
+        group.addEventListener('keydown', function (ev) {
+          if (ev.key === 'Enter' || ev.key === ' ') {
+            ev.preventDefault();
+            self.onBreakBlockade && self.onBreakBlockade(blockade.id);
+          }
+        });
+      } else {
+        group.setAttribute('aria-hidden', 'true');
+      }
+      self.svg.appendChild(group);
     });
 
     return entries.length;
