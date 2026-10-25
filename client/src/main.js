@@ -292,6 +292,13 @@ document.addEventListener('DOMContentLoaded', () => {
       return new URLSearchParams(window.location.search).get('minimap') === '0';
     } catch (e) { return false; }
   })();
+  // Use a wider excerpt by default; ?rings=2 restores the tighter original
+  // framing for an easy comparison if the smaller destinations feel worse.
+  const MINIMAP_RINGS = (() => {
+    try {
+      return new URLSearchParams(window.location.search).get('rings') === '2' ? 2 : 3;
+    } catch (e) { return 3; }
+  })();
   // #8 experiment v2: map-only by default — the numbered chips are hidden
   // (their render code stays intact below). ?chips=1 brings both back for
   // comparison; ?minimap=0 restores the old list-only flow (chips forced on).
@@ -302,7 +309,6 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (e) { return MINIMAP_DISABLED; }
   })();
   let miniMap = null;
-  let minimapCollapsed = false;
   const MOVE_TERRAIN_ICONS = {
     jungle: '🌿', water: '🌊', village: '🏘️', rubble: '🪨',
     camp: '⛺', mountain: '⛰️', start: '🏁', el_dorado: '🏆',
@@ -416,8 +422,7 @@ document.addEventListener('DOMContentLoaded', () => {
       /* #8 experiment: pawn-centred mini-map. v3 made it a persistent
          panel of its own (#minimap-panel, built by ensureMiniMapPanel) that
          stays open all game: orientation when idle, yellow options + taps
-         while a movement card is in flight. Whole hexes are the tap targets
-         (thumb-sized once the viewBox crops tight). */
+         while a movement card is in flight. */
       #minimap-panel { display: flex; flex-direction: column; gap: 0.3rem;
         padding: 0.55rem 0.6rem; background: rgba(13,17,23,0.6);
         border: 1px solid var(--border-mid, rgba(201,162,39,0.32));
@@ -426,15 +431,9 @@ document.addEventListener('DOMContentLoaded', () => {
       #minimap-toprow { display: flex; align-items: center; gap: 0.5rem; }
       #minimap-title { font-size: 0.78rem; font-weight: 700; color: #ffd700;
         letter-spacing: 0.03em; flex: 1 1 auto; }
-      #minimap-toggle { flex: none; min-height: 44px; padding: 0.4rem 0.7rem;
-        border-radius: 8px; border: 1px solid rgba(255,255,255,0.18);
-        background: rgba(255,255,255,0.06); color: #e8e0d0;
-        font-size: 0.75rem; font-weight: 700; cursor: pointer; }
-      #minimap-toggle:hover { background: rgba(255,255,255,0.12); }
       #minimap-svg { width: 100%; height: auto; max-height: 320px;
         background: rgba(0,0,0,0.35); border: 1px solid var(--border-mid, rgba(201,162,39,0.32));
         border-radius: 10px; touch-action: manipulation; }
-      #minimap-svg.hidden { display: none; }
       #minimap-cap { font-size: 0.7rem; color: #9aabbf; }
     `;
     document.head.appendChild(style);
@@ -487,7 +486,6 @@ document.addEventListener('DOMContentLoaded', () => {
     panel.innerHTML = `
       <div id="minimap-toprow">
         <span id="minimap-title">🗺 Around your pawn</span>
-        <button id="minimap-toggle" type="button" title="Collapse the mini-map">Hide map</button>
       </div>
       <svg id="minimap-svg" xmlns="http://www.w3.org/2000/svg"></svg>
       <div id="minimap-cap"></div>`;
@@ -496,12 +494,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const movePanel = document.getElementById('move-list-panel');
     if (movePanel && movePanel.parentNode === host) host.insertBefore(panel, movePanel);
     else host.appendChild(panel);
-    panel.querySelector('#minimap-toggle')?.addEventListener('click', (e) => {
-      minimapCollapsed = !minimapCollapsed;
-      e.currentTarget.textContent = minimapCollapsed ? 'Show map' : 'Hide map';
-      document.getElementById('minimap-svg')?.classList.toggle('hidden', minimapCollapsed);
-      document.getElementById('minimap-cap')?.classList.toggle('hidden', minimapCollapsed);
-    });
     return panel;
   }
 
@@ -548,8 +540,6 @@ document.addEventListener('DOMContentLoaded', () => {
       tileId: p.currentTileId,
       color: PAWN_COLORS[i % PAWN_COLORS.length],
     })).filter(p => p.tileId);
-    svg.classList.toggle('hidden', minimapCollapsed);
-    cap?.classList.toggle('hidden', minimapCollapsed);
     const drawn = miniMap.render({
       tiles,
       centerTileId,
@@ -557,6 +547,7 @@ document.addEventListener('DOMContentLoaded', () => {
       pawns,
       myColor: PAWN_COLORS[myIdx % PAWN_COLORS.length],
       pendingTileId: rubblePendingTileId,
+      contextRings: MINIMAP_RINGS,
     });
     if (!drawn) {
       panel.classList.add('hidden');
@@ -577,7 +568,7 @@ document.addEventListener('DOMContentLoaded', () => {
         titleEl.textContent = `🗺 ${turnPlayer?.name || 'Opponent'}'s turn`;
       }
     }
-    if (cap && !minimapCollapsed) {
+    if (cap) {
       const n = movesForRender.length;
       if (interactive) {
         cap.textContent = `You are ● — tap a yellow tile (${n} option${n === 1 ? '' : 's'}). Numbers match the TV.`;

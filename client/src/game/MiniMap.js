@@ -11,8 +11,8 @@
 // Design notes:
 // - Flat-top hex math matches HexRenderer exactly (cx = 75*q, cy = 43.3*q +
 //   86.6*r) so the excerpt rhymes with the TV board.
-// - Excerpt = 2 rings around the pawn + 1 ring around each valid destination
-//   (orientation context for multi-step planning). Typically ~20-30 tiles.
+// - Default excerpt = 2 rings around the pawn + 1 ring around each valid
+//   destination. The phone can expand this to 3 + 2 rings for more context.
 // - Number badges reuse the payload order (N = position in validMoves, 1-based)
 //   so the map, the chip list below it, and the TV badges all agree.
 // - No dependencies. Works with plain tile objects {id,q,r,terrainType,
@@ -85,7 +85,8 @@
   //   pawns: [{ tileId, color }] (opponents in view get dots),
   //   myColor: css color for the acting pawn,
   //   pendingTileId: rubble-toll target (red outline), or null,
-  //   dimContext: bool (default true — fade non-destination context tiles)
+  //   dimContext: bool (default true — fade non-destination context tiles),
+  //   contextRings: number (default 2 — number of pawn-centered rings)
   // }
   // Returns the number of tiles drawn (0 when there is nothing to show).
   MiniMap.prototype.render = function (opts) {
@@ -120,7 +121,10 @@
       return out;
     }
 
-    // ── Excerpt set: 2 rings around pawn + 1 ring around each destination ──
+    // ── Excerpt set: context rings around pawn and destinations ──
+    var contextRings = Number.isInteger(o.contextRings)
+      ? Math.max(1, Math.min(4, o.contextRings))
+      : 2;
     var include = new Map(); // id -> { tile, ring }
     function add(tile, ring) {
       if (!tile) return;
@@ -129,17 +133,37 @@
       if (!prev || ring < prev.ring) include.set(k, { tile: tile, ring: ring });
     }
     add(center, 0);
-    var ring1 = neighborsOf(center);
-    ring1.forEach(function (t) { add(t, 1); });
-    ring1.forEach(function (t) {
-      neighborsOf(t).forEach(function (u) { add(u, 2); });
-    });
+    var frontier = [center];
+    for (var ring = 1; ring <= contextRings; ring++) {
+      var nextFrontier = [];
+      frontier.forEach(function (tile) {
+        neighborsOf(tile).forEach(function (neighbor) {
+          if (!include.has(String(neighbor.id))) {
+            add(neighbor, ring);
+            nextFrontier.push(neighbor);
+          }
+        });
+      });
+      frontier = nextFrontier;
+    }
     var validSet = new Set(validMoves.map(String));
     validMoves.forEach(function (id) {
       var t = byId.get(String(id));
       if (!t) return;
-      add(t, 1);
-      neighborsOf(t).forEach(function (u) { add(u, 2); });
+      add(t, 0);
+      var destinationFrontier = [t];
+      for (var destinationRing = 1; destinationRing < contextRings; destinationRing++) {
+        var nextDestinationFrontier = [];
+        destinationFrontier.forEach(function (tile) {
+          neighborsOf(tile).forEach(function (neighbor) {
+            if (!include.has(String(neighbor.id))) {
+              add(neighbor, destinationRing);
+              nextDestinationFrontier.push(neighbor);
+            }
+          });
+        });
+        destinationFrontier = nextDestinationFrontier;
+      }
     });
 
     var entries = Array.from(include.values());
@@ -330,7 +354,10 @@
 
   // Pure helper (no DOM) for tests: which tile ids would be included?
   // tilesByCoord: Map "q,r" -> tile; centerId lookup via byId Map.
-  MiniMap.excerptIds = function (allTiles, centerTileId, validMoves) {
+  MiniMap.excerptIds = function (allTiles, centerTileId, validMoves, contextRings) {
+    var rings = Number.isInteger(contextRings)
+      ? Math.max(1, Math.min(4, contextRings))
+      : 2;
     var byId = new Map();
     var byCoord = new Map();
     (allTiles || []).forEach(function (t) {
@@ -345,15 +372,36 @@
         .filter(Boolean);
     }
     var set = new Set([String(center.id)]);
-    nbs(center).forEach(function (t) {
-      set.add(String(t.id));
-      nbs(t).forEach(function (u) { set.add(String(u.id)); });
-    });
+    var frontier = [center];
+    for (var ring = 1; ring <= rings; ring++) {
+      var nextFrontier = [];
+      frontier.forEach(function (tile) {
+        nbs(tile).forEach(function (neighbor) {
+          if (!set.has(String(neighbor.id))) {
+            set.add(String(neighbor.id));
+            nextFrontier.push(neighbor);
+          }
+        });
+      });
+      frontier = nextFrontier;
+    }
     (validMoves || []).forEach(function (id) {
       var t = byId.get(String(id));
       if (!t) return;
       set.add(String(t.id));
-      nbs(t).forEach(function (u) { set.add(String(u.id)); });
+      var destinationFrontier = [t];
+      for (var destinationRing = 1; destinationRing < rings; destinationRing++) {
+        var nextDestinationFrontier = [];
+        destinationFrontier.forEach(function (tile) {
+          nbs(tile).forEach(function (neighbor) {
+            if (!set.has(String(neighbor.id))) {
+              set.add(String(neighbor.id));
+              nextDestinationFrontier.push(neighbor);
+            }
+          });
+        });
+        destinationFrontier = nextDestinationFrontier;
+      }
     });
     return Array.from(set);
   };
