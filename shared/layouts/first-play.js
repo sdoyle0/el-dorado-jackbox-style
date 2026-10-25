@@ -1,8 +1,3 @@
-// shared/layouts/first-play.js
-//
-// First Play (easy) — setup sheet page 1 introductory map.
-// Path: B(bottom-left) → C(up-right) → N(up-right) → I(down-right) → K(up-right) → ending(top-right)
-
 module.exports = {
   "id": "first-play",
   "name": "First Play",
@@ -11,32 +6,32 @@ module.exports = {
     {
       "side": "B",
       "rot": 0,
-      "at": "-16_18"
+      "at": "-8_5"
     },
     {
       "side": "C",
       "rot": 4,
-      "at": "-15_17"
+      "at": "-7_4"
     },
     {
       "side": "N",
       "rot": 3,
-      "at": "-5_13"
+      "at": "3_0"
     },
     {
       "side": "I",
       "rot": 0,
-      "at": "2_4"
+      "at": "10_-9"
     },
     {
       "side": "K",
       "rot": 4,
-      "at": "2_3"
+      "at": "10_-10"
     },
     {
-      "side": "ending",
+      "side": "ending-water",
       "rot": 4,
-      "at": "4_-3"
-    },
+      "at": "13_-17"
+    }
   ]
 };
