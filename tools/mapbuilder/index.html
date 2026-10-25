@@ -325,6 +325,12 @@
           <button id="removePlacement" class="danger">Remove</button>
         </div>
         <p class="hint" id="placementHint">Select a placed piece on the board or in the list. Drag it to move; it snaps to the hex grid.</p>
+        <h3>Import layout</h3>
+        <div class="field">
+          <label for="layoutFile">Map layout file (JSON or exported JS)</label>
+          <input id="layoutFile" type="file" accept=".json,.js,application/json,text/javascript">
+        </div>
+        <p class="hint" id="layoutImportStatus">Load a JSON layout or a file exported with “Export map layout”.</p>
         <h3>Export</h3>
         <div class="button-row">
           <button id="showLayout" class="primary">Generate layout JS</button>
@@ -885,6 +891,48 @@
       $('layoutOutput').value = source;
       download(`${state.mapName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'map'}.js`, source, 'text/javascript');
     }
+    function parseLayoutSource(source) {
+      let json = source.trim().replace(/^\uFEFF/, '');
+      if (json.startsWith('module.exports')) {
+        json = json.replace(/^module\.exports\s*=\s*/, '').replace(/;\s*$/, '');
+      }
+      return JSON.parse(json);
+    }
+    function importLayout(data, filename) {
+      if (!data || typeof data !== 'object' || Array.isArray(data) || !Array.isArray(data.placements)) {
+        throw new Error('Layout must be an object with a placements array.');
+      }
+      const placements = data.placements.map((placement, index) => {
+        if (!placement || typeof placement !== 'object' || Array.isArray(placement)) {
+          throw new Error(`Placement ${index + 1} must be an object.`);
+        }
+        if (typeof placement.side !== 'string' || !state.pieces[placement.side]) {
+          throw new Error(`Placement ${index + 1} references unknown piece face "${placement.side}".`);
+        }
+        const rot = placement.rot ?? 0;
+        if (!Number.isInteger(rot) || rot < 0 || rot > 5) {
+          throw new Error(`Placement ${index + 1} rotation must be a whole number from 0 to 5.`);
+        }
+        if (typeof placement.at !== 'string') {
+          throw new Error(`Placement ${index + 1} must have an axial coordinate such as "0_3".`);
+        }
+        parseAt(placement.at);
+        return { side: placement.side, rot, at: placement.at };
+      });
+      const importedName = typeof data.name === 'string' ? data.name.trim() : '';
+      const filenameName = filename.replace(/\.(?:json|js)$/i, '').trim();
+
+      state.placements = placements;
+      state.selectedPlacement = placements.length ? 0 : -1;
+      state.mapName = importedName || filenameName || 'Imported map';
+      $('mapName').value = state.mapName;
+      renderMap();
+      fitCamera('map');
+      saveLocal();
+      $('layoutImportStatus').textContent = `Loaded ${state.mapName} (${placements.length} placements).`;
+      $('layoutImportStatus').classList.remove('error');
+      $('layoutImportStatus').classList.add('success');
+    }
     function bindEvents() {
       document.querySelectorAll('.tab').forEach((button) => button.addEventListener('click', () => showTab(button.dataset.tab)));
       $('pieceSelect').addEventListener('change', () => {
@@ -1081,6 +1129,19 @@
           download(`${state.mapName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'map'}-tiles.json`, `${JSON.stringify(composeMap(), null, 2)}\n`);
         } catch (error) {
           $('mapStatus').innerHTML = `<span class="error">${escapeHtml(error.message)}</span>`;
+        }
+      });
+      $('layoutFile').addEventListener('change', async (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        try {
+          importLayout(parseLayoutSource(await file.text()), file.name);
+        } catch (error) {
+          $('layoutImportStatus').textContent = `Could not load layout: ${error.message}`;
+          $('layoutImportStatus').classList.remove('success');
+          $('layoutImportStatus').classList.add('error');
+        } finally {
+          event.target.value = '';
         }
       });
       $('referenceFile').addEventListener('change', () => {
