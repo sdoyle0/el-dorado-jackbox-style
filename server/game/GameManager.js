@@ -423,7 +423,12 @@ class GameRoom {
     let activeBlockades = null;
     if (this.enableBlockades) {
       const terrains = shuffle(BLOCKADE_TERRAIN_POOL);
-      const eligibleSeams = composed.seams.filter(s => !s.sides.includes('ending'));
+      const finishingTileIds = new Set(
+        composed.tiles.filter(tile => tile.isFinishing).map(tile => tile.id)
+      );
+      const eligibleSeams = composed.seams.filter(seam =>
+        !seam.edges.some(([a, b]) => finishingTileIds.has(a) || finishingTileIds.has(b))
+      );
       activeBlockades = eligibleSeams.map((seam, i) => ({
         ...seam,
         terrainType: terrains[i % terrains.length],
