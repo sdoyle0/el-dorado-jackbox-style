@@ -402,6 +402,24 @@ body.view-phone #hand-cards {
   padding: 0.1rem;
 }
 
+body.view-phone #hand-messages.toll-prompt-open {
+  position: fixed;
+  z-index: 40;
+  inset-inline: 0;
+  bottom: max(0.5rem, env(safe-area-inset-bottom));
+  width: calc(100vw - 1rem);
+  max-width: 34rem;
+  max-height: min(45dvh, 24rem);
+  margin-inline: auto;
+  padding: 0.65rem;
+  overflow-y: auto;
+  box-sizing: border-box;
+  border: 1px solid rgba(255, 159, 67, 0.7);
+  border-radius: 10px;
+  background: rgba(13, 30, 48, 0.98);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.65);
+}
+
 body.view-phone #hand-cards .card-btn {
   width: 100%;
   min-width: 0;

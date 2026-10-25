@@ -866,9 +866,6 @@ document.addEventListener('DOMContentLoaded', () => {
         cardUI.updateCampTarget(rubbleCardsNeeded, { label: destLabelFor(tileId), cost: tile.movementCost });
         markPendingRubbleDest(tileId);
         log(`⛺ Camp switched: ${destLabelFor(tileId)} (camp ×${tile.movementCost}) — pick ${rubbleCardsNeeded} card(s) to trash. Your turn continues.`, 'system');
-        if (VIEW === 'phone') {
-          showToast(`Camp: ${destLabelFor(tileId)}, trash ${rubbleCardsNeeded} to enter.`, { icon: '⛺', type: 'info', duration: 3000 });
-        }
         syncDiscardButton();
         return;
       }
@@ -900,9 +897,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }, { label: destLabelFor(tileId), cost: tile.movementCost });
       markPendingRubbleDest(tileId);
       log(`⛺ Camp: ${destLabelFor(tileId)} (camp ×${tile.movementCost}) — pick ${rubbleCardsNeeded} card(s) to trash. Your turn continues.`, 'system');
-      if (VIEW === 'phone') {
-        showToast(`Camp: ${destLabelFor(tileId)}, trash ${rubbleCardsNeeded} to enter — turn continues.`, { icon: '⛺', type: 'info', duration: 4000 });
-      }
       syncDiscardButton();
       return;
     }

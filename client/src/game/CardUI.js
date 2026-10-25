@@ -1244,8 +1244,8 @@ class CardUI {
     this._renderRubbleControls();
   }
 
-  // Camp entry (rulebook p3 + p6): trash N hand cards, mover untouched,
-  // movement continues. Same panel as rubble, camp copy + trash semantics.
+  // Camp entry (rulebook p3 + p6): trash N cards total, including the mover.
+  // Same panel as rubble, with camp-specific copy and trash semantics.
   enterCampPaymentMode(count, excludeInstanceId, onConfirm, onCancel, destInfo = null) {
     this._tollKind        = 'camp';
     this._rubbleNeeded    = count;
@@ -1312,7 +1312,9 @@ class CardUI {
     this._rubbleExcludeName = null;
     this._rubbleDestLabel  = null;
     this._rubbleDestCost    = null;
-    document.getElementById('hand-messages').innerHTML = '';
+    const messages = document.getElementById('hand-messages');
+    messages.classList.remove('toll-prompt-open');
+    messages.innerHTML = '';
     // The toll panel owns #hand-messages while open. Market taps are blocked
     // at the button (see _bindControls) and programmatic opens are bounced
     // back via restoreRubbleMode, so reaching here with the market open
@@ -1331,6 +1333,7 @@ class CardUI {
   // instead of an ambiguous Cancel.
   _renderRubbleControls() {
     const messages = document.getElementById('hand-messages');
+    messages.classList.add('toll-prompt-open');
     messages.innerHTML = '';
 
     const isCamp = this._tollKind === 'camp';

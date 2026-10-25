@@ -400,6 +400,7 @@ class GameStateManager {
 
     player.currentTileId = tileId;
     this.emit('pawn_moved', { playerId, tileId });
+    this.emit('hand_updated', { playerId, hand: player.hand });
 
     // A camp finishing tile (none on the current map, but future maps may
     // have one) follows the normal final-round flow — record the finisher
