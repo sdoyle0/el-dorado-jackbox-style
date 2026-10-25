@@ -81,8 +81,8 @@ class GameClient {
 
   // ── Lobby ──────────────────────────────────────────────────────────────────
 
-  createRoom(playerName, playerCount = 2, debugMode = false, enableBlockades = true, asSpectator = false) {
-    this.socket.emit('create_room', { playerName, playerCount, debugMode, enableBlockades, asSpectator });
+  createRoom(playerName, playerCount = 2, debugMode = false, enableBlockades = true, asSpectator = false, map = 'hills-of-gold') {
+    this.socket.emit('create_room', { playerName, playerCount, debugMode, enableBlockades, asSpectator, map });
   }
 
   joinRoom(playerName, roomId, asSpectator = false) {

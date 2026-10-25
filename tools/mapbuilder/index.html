@@ -1,0 +1,1157 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>El Dorado Map Studio</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #20261f;
+      --muted: #657064;
+      --paper: #f5f1e5;
+      --panel: #fffdf7;
+      --line: #d7d4c8;
+      --green: #315e39;
+      --gold: #dba934;
+      --danger: #a63b32;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background: var(--paper);
+      font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    button, input, select { font: inherit; }
+    button {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 8px 12px;
+      color: var(--ink);
+      background: var(--panel);
+      cursor: pointer;
+    }
+    button:hover { border-color: var(--green); }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+    button.primary { color: white; border-color: var(--green); background: var(--green); }
+    button.danger { color: var(--danger); }
+    input, select {
+      min-height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 7px 9px;
+      color: var(--ink);
+      background: white;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 16px 22px;
+      color: white;
+      background: #263d2c;
+    }
+    header h1 { margin: 0; font-size: 21px; }
+    header p { margin: 3px 0 0; color: #d8e3d5; font-size: 13px; }
+    .header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .header-actions button { border-color: #829584; color: white; background: #354e3b; }
+    main { max-width: 1600px; margin: auto; padding: 18px; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+    .tab { padding: 10px 16px; font-weight: 650; }
+    .tab.active { color: white; border-color: var(--green); background: var(--green); }
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(290px, 350px) minmax(0, 1fr);
+      gap: 14px;
+      height: min(76vh, 850px);
+      min-height: min(76vh, 850px);
+    }
+    .sidebar, .canvas-panel {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel);
+      box-shadow: 0 3px 14px #342b1510;
+    }
+    .sidebar { padding: 16px; overflow: auto; }
+    .canvas-panel { position: relative; overflow: hidden; min-height: 560px; }
+    .sidebar h2 { margin: 0 0 12px; font-size: 18px; }
+    .sidebar h3 { margin: 18px 0 8px; font-size: 14px; }
+    .field { display: grid; gap: 5px; margin: 10px 0; }
+    .field label, .label { font-size: 12px; color: var(--muted); font-weight: 650; }
+    .row { display: flex; align-items: center; gap: 8px; }
+    .row > * { min-width: 0; }
+    .row .grow { flex: 1; }
+    .button-row { display: flex; gap: 7px; flex-wrap: wrap; margin: 10px 0; }
+    .button-row button { flex: 1; }
+    .stats {
+      padding: 10px;
+      border-radius: 7px;
+      background: #f0f3ea;
+      color: #455344;
+      font-size: 13px;
+    }
+    .hint { margin: 8px 0; color: var(--muted); font-size: 12px; }
+    .warning { color: #8b4b0b; }
+    .error { color: var(--danger); }
+    .success { color: var(--green); }
+    .palette { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+    .terrain-choice {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 36px;
+      padding: 6px 8px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .terrain-choice input[type="radio"] { min-height: auto; padding: 0; border: 0; background: transparent; }
+    .terrain-choice.selected { outline: 2px solid var(--green); border-color: transparent; }
+    .cost-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+    .swatch { width: 17px; height: 17px; flex: 0 0 17px; border: 1px solid #0003; border-radius: 50%; }
+    .canvas-toolbar {
+      position: absolute;
+      z-index: 2;
+      top: 10px;
+      right: 10px;
+      display: flex;
+      gap: 6px;
+      padding: 6px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fffdf0ed;
+    }
+    .canvas-toolbar button { padding: 5px 10px; }
+    svg.board {
+      display: block;
+      width: 100%;
+      height: 100%;
+      min-height: 560px;
+      background-color: #ece7d8;
+      background-image: radial-gradient(#aaa38d 0.75px, transparent 0.75px);
+      background-size: 18px 18px;
+      touch-action: none;
+      user-select: none;
+    }
+    .cell { cursor: pointer; }
+    .cell polygon { stroke: #273126; stroke-width: 1.5; }
+    .cell.selected polygon { stroke: #ffd33d; stroke-width: 5; }
+    .cell text, .piece text { pointer-events: none; text-anchor: middle; dominant-baseline: central; font-weight: 700; }
+    .piece { cursor: grab; }
+    .piece:active { cursor: grabbing; }
+    .piece polygon { stroke: #172319; stroke-width: 1.5; }
+    .piece.selected polygon { stroke: #fff; stroke-width: 3; }
+    .piece .piece-name {
+      fill: white;
+      stroke: #152219;
+      stroke-width: 3px;
+      paint-order: stroke;
+      font-size: 21px;
+      text-anchor: middle;
+      pointer-events: none;
+    }
+    .seam { stroke: #e22d24; stroke-width: 5; stroke-dasharray: 8 5; pointer-events: none; }
+    .overlap { stroke: #ff172b !important; stroke-width: 5 !important; }
+    .list-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 5px;
+      margin: 6px 0;
+      padding: 6px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      font-size: 13px;
+    }
+    .list-item.active { border-color: var(--green); background: #f0f5ed; }
+    .list-item button { padding: 4px 7px; }
+    .export-box {
+      width: 100%;
+      min-height: 130px;
+      margin: 8px 0;
+      padding: 9px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      font: 11px/1.4 ui-monospace, SFMono-Regular, Consolas, monospace;
+      resize: vertical;
+    }
+    .hidden { display: none !important; }
+    .badge { display: inline-block; padding: 2px 7px; border-radius: 20px; background: #eee9d9; font-size: 11px; }
+    @media (max-width: 850px) {
+      main { padding: 10px; }
+      header { align-items: flex-start; padding: 13px; }
+      .workspace { grid-template-columns: 1fr; height: auto; }
+      .canvas-panel, svg.board { min-height: 58vh; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>El Dorado Map Studio</h1>
+      <p>Build tile faces, then arrange them into a map. Changes stay in this browser until exported. Saved browser edits take precedence over project data; reload project data to pick up file changes.</p>
+    </div>
+    <div class="header-actions">
+      <button id="exportPieces">Export tile data</button>
+      <button id="exportLayout">Export map layout</button>
+      <button id="resetBrowser">Reload project data</button>
+    </div>
+  </header>
+  <main>
+    <nav class="tabs" aria-label="Map authoring tools">
+      <button class="tab active" data-tab="tiles">1 · Tile builder</button>
+      <button class="tab" data-tab="map">2 · Map builder</button>
+    </nav>
+
+    <section class="workspace" id="tileWorkspace">
+      <aside class="sidebar">
+        <h2>Tile builder</h2>
+        <p class="hint">Select a hex to edit it. Click an empty cell to add a hex with the selected terrain and cost.</p>
+        <div class="field">
+          <label for="pieceSelect">Piece face</label>
+          <div class="row">
+            <select class="grow" id="pieceSelect"></select>
+            <button id="newPiece" title="Create a blank piece face">New</button>
+          </div>
+        </div>
+        <div class="stats" id="tileStats"></div>
+
+        <h3>Selected hex</h3>
+        <div class="field">
+          <span class="label">Terrain</span>
+          <div class="palette" id="terrainPalette"></div>
+        </div>
+        <div class="field">
+          <span class="label">Movement cost</span>
+          <div class="cost-options" id="moveCost" role="radiogroup" aria-label="Movement cost">
+            <label class="terrain-choice selected"><input type="radio" name="moveCost" value="1" checked>×1</label>
+            <label class="terrain-choice"><input type="radio" name="moveCost" value="2">×2</label>
+            <label class="terrain-choice"><input type="radio" name="moveCost" value="3">×3</label>
+            <label class="terrain-choice"><input type="radio" name="moveCost" value="4">×4</label>
+            <label class="terrain-choice"><input type="radio" name="moveCost" value="0">Blocked</label>
+          </div>
+        </div>
+        <div class="field">
+          <label for="playerNumber">Player number (for a start hex)</label>
+          <select id="playerNumber">
+            <option value="1">Player 1</option>
+            <option value="2">Player 2</option>
+            <option value="3">Player 3</option>
+            <option value="4">Player 4</option>
+          </select>
+        </div>
+        <label class="terrain-choice" for="finishingToggle">
+          <input type="checkbox" id="finishingToggle">
+          Playable finishing hex (starts the final round)
+        </label>
+        <div class="button-row">
+          <button id="applyHex" class="primary">Apply to selected hex</button>
+          <button id="removeHex" class="danger">Remove hex</button>
+        </div>
+        <p class="hint" id="hexStatus">Choose a hex or click an empty grid cell.</p>
+
+        <h3>Piece face details</h3>
+        <div class="field">
+          <label for="pairName">Physical piece pair (optional)</label>
+          <input id="pairName" placeholder="e.g. IJ">
+        </div>
+        <div class="button-row">
+          <button id="savePiece" class="primary">Save face</button>
+          <button id="deletePiece" class="danger">Delete face</button>
+        </div>
+        <p class="hint">Each terrain/start face has 37 hexes. The six-hex ending assembly has three playable finishing spaces and three non-playable El Dorado podium spaces.</p>
+
+        <h3>Validation</h3>
+        <div id="tileValidation" class="stats"></div>
+      </aside>
+      <div class="canvas-panel">
+        <div class="canvas-toolbar">
+          <button id="tileZoomOut" aria-label="Zoom out">−</button>
+          <button id="tileFit">Fit</button>
+          <button id="tileZoomIn" aria-label="Zoom in">+</button>
+        </div>
+        <svg id="tileSvg" class="board" role="img" aria-label="Tile hex editor"></svg>
+      </div>
+    </section>
+
+    <section class="workspace hidden" id="mapWorkspace">
+      <aside class="sidebar">
+        <h2>Map builder</h2>
+        <p class="hint">Add piece faces, drag them onto the board, rotate in 60° steps, and snap their anchors to the hex grid. Red dashed edges are joins between different pieces.</p>
+        <div class="field">
+          <label for="mapPieceSelect">Piece face to add</label>
+          <div class="row">
+            <select class="grow" id="mapPieceSelect"></select>
+            <button id="addPlacement" class="primary">Add</button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="mapName">Map name</label>
+          <input id="mapName" value="First Play">
+        </div>
+        <div class="button-row">
+          <button id="loadFirstPlay">Load First Play draft</button>
+          <button id="clearMap" class="danger">Clear map</button>
+        </div>
+        <div class="stats" id="mapStatus"></div>
+
+        <h3>Diagram overlay</h3>
+        <div class="field">
+          <label for="referenceFile">Reference image crop</label>
+          <input id="referenceFile" type="file" accept="image/*">
+        </div>
+        <div class="field">
+          <label for="referenceOpacity">Image opacity</label>
+          <input id="referenceOpacity" type="range" min="0.15" max="1" step="0.05" value="0.55">
+        </div>
+        <div class="field">
+          <label for="referenceScale">Image width</label>
+          <input id="referenceScale" type="range" min="400" max="3000" step="25" value="1600">
+        </div>
+        <div class="button-row">
+          <button id="clearReference">Remove diagram overlay</button>
+        </div>
+        <p class="hint">Upload a crop of the setup diagram, then drag the image to line it up under the hexes. Use opacity and width to compare terrain and piece outlines.</p>
+
+        <h3>Placed pieces</h3>
+        <div id="placementList"></div>
+        <div class="button-row">
+          <button id="rotateLeft">↶ Rotate</button>
+          <button id="rotateRight">Rotate ↷</button>
+          <button id="removePlacement" class="danger">Remove</button>
+        </div>
+        <p class="hint" id="placementHint">Select a placed piece on the board or in the list. Drag it to move; it snaps to the hex grid.</p>
+        <h3>Export</h3>
+        <div class="button-row">
+          <button id="showLayout" class="primary">Generate layout JS</button>
+          <button id="downloadMap">Download composed tiles</button>
+        </div>
+        <textarea class="export-box" id="layoutOutput" aria-label="Generated map layout" placeholder="Generated map layout appears here"></textarea>
+        <p class="hint">Export the piece data separately from the tile builder. Browser edits are not written to project files automatically.</p>
+      </aside>
+      <div class="canvas-panel">
+        <div class="canvas-toolbar">
+          <button id="mapZoomOut" aria-label="Zoom out">−</button>
+          <button id="mapFit">Fit</button>
+          <button id="mapZoomIn" aria-label="Zoom in">+</button>
+        </div>
+        <svg id="mapSvg" class="board" role="img" aria-label="Map placement editor"></svg>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    'use strict';
+    const TERRAIN = {
+      jungle: { fill: '#2a6b1a', label: 'Jungle' },
+      water: { fill: '#1a5a9a', label: 'Water' },
+      village: { fill: '#b07820', label: 'Village / sand' },
+      mountain: { fill: '#2a2420', label: 'Mountain' },
+      camp: { fill: '#7a3a28', label: 'Camp' },
+      rubble: { fill: '#5a5244', label: 'Rubble' },
+      start: { fill: '#781ba3', label: 'Start' },
+      el_dorado: { fill: '#1a6a48', label: 'El Dorado' },
+    };
+    const HEX = { radius: 50, xStep: 75, yHalf: 43.3, yStep: 86.6 };
+    const FIRST_PLAY = {
+      id: 'first-play',
+      name: 'First Play',
+      difficulty: 'easy',
+      placements: [
+        { side: 'B', rot: 0, at: '0_3' },
+        { side: 'C', rot: 4, at: '1_2' },
+        { side: 'N', rot: 4, at: '4_-5' },
+        { side: 'I', rot: 0, at: '10_4' },
+        { side: 'K', rot: 5, at: '11_0' },
+        { side: 'ending', rot: 3, at: '16_-4' },
+      ],
+    };
+    const LOCAL_KEY = 'el-dorado-map-studio-v1';
+    const state = {
+      pieces: {},
+      pieceMeta: {},
+      selectedSide: null,
+      selectedHex: null,
+      terrain: 'jungle',
+      cost: 1,
+      finishing: false,
+      placements: [],
+      selectedPlacement: -1,
+      referenceImage: null,
+      camera: {
+        tile: { cx: 0, cy: 0, width: 1000 },
+        map: { cx: 0, cy: 0, width: 1500 },
+      },
+      dragging: null,
+      panning: null,
+      mapName: 'First Play',
+    };
+    const $ = (id) => document.getElementById(id);
+    const keyOf = (q, r) => `${q}_${r}`;
+    function sortedEntries(object) {
+      return Object.entries(object).sort(([a], [b]) => {
+        const aIsEnding = /^ending(?:-|$)/i.test(a);
+        const bIsEnding = /^ending(?:-|$)/i.test(b);
+        return Number(aIsEnding) - Number(bIsEnding)
+          || a.localeCompare(b, undefined, { sensitivity: 'base' })
+          || a.localeCompare(b);
+      });
+    }
+    function sortedObject(object) {
+      return Object.fromEntries(sortedEntries(object));
+    }
+    function selectMovementCost(cost) {
+      const option = document.querySelector(`input[name="moveCost"][value="${cost}"]`);
+      if (option) option.checked = true;
+      document.querySelectorAll('#moveCost .terrain-choice').forEach((label) => {
+        label.classList.toggle('selected', label.contains(option));
+      });
+    }
+    const parseAt = (at) => {
+      const match = /^(-?\d+)_(-?\d+)$/.exec(String(at));
+      if (!match) throw new Error(`Invalid axial coordinate: ${at}`);
+      return { q: Number(match[1]), r: Number(match[2]) };
+    };
+    const center = (q, r) => ({ x: HEX.xStep * q, y: HEX.yHalf * q + HEX.yStep * r });
+    function rotate(q, r, steps) {
+      let n = ((steps % 6) + 6) % 6;
+      while (n-- > 0) [q, r] = [-r, q + r];
+      return { q, r };
+    }
+    function axialFromPixel(x, y) {
+      const q = x / HEX.xStep;
+      const r = (y - HEX.yHalf * q) / HEX.yStep;
+      const s = -q - r;
+      let rq = Math.round(q), rr = Math.round(r), rs = Math.round(s);
+      const qDiff = Math.abs(rq - q), rDiff = Math.abs(rr - r), sDiff = Math.abs(rs - s);
+      if (qDiff > rDiff && qDiff > sDiff) rq = -rr - rs;
+      else if (rDiff > sDiff) rr = -rq - rs;
+      return { q: rq, r: rr };
+    }
+    function svgPoint(svg, event) {
+      const point = svg.createSVGPoint();
+      point.x = event.clientX;
+      point.y = event.clientY;
+      return point.matrixTransform(svg.getScreenCTM().inverse());
+    }
+    function hexPoints(cx, cy, radius = HEX.radius) {
+      return Array.from({ length: 6 }, (_, i) => {
+        const angle = Math.PI * i / 3;
+        return `${(cx + radius * Math.cos(angle)).toFixed(1)},${(cy + radius * Math.sin(angle)).toFixed(1)}`;
+      }).join(' ');
+    }
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, (character) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+      })[character]);
+    }
+    function setViewBox(svg, camera) {
+      const height = camera.width * (svg.clientHeight / Math.max(1, svg.clientWidth));
+      svg.setAttribute('viewBox', `${camera.cx - camera.width / 2} ${camera.cy - height / 2} ${camera.width} ${height}`);
+    }
+    function saveLocal() {
+      try {
+        localStorage.setItem(LOCAL_KEY, JSON.stringify({
+          pieces: sortedObject(state.pieces),
+          pieceMeta: sortedObject(state.pieceMeta),
+          placements: state.placements,
+          mapName: state.mapName,
+        }));
+      } catch (error) {
+        console.error('Unable to save map studio data locally', error);
+      }
+    }
+    function loadLocal(data) {
+      state.pieces = sortedObject(data.pieces || {});
+      state.pieceMeta = sortedObject(data.pieceMeta || {});
+      state.placements = Array.isArray(data.placements) ? data.placements : [];
+      state.mapName = data.mapName || 'First Play';
+      migrateLegacyEnding();
+      state.selectedSide = Object.keys(state.pieces)[0] || null;
+      state.selectedHex = null;
+      state.selectedPlacement = -1;
+      $('mapName').value = state.mapName;
+      refreshPieceSelects();
+      renderTileEditor();
+      renderMap();
+      saveLocal();
+    }
+    async function init() {
+      try {
+        const response = await fetch('/shared/pieces.json');
+        if (!response.ok) throw new Error(`Could not load pieces.json (HTTP ${response.status})`);
+        const data = await response.json();
+        const local = localStorage.getItem(LOCAL_KEY);
+        if (local) {
+          try {
+            loadLocal(JSON.parse(local));
+          } catch (error) {
+            console.error('Saved map studio data is invalid; loading project defaults.', error);
+            loadDefaults(data);
+          }
+        } else {
+          loadDefaults(data);
+        }
+        bindEvents();
+        renderTerrainPalette();
+        fitCamera('tile');
+        fitCamera('map');
+      } catch (error) {
+        $('tileValidation').textContent = `${error.message}. Start the server from the repository before opening this tool.`;
+        $('tileValidation').classList.add('error');
+      }
+    }
+    function loadDefaults(data) {
+      const source = data.pieces || data;
+      state.pieces = {};
+      state.pieceMeta = {};
+      for (const [side, piece] of sortedEntries(source)) {
+        state.pieces[side] = piece.hexes.map((hex) => ({ ...hex }));
+        state.pieceMeta[side] = { pair: piece.pair || '', kind: piece.kind || 'terrain' };
+      }
+      state.placements = FIRST_PLAY.placements.map((placement) => ({ ...placement }));
+      state.mapName = FIRST_PLAY.name;
+      state.selectedSide = Object.keys(state.pieces)[0] || null;
+      state.selectedHex = null;
+      state.selectedPlacement = 0;
+      $('mapName').value = state.mapName;
+      refreshPieceSelects();
+      renderTileEditor();
+      renderMap();
+      saveLocal();
+    }
+    function migrateLegacyEnding() {
+      const terrain = state.pieces.N;
+      const ending = state.pieces.ending;
+      const finishingCoordinates = [
+        { dq: 0, dr: 0 },
+        { dq: 0, dr: 1 },
+        { dq: -1, dr: 2 },
+      ];
+      const legacyFinishers = terrain?.filter((hex) => hex.isFinishing)
+        .sort((a, b) => a.dr - b.dr || a.dq - b.dq) || [];
+      if (
+        legacyFinishers.length !== 3 ||
+        !ending ||
+        ending.length !== 3 ||
+        ending.some((hex) => hex.terrainType !== 'el_dorado')
+      ) return;
+
+      state.pieces.N = terrain.filter((hex) => !hex.isFinishing);
+      state.pieces.ending = [
+        ...legacyFinishers.map((hex, index) => ({ ...hex, ...finishingCoordinates[index] })),
+        ...ending.map((hex) => ({ ...hex, dq: hex.dq + 1 })),
+      ].sort((a, b) => a.dr - b.dr || a.dq - b.dq);
+      state.pieceMeta.ending = { ...state.pieceMeta.ending, pair: 'ending', kind: 'ending' };
+    }
+    function refreshPieceSelects() {
+      const sides = sortedEntries(state.pieces).map(([side]) => side);
+      $('pieceSelect').innerHTML = sides.map((side) => `<option value="${escapeHtml(side)}">${escapeHtml(side)} · ${state.pieces[side].length} hexes</option>`).join('');
+      $('mapPieceSelect').innerHTML = sides.map((side) => `<option value="${escapeHtml(side)}">${escapeHtml(side)} · ${state.pieces[side].length} hexes</option>`).join('');
+      if (state.selectedSide && sides.includes(state.selectedSide)) $('pieceSelect').value = state.selectedSide;
+      $('pairName').value = state.pieceMeta[state.selectedSide]?.pair || '';
+    }
+    function renderTerrainPalette() {
+      $('terrainPalette').innerHTML = Object.entries(TERRAIN).map(([type, terrain]) =>
+        `<label class="terrain-choice${state.terrain === type ? ' selected' : ''}"><input type="radio" name="terrain" value="${type}" ${state.terrain === type ? 'checked' : ''}><span class="swatch" style="background:${terrain.fill}"></span>${terrain.label}</label>`
+      ).join('');
+      $('finishingToggle').disabled = state.terrain === 'el_dorado';
+      if (state.terrain === 'el_dorado') {
+        state.finishing = false;
+        $('finishingToggle').checked = false;
+      }
+    }
+    function showTab(tab) {
+      document.querySelectorAll('.tab').forEach((button) => button.classList.toggle('active', button.dataset.tab === tab));
+      $('tileWorkspace').classList.toggle('hidden', tab !== 'tiles');
+      $('mapWorkspace').classList.toggle('hidden', tab !== 'map');
+      requestAnimationFrame(() => {
+        fitCamera(tab === 'tiles' ? 'tile' : 'map');
+      });
+    }
+    function renderTileEditor() {
+      if (!state.selectedSide || !state.pieces[state.selectedSide]) return;
+      const svg = $('tileSvg');
+      setViewBox(svg, state.camera.tile);
+      const hexes = state.pieces[state.selectedSide];
+      const occupied = new Set(hexes.map((hex) => keyOf(hex.dq, hex.dr)));
+      const parts = [];
+      for (let r = -5; r <= 10; r++) {
+        for (let q = -7; q <= 7; q++) {
+          const c = center(q, r);
+          const id = keyOf(q, r);
+          const hex = hexes.find((item) => keyOf(item.dq, item.dr) === id);
+          const fill = hex ? (TERRAIN[hex.terrainType]?.fill || '#777') : (occupied.has(id) ? '#ddd' : '#faf8f1');
+          parts.push(`<g class="cell${id === state.selectedHex ? ' selected' : ''}" data-q="${q}" data-r="${r}"><polygon points="${hexPoints(c.x, c.y, 47)}" fill="${fill}" stroke-dasharray="${hex ? '' : '4 4'}"/>${hex ? `<text x="${c.x}" y="${c.y}" fill="white" stroke="#1119" stroke-width="2" paint-order="stroke" font-size="16">${hex.movementCost === 0 ? '×' : `×${hex.movementCost}`}</text><title>${escapeHtml(hex.terrainType)}, cost ${hex.movementCost}; local ${id}</title>` : ''}</g>`);
+        }
+      }
+      svg.innerHTML = parts.join('');
+      const meta = state.pieceMeta[state.selectedSide] || {};
+      $('tileStats').innerHTML = `<strong>${escapeHtml(state.selectedSide)}</strong> <span class="badge">${escapeHtml(meta.kind || 'terrain')}</span><br>${hexes.length} hexes · ${new Set(hexes.map((h) => keyOf(h.dq, h.dr))).size} unique coordinates`;
+      $('pairName').value = meta.pair || '';
+      renderTileValidation();
+    }
+    function renderTileValidation() {
+      const hexes = state.pieces[state.selectedSide] || [];
+      const coords = new Set();
+      const duplicates = [];
+      for (const hex of hexes) {
+        const id = keyOf(hex.dq, hex.dr);
+        if (coords.has(id)) duplicates.push(id);
+        coords.add(id);
+      }
+      const connected = isConnected(hexes);
+      const messages = [`${hexes.length} hexes`, connected ? 'connected shape' : 'disconnected hexes'];
+      const finishingCount = hexes.filter((hex) => hex.isFinishing).length;
+      const podiumCount = hexes.filter((hex) => hex.terrainType === 'el_dorado').length;
+      if (finishingCount || podiumCount) messages.push(`${finishingCount} playable finish + ${podiumCount} podium`);
+      if (duplicates.length) messages.push(`duplicate coordinates: ${duplicates.join(', ')}`);
+      if (state.selectedSide === 'ending' && (finishingCount !== 3 || podiumCount !== 3)) messages.push('ending needs 3 playable finishing hexes and 3 podium hexes');
+      else if (state.selectedSide !== 'ending' && hexes.length !== 37) messages.push('terrain/start faces should have 37 hexes');
+      $('tileValidation').className = `stats${duplicates.length || !connected ? ' warning' : ''}`;
+      $('tileValidation').textContent = messages.join(' · ');
+    }
+    function isConnected(hexes) {
+      if (!hexes.length) return true;
+      const coords = new Set(hexes.map((hex) => keyOf(hex.dq, hex.dr)));
+      const seen = new Set([keyOf(hexes[0].dq, hexes[0].dr)]);
+      const queue = [...seen];
+      const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]];
+      while (queue.length) {
+        const id = queue.shift();
+        const [q, r] = id.split('_').map(Number);
+        for (const [dq, dr] of dirs) {
+          const next = keyOf(q + dq, r + dr);
+          if (coords.has(next) && !seen.has(next)) {
+            seen.add(next);
+            queue.push(next);
+          }
+        }
+      }
+      return seen.size === hexes.length;
+    }
+    function getPlacementTiles(placement) {
+      const anchor = parseAt(placement.at);
+      return (state.pieces[placement.side] || []).map((hex) => {
+        const point = rotate(hex.dq, hex.dr, placement.rot || 0);
+        const q = anchor.q + point.q, r = anchor.r + point.r;
+        return { ...hex, q, r, id: keyOf(q, r), side: placement.side };
+      });
+    }
+    function inspectMap() {
+      const byId = new Map();
+      let duplicateIds = [];
+      for (let i = 0; i < state.placements.length; i++) {
+        const placement = state.placements[i];
+        for (const tile of getPlacementTiles(placement)) {
+          if (byId.has(tile.id)) duplicateIds.push(tile.id);
+          else byId.set(tile.id, { ...tile, placementIndex: i });
+        }
+      }
+      const pairOwners = new Map();
+      const duplicateFaces = [];
+      for (const placement of state.placements) {
+        const pair = state.pieceMeta[placement.side]?.pair;
+        if (!pair) continue;
+        if (pairOwners.has(pair)) duplicateFaces.push(pair);
+        pairOwners.set(pair, placement.side);
+      }
+      const seams = new Map();
+      const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]];
+      for (const [id, tile] of byId) {
+        for (const [dq, dr] of dirs) {
+          const neighborId = keyOf(tile.q + dq, tile.r + dr);
+          const neighbor = byId.get(neighborId);
+          if (!neighbor || neighbor.side === tile.side || id > neighborId) continue;
+          const seamId = [tile.side, neighbor.side].sort().join('|');
+          if (!seams.has(seamId)) seams.set(seamId, []);
+          seams.get(seamId).push([id, neighborId]);
+        }
+      }
+      const starts = [...byId.values()].filter((tile) => tile.playerNumber != null);
+      const goals = new Set([...byId.values()].filter((tile) => tile.isFinishing).map((tile) => tile.id));
+      let connected = false;
+      const queue = starts.map((tile) => tile.id), visited = new Set(queue);
+      while (queue.length) {
+        const id = queue.shift();
+        if (goals.has(id)) { connected = true; break; }
+        const [q, r] = id.split('_').map(Number);
+        for (const [dq, dr] of dirs) {
+          const nextId = keyOf(q + dq, r + dr), tile = byId.get(nextId);
+          if (!tile || visited.has(nextId) || tile.movementCost <= 0) continue;
+          visited.add(nextId);
+          queue.push(nextId);
+        }
+      }
+      return { byId, duplicateIds, duplicateFaces, seams, connected };
+    }
+    function renderMap() {
+      const svg = $('mapSvg');
+      setViewBox(svg, state.camera.map);
+      const inspection = inspectMap();
+      const parts = [];
+      const seamLines = [];
+      const boundaryEdges = [];
+      const dirs = [[1, 0], [0, 1], [-1, 1]];
+      if (state.referenceImage) {
+        const image = state.referenceImage;
+        parts.push(`<image data-reference="true" href="${image.href}" x="${image.x}" y="${image.y}" width="${image.width}" height="${image.height}" opacity="${image.opacity}" preserveAspectRatio="none" style="cursor:move;pointer-events:all"><title>Drag reference diagram to align it</title></image>`);
+      }
+      for (let i = 0; i < state.placements.length; i++) {
+        const placement = state.placements[i];
+        if (!state.pieces[placement.side]) continue;
+        const tiles = getPlacementTiles(placement);
+        let x = 0, y = 0;
+        const group = [];
+        for (const tile of tiles) {
+          const c = center(tile.q, tile.r);
+          x += c.x; y += c.y;
+          const overlap = inspection.duplicateIds.includes(tile.id);
+          group.push(`<polygon class="${overlap ? 'overlap' : ''}" points="${hexPoints(c.x, c.y, 47)}" fill="${TERRAIN[tile.terrainType]?.fill || '#777'}"><title>${escapeHtml(placement.side)} · ${escapeHtml(tile.terrainType)} · cost ${tile.movementCost} · ${tile.id}</title></polygon>`);
+          const owner = state.pieceMeta[placement.side]?.pair || placement.side;
+          for (const [dq, dr] of dirs) {
+            const other = inspection.byId.get(keyOf(tile.q + dq, tile.r + dr));
+            if (other && other.side !== placement.side) {
+              const k = [tile.id, other.id].sort().join('|');
+              if (!boundaryEdges.includes(k)) {
+                boundaryEdges.push(k);
+                const a = center(tile.q, tile.r), b = center(other.q, other.r);
+                const vx = b.x - a.x, vy = b.y - a.y;
+                const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+                const len = Math.hypot(vx, vy);
+                const nx = -vy / len, ny = vx / len;
+                const half = HEX.radius * .5;
+                seamLines.push(`<line class="seam" x1="${(mid.x - nx * half).toFixed(1)}" y1="${(mid.y - ny * half).toFixed(1)}" x2="${(mid.x + nx * half).toFixed(1)}" y2="${(mid.y + ny * half).toFixed(1)}"><title>${escapeHtml(tile.side)} joins ${escapeHtml(other.side)}</title></line>`);
+              }
+            }
+          }
+        }
+        const centroid = tiles.length ? center(x / tiles.length, y / tiles.length) : center(0, 0);
+        parts.push(`<g class="piece${state.selectedPlacement === i ? ' selected' : ''}" data-placement="${i}">${group.join('')}<text class="piece-name" x="${centroid.x}" y="${centroid.y}">${escapeHtml(placement.side)} · ${i + 1}</text></g>`);
+      }
+      parts.push(...seamLines);
+      svg.innerHTML = parts.join('');
+      const warnings = [];
+      if (inspection.duplicateIds.length) warnings.push(`${inspection.duplicateIds.length} overlapping hexes`);
+      if (inspection.duplicateFaces.length) warnings.push(`both faces used for ${[...new Set(inspection.duplicateFaces)].join(', ')}`);
+      const startCount = [...inspection.byId.values()].filter((tile) => tile.playerNumber != null).length;
+      if (!startCount) warnings.push('no starting spaces');
+      const finishCount = [...inspection.byId.values()].filter((tile) => tile.isFinishing).length;
+      if (!finishCount) warnings.push('no playable finishing spaces');
+      if (startCount && finishCount && !inspection.connected) warnings.push('no passable start-to-finishing-space route');
+      const status = warnings.length ? `<span class="warning">${warnings.map(escapeHtml).join(' · ')}</span>` : '<span class="success">No overlaps; start-to-ending route is passable.</span>';
+      $('mapStatus').innerHTML = `${state.placements.length} placements · ${inspection.byId.size} unique hexes<br>${inspection.seams.size} piece joins · ${status}`;
+      renderPlacementList();
+    }
+    function renderPlacementList() {
+      $('placementList').innerHTML = state.placements.map((placement, index) =>
+        `<div class="list-item${state.selectedPlacement === index ? ' active' : ''}"><button class="select-placement grow" data-index="${index}">${escapeHtml(placement.side)} · rot ${placement.rot || 0} · ${escapeHtml(placement.at)}</button><button class="rotate-one" data-index="${index}" title="Rotate clockwise">↻</button></div>`
+      ).join('') || '<p class="hint">No pieces placed yet.</p>';
+      $('rotateLeft').disabled = state.selectedPlacement < 0;
+      $('rotateRight').disabled = state.selectedPlacement < 0;
+      $('removePlacement').disabled = state.selectedPlacement < 0;
+    }
+    function selectPlacement(index) {
+      state.selectedPlacement = index >= 0 && index < state.placements.length ? index : -1;
+      renderMap();
+    }
+    function addPlacement() {
+      const side = $('mapPieceSelect').value;
+      if (!side || !state.pieces[side]) return;
+      if (state.placements.some((placement) => placement.side === side)) {
+        $('placementHint').textContent = `${side} is already on the map. A physical piece can only be placed once.`;
+        return;
+      }
+      const pair = state.pieceMeta[side]?.pair;
+      if (pair && state.placements.some((placement) => state.pieceMeta[placement.side]?.pair === pair)) {
+        $('placementHint').textContent = `The physical piece ${pair} is already represented on the map. Choose one face only.`;
+        return;
+      }
+      const offset = state.placements.length * 2;
+      state.placements.push({ side, rot: 0, at: `${offset}_${offset}` });
+      selectPlacement(state.placements.length - 1);
+      fitCamera('map');
+      saveLocal();
+    }
+    function changeRotation(delta, index = state.selectedPlacement) {
+      if (index < 0 || !state.placements[index]) return;
+      const placement = state.placements[index];
+      placement.rot = ((placement.rot || 0) + delta + 6) % 6;
+      renderMap();
+      saveLocal();
+    }
+    function removePlacement() {
+      if (state.selectedPlacement < 0) return;
+      state.placements.splice(state.selectedPlacement, 1);
+      state.selectedPlacement = Math.min(state.selectedPlacement, state.placements.length - 1);
+      renderMap();
+      saveLocal();
+    }
+    function fitCamera(which) {
+      const svg = $(which === 'tile' ? 'tileSvg' : 'mapSvg');
+      const points = [];
+      if (which === 'tile') {
+        for (const hex of state.pieces[state.selectedSide] || []) points.push(center(hex.dq, hex.dr));
+      } else {
+        for (const placement of state.placements) for (const hex of getPlacementTiles(placement)) points.push(center(hex.q, hex.r));
+      }
+      if (!points.length) points.push({ x: 0, y: 0 });
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (const point of points) {
+        minX = Math.min(minX, point.x - HEX.radius);
+        minY = Math.min(minY, point.y - HEX.radius);
+        maxX = Math.max(maxX, point.x + HEX.radius);
+        maxY = Math.max(maxY, point.y + HEX.radius);
+      }
+      const aspect = svg.clientHeight / Math.max(1, svg.clientWidth);
+      const width = Math.max(maxX - minX, (maxY - minY) / Math.max(aspect, .2)) * 1.2;
+      state.camera[which] = {
+        cx: (minX + maxX) / 2,
+        cy: (minY + maxY) / 2,
+        width: Math.max(which === 'tile' ? 520 : 650, width),
+      };
+      setViewBox(svg, state.camera[which]);
+    }
+    function zoom(which, factor) {
+      state.camera[which].width = Math.max(180, Math.min(6000, state.camera[which].width * factor));
+      setViewBox($(which === 'tile' ? 'tileSvg' : 'mapSvg'), state.camera[which]);
+    }
+    function renderPieceData() {
+      const pieces = {};
+      for (const [side, hexes] of sortedEntries(state.pieces)) {
+        pieces[side] = { ...state.pieceMeta[side], hexes };
+      }
+      return { _meta: { source: 'El Dorado Map Studio', note: 'Local axial coordinates relative to each piece anchor.' }, pieces };
+    }
+    function composeMap() {
+      const tiles = [], placementOf = new Map();
+      const usedSides = new Set(), usedPairs = new Set();
+      for (const placement of state.placements) {
+        const piece = state.pieces[placement.side];
+        if (!piece) throw new Error(`Unknown piece face ${placement.side}`);
+        if (usedSides.has(placement.side)) throw new Error(`Piece face ${placement.side} is placed more than once`);
+        usedSides.add(placement.side);
+        const pair = state.pieceMeta[placement.side]?.pair;
+        if (pair && usedPairs.has(pair)) throw new Error(`Both faces of physical piece ${pair} are placed`);
+        if (pair) usedPairs.add(pair);
+        for (const hex of getPlacementTiles(placement)) {
+          if (placementOf.has(hex.id)) throw new Error(`Overlapping hex ${hex.id}`);
+          const tile = { id: hex.id, q: hex.q, r: hex.r, terrainType: hex.terrainType, movementCost: hex.movementCost };
+          if (hex.playerNumber != null) tile.playerNumber = hex.playerNumber;
+          if (hex.isFinishing != null) tile.isFinishing = hex.isFinishing;
+          tiles.push(tile);
+          placementOf.set(hex.id, placement.side);
+        }
+      }
+      const seams = new Map();
+      const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]];
+      for (const [id, side] of placementOf) {
+        const [q, r] = id.split('_').map(Number);
+        for (const [dq, dr] of dirs) {
+          const neighborId = keyOf(q + dq, r + dr), neighborSide = placementOf.get(neighborId);
+          if (!neighborSide || neighborSide === side) continue;
+          const sides = [side, neighborSide].sort();
+          const pair = sides.join('|');
+          if (!seams.has(pair)) seams.set(pair, { id: `SEAM_${sides.join('')}`, sides, edges: [] });
+          if (id < neighborId) seams.get(pair).edges.push([id, neighborId]);
+        }
+      }
+      return { tiles, seams: [...seams.values()] };
+    }
+    function download(filename, content, type = 'application/json') {
+      const blob = new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = filename;
+      anchor.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+    function createLayoutSource() {
+      const id = state.mapName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'new-map';
+      return `module.exports = ${JSON.stringify({
+        id,
+        name: state.mapName.trim() || 'Untitled map',
+        difficulty: 'easy',
+        placements: state.placements.map(({ side, rot, at }) => ({ side, rot: rot || 0, at })),
+      }, null, 2)};\n`;
+    }
+    function downloadLayout() {
+      const source = createLayoutSource();
+      $('layoutOutput').value = source;
+      download(`${state.mapName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'map'}.js`, source, 'text/javascript');
+    }
+    function bindEvents() {
+      document.querySelectorAll('.tab').forEach((button) => button.addEventListener('click', () => showTab(button.dataset.tab)));
+      $('pieceSelect').addEventListener('change', () => {
+        state.selectedSide = $('pieceSelect').value;
+        state.selectedHex = null;
+        refreshPieceSelects();
+        renderTileEditor();
+        fitCamera('tile');
+      });
+      $('terrainPalette').addEventListener('change', (event) => {
+        if (event.target.name === 'terrain') state.terrain = event.target.value;
+        renderTerrainPalette();
+      });
+      $('tileSvg').addEventListener('click', (event) => {
+        const cell = event.target.closest('.cell');
+        if (!cell) return;
+        const q = Number(cell.dataset.q), r = Number(cell.dataset.r);
+        const hexes = state.pieces[state.selectedSide];
+        const index = hexes.findIndex((hex) => hex.dq === q && hex.dr === r);
+        if (index >= 0) {
+          state.selectedHex = keyOf(q, r);
+          const hex = hexes[index];
+          state.terrain = hex.terrainType;
+          state.cost = hex.movementCost;
+          state.finishing = Boolean(hex.isFinishing);
+          if (hex.playerNumber != null) $('playerNumber').value = String(hex.playerNumber);
+          selectMovementCost(state.cost);
+          $('finishingToggle').checked = state.finishing;
+          $('hexStatus').textContent = `Selected ${state.selectedHex}: ${hex.terrainType}, movement ×${hex.movementCost}.`;
+          renderTerrainPalette();
+        } else {
+          const newHex = { dq: q, dr: r, terrainType: state.terrain, movementCost: state.cost };
+          if (state.terrain === 'start') newHex.playerNumber = Number($('playerNumber').value);
+          if (state.finishing && state.terrain !== 'el_dorado') newHex.isFinishing = true;
+          hexes.push(newHex);
+          state.selectedHex = keyOf(q, r);
+          $('hexStatus').textContent = `Added ${state.selectedHex}: ${state.terrain}, movement ×${state.cost}.`;
+          saveLocal();
+        }
+        renderTileEditor();
+      });
+      $('moveCost').addEventListener('change', (event) => {
+        if (event.target.name !== 'moveCost') return;
+        state.cost = Number(event.target.value);
+        selectMovementCost(state.cost);
+      });
+      $('finishingToggle').addEventListener('change', () => { state.finishing = $('finishingToggle').checked; });
+      $('applyHex').addEventListener('click', () => {
+        if (!state.selectedHex) { $('hexStatus').textContent = 'Select or add a hex first.'; return; }
+        const [dq, dr] = state.selectedHex.split('_').map(Number);
+        const hex = state.pieces[state.selectedSide].find((item) => item.dq === dq && item.dr === dr);
+        if (!hex) { $('hexStatus').textContent = 'Selected hex no longer exists.'; return; }
+        hex.terrainType = state.terrain;
+        hex.movementCost = state.cost;
+        delete hex.playerNumber;
+        delete hex.isFinishing;
+        if (state.terrain === 'start') hex.playerNumber = Number($('playerNumber').value);
+        if (state.finishing && state.terrain !== 'el_dorado') hex.isFinishing = true;
+        $('hexStatus').textContent = `Updated ${state.selectedHex}: ${state.terrain}, movement ×${state.cost}.`;
+        renderTileEditor();
+        saveLocal();
+      });
+      $('removeHex').addEventListener('click', () => {
+        if (!state.selectedHex) return;
+        const [dq, dr] = state.selectedHex.split('_').map(Number);
+        state.pieces[state.selectedSide] = state.pieces[state.selectedSide].filter((hex) => hex.dq !== dq || hex.dr !== dr);
+        state.selectedHex = null;
+        renderTileEditor();
+        saveLocal();
+      });
+      $('savePiece').addEventListener('click', () => {
+        state.pieceMeta[state.selectedSide] = { ...state.pieceMeta[state.selectedSide], pair: $('pairName').value.trim() };
+        renderTileEditor();
+        renderMap();
+        saveLocal();
+      });
+      $('newPiece').addEventListener('click', () => {
+        const side = prompt('Piece face name (for example A or O):');
+        if (!side) return;
+        const id = side.trim();
+        if (!/^[A-Za-z][A-Za-z0-9_-]*$/.test(id)) { alert('Use a letter followed by letters, numbers, _ or -.'); return; }
+        if (state.pieces[id]) { alert(`Piece ${id} already exists.`); return; }
+        state.pieces[id] = [];
+        state.pieceMeta[id] = { pair: '', kind: 'terrain' };
+        state.selectedSide = id;
+        state.selectedHex = null;
+        refreshPieceSelects();
+        renderTileEditor();
+        fitCamera('tile');
+        saveLocal();
+      });
+      $('deletePiece').addEventListener('click', () => {
+        const side = state.selectedSide;
+        if (!side || !confirm(`Delete piece face ${side}?`)) return;
+        delete state.pieces[side];
+        delete state.pieceMeta[side];
+        state.placements = state.placements.filter((placement) => placement.side !== side);
+        state.selectedSide = Object.keys(state.pieces)[0] || null;
+        state.selectedHex = null;
+        refreshPieceSelects();
+        renderTileEditor();
+        renderMap();
+        saveLocal();
+      });
+      $('addPlacement').addEventListener('click', addPlacement);
+      $('loadFirstPlay').addEventListener('click', () => {
+        state.placements = FIRST_PLAY.placements.filter((placement) => state.pieces[placement.side]).map((placement) => ({ ...placement }));
+        state.selectedPlacement = 0;
+        state.mapName = FIRST_PLAY.name;
+        $('mapName').value = state.mapName;
+        renderMap();
+        fitCamera('map');
+        saveLocal();
+      });
+      $('clearMap').addEventListener('click', () => {
+        state.placements = [];
+        state.selectedPlacement = -1;
+        renderMap();
+        saveLocal();
+      });
+      $('mapName').addEventListener('input', () => { state.mapName = $('mapName').value; saveLocal(); });
+      $('placementList').addEventListener('click', (event) => {
+        const select = event.target.closest('.select-placement');
+        const rotateButton = event.target.closest('.rotate-one');
+        if (select) selectPlacement(Number(select.dataset.index));
+        if (rotateButton) changeRotation(1, Number(rotateButton.dataset.index));
+      });
+      $('rotateLeft').addEventListener('click', () => changeRotation(-1));
+      $('rotateRight').addEventListener('click', () => changeRotation(1));
+      $('removePlacement').addEventListener('click', removePlacement);
+      $('mapSvg').addEventListener('pointerdown', (event) => {
+        const piece = event.target.closest('[data-placement]');
+        const svg = $('mapSvg');
+        if (event.target.closest('[data-reference]') && state.referenceImage) {
+          const point = svgPoint(svg, event);
+          state.dragging = {
+            reference: true,
+            start: point,
+            origin: { x: state.referenceImage.x, y: state.referenceImage.y },
+          };
+          svg.setPointerCapture(event.pointerId);
+        } else if (piece) {
+          const index = Number(piece.dataset.placement);
+          state.selectedPlacement = index;
+          const point = svgPoint(svg, event);
+          const anchor = parseAt(state.placements[index].at);
+          state.dragging = { index, start: point, anchor };
+          svg.setPointerCapture(event.pointerId);
+          renderMap();
+        } else {
+          state.panning = { start: { x: event.clientX, y: event.clientY }, camera: { ...state.camera.map } };
+          svg.setPointerCapture(event.pointerId);
+        }
+      });
+      $('mapSvg').addEventListener('pointermove', (event) => {
+        const svg = $('mapSvg');
+        if (state.dragging) {
+          const point = svgPoint(svg, event), drag = state.dragging;
+          if (drag.reference) {
+            state.referenceImage.x = drag.origin.x + point.x - drag.start.x;
+            state.referenceImage.y = drag.origin.y + point.y - drag.start.y;
+            renderMap();
+          } else {
+            const snapped = axialFromPixel(
+              drag.anchor.q * HEX.xStep + point.x - drag.start.x,
+              HEX.yHalf * drag.anchor.q + HEX.yStep * drag.anchor.r + point.y - drag.start.y,
+            );
+            state.placements[drag.index].at = keyOf(snapped.q, snapped.r);
+            renderMap();
+          }
+        } else if (state.panning) {
+          const scale = state.camera.map.width / Math.max(1, svg.clientWidth);
+          state.camera.map.cx = state.panning.camera.cx - (event.clientX - state.panning.start.x) * scale;
+          state.camera.map.cy = state.panning.camera.cy - (event.clientY - state.panning.start.y) * scale;
+          setViewBox(svg, state.camera.map);
+        }
+      });
+      $('mapSvg').addEventListener('pointerup', () => {
+        if (state.dragging) saveLocal();
+        state.dragging = null;
+        state.panning = null;
+      });
+      $('tileZoomIn').addEventListener('click', () => zoom('tile', .8));
+      $('tileZoomOut').addEventListener('click', () => zoom('tile', 1.25));
+      $('tileFit').addEventListener('click', () => fitCamera('tile'));
+      $('mapZoomIn').addEventListener('click', () => zoom('map', .8));
+      $('mapZoomOut').addEventListener('click', () => zoom('map', 1.25));
+      $('mapFit').addEventListener('click', () => fitCamera('map'));
+      $('exportPieces').addEventListener('click', () => download('pieces.json', `${JSON.stringify(renderPieceData(), null, 2)}\n`));
+      $('exportLayout').addEventListener('click', downloadLayout);
+      $('showLayout').addEventListener('click', () => { $('layoutOutput').value = createLayoutSource(); });
+      $('downloadMap').addEventListener('click', () => {
+        try {
+          download(`${state.mapName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'map'}-tiles.json`, `${JSON.stringify(composeMap(), null, 2)}\n`);
+        } catch (error) {
+          $('mapStatus').innerHTML = `<span class="error">${escapeHtml(error.message)}</span>`;
+        }
+      });
+      $('referenceFile').addEventListener('change', () => {
+        const file = $('referenceFile').files?.[0];
+        if (!file) return;
+        if (!file.type.startsWith('image/')) {
+          $('placementHint').textContent = 'Choose an image file for the diagram overlay.';
+          return;
+        }
+        const reader = new FileReader();
+        reader.onerror = () => { $('placementHint').textContent = 'Unable to read the selected image.'; };
+        reader.onload = () => {
+          const image = new Image();
+          image.onerror = () => { $('placementHint').textContent = 'The selected file could not be decoded as an image.'; };
+          image.onload = () => {
+            const width = Number($('referenceScale').value);
+            const height = width * image.naturalHeight / image.naturalWidth;
+            state.referenceImage = {
+              href: String(reader.result),
+              x: state.camera.map.cx - width / 2,
+              y: state.camera.map.cy - height / 2,
+              width,
+              height,
+              opacity: Number($('referenceOpacity').value),
+            };
+            renderMap();
+          };
+          image.src = String(reader.result);
+        };
+        reader.readAsDataURL(file);
+      });
+      $('referenceOpacity').addEventListener('input', () => {
+        if (!state.referenceImage) return;
+        state.referenceImage.opacity = Number($('referenceOpacity').value);
+        renderMap();
+      });
+      $('referenceScale').addEventListener('input', () => {
+        if (!state.referenceImage) return;
+        const image = state.referenceImage;
+        const ratio = image.height / image.width;
+        const centerX = image.x + image.width / 2, centerY = image.y + image.height / 2;
+        image.width = Number($('referenceScale').value);
+        image.height = image.width * ratio;
+        image.x = centerX - image.width / 2;
+        image.y = centerY - image.height / 2;
+        renderMap();
+      });
+      $('clearReference').addEventListener('click', () => {
+        state.referenceImage = null;
+        $('referenceFile').value = '';
+        renderMap();
+      });
+      $('resetBrowser').addEventListener('click', () => {
+        if (!confirm('Discard saved browser edits and load the latest shared/pieces.json from the project?')) return;
+        fetch('/shared/pieces.json', { cache: 'no-store' })
+          .then((response) => {
+            if (!response.ok) throw new Error(`Could not load pieces.json (HTTP ${response.status})`);
+            return response.json();
+          })
+          .then((data) => loadDefaults(data))
+          .catch((error) => {
+            console.error('Unable to reload project piece data', error);
+            alert(`Unable to reload project data: ${error.message}`);
+          });
+      });
+      window.addEventListener('resize', () => {
+        setViewBox($('tileSvg'), state.camera.tile);
+        setViewBox($('mapSvg'), state.camera.map);
+      });
+    }
+    init();
+  </script>
+</body>
+</html>

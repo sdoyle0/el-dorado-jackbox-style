@@ -1,0 +1,26 @@
+{
+  "_source": "boardgamehelpers.com/QuestforElDorado/TileCatalogue.aspx (scraped 2026-10-18). Terrain renamed into this repo's vocabulary: helpers' 'Sand'→village, 'Base Camp'→camp; 'Mountain' and 'Mountain w/ Cave' merged→mountain (caves are out of scope). Helpers' playable ending faces are Water/Jungle (3 spaces); the repo's six-hex ending assembly combines one such face with 3 non-playable el_dorado podium spaces.",
+  "sides": {
+    "A": { "jungle": 26, "water": 3, "mountain": 2, "village": 5, "camp": 1 },
+    "B": { "jungle": 27, "water": 4, "mountain": 1, "village": 4, "camp": 1 },
+    "C": { "jungle": 6, "water": 12, "mountain": 1, "village": 9, "rubble": 9 },
+    "D": { "jungle": 19, "water": 11, "mountain": 4, "village": 3 },
+    "E": { "jungle": 15, "water": 4, "mountain": 5, "village": 4, "camp": 1, "rubble": 8 },
+    "F": { "jungle": 12, "water": 8, "mountain": 4, "village": 3, "camp": 2, "rubble": 8 },
+    "G": { "jungle": 17, "mountain": 4, "village": 13, "camp": 1, "rubble": 2 },
+    "H": { "jungle": 12, "water": 10, "mountain": 1, "village": 14 },
+    "I": { "jungle": 17, "water": 6, "mountain": 6, "village": 6, "camp": 1, "rubble": 1 },
+    "J": { "jungle": 6, "water": 9, "mountain": 2, "village": 10, "camp": 1, "rubble": 9 },
+    "K": { "jungle": 33, "water": 1, "village": 1, "camp": 2 },
+    "L": { "jungle": 26, "water": 3, "mountain": 3, "village": 2, "camp": 3 },
+    "M": { "jungle": 18, "water": 4, "mountain": 9, "village": 2, "camp": 1, "rubble": 3 },
+    "N": { "jungle": 18, "water": 9, "village": 10 },
+    "O": { "jungle": 3, "water": 2, "mountain": 3, "village": 4, "rubble": 4 },
+    "P": { "jungle": 2, "water": 12, "rubble": 2 },
+    "Q": { "jungle": 7, "water": 3, "village": 3, "rubble": 3 },
+    "R": { "jungle": 6, "mountain": 3, "village": 6, "camp": 1 },
+    "ending-water": { "water": 3 },
+    "ending-jungle": { "jungle": 3 },
+    "ending-gold": { "el_dorado": 3 }
+  }
+}

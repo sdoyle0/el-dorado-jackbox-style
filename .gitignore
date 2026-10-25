@@ -1,3 +1,22 @@
 node_modules/
 tools/
 docs/*.pdf
+
+# Keep the small, reproducible map-composition toolchain; leave experiments ignored.
+!tools/
+tools/*
+!tools/mapcompose/
+tools/mapcompose/*
+!tools/mapcompose/proof.js
+!tools/mapcompose/proof-first-play.js
+!tools/mapcompose/render-current-layout.js
+!tools/mapcompose/render-piece-rotations.js
+!tools/mapbuilder/
+!tools/mapbuilder/*
+!tools/mapbuilder/index.html
+!tools/mapviz/
+tools/mapviz/*
+!tools/mapviz/lib.js
+!tools/mapviz/cut.js
+!tools/mapviz/render.js
+!tools/mapviz/tileCatalogue.json

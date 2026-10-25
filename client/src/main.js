@@ -1246,7 +1246,8 @@ document.addEventListener('DOMContentLoaded', () => {
     cancelRejoinRetry();
     pendingIdentity = name; // Block 8: refresh-safe session
     const enableBlockades = blockadesToggle?.checked ?? true;
-    client.createRoom(name, selectedPlayerCount, DEBUG, enableBlockades, VIEW === 'tv');
+    const mapParam = new URLSearchParams(window.location.search).get('map') || 'hills-of-gold';
+    client.createRoom(name, selectedPlayerCount, DEBUG, enableBlockades, VIEW === 'tv', mapParam);
   });
 
   joinRoomBtn.addEventListener('click', () => {

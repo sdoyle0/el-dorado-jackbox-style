@@ -6,7 +6,20 @@ const { HexBoard } = require('./HexBoard');
 const { Player } = require('./Player');
 const { BLOCKADE_SEAMS, BLOCKADE_TERRAIN_POOL } = require('../../shared/blockadeData');
 const { GameState: GS } = require('../../shared/constants');
-const MAP_DATA = require('../../shared/mapData.json');
+const { composeLayout } = require('../../shared/mapCompose');
+const PIECES_DATA = require('../../shared/pieces.json');
+const HILLS_OF_GOLD = require('../../shared/layouts/hills-of-gold');
+const FIRST_PLAY = require('../../shared/layouts/first-play');
+const LAYOUTS = {
+  'hills-of-gold': HILLS_OF_GOLD,
+  'first-play': FIRST_PLAY,
+};
+
+const MAP_DATA = { tiles: composeLayout(HILLS_OF_GOLD, PIECES_DATA).tiles };
+console.log(
+  `[map] server start: composed "${HILLS_OF_GOLD.name}" from shared/layouts/hills-of-gold.js — ` +
+  `${MAP_DATA.tiles.length} tiles, ${HILLS_OF_GOLD.placements.length} placements (mapData.json not loaded)`
+);
 
 // Block 8: phone refresh mid-turn keeps its seat for a grace period instead
 // of losing it instantly. No DB — the Player object stays in the roster with
@@ -24,13 +37,15 @@ function shuffle(arr) {
 }
 
 class GameRoom {
-  constructor(roomId, io, { debugMode = false, maxPlayers = 2, enableBlockades = true } = {}) {
+  constructor(roomId, io, { debugMode = false, maxPlayers = 2, enableBlockades = true, map = 'hills-of-gold' } = {}) {
     this.roomId = roomId;
     this.io = io;
     this.players = [];
     this.maxPlayers = Math.min(4, Math.max(debugMode ? 1 : 2, maxPlayers));
     this.debugMode = debugMode;
     this.enableBlockades = enableBlockades;
+    this.mapId = LAYOUTS[map] ? map : 'hills-of-gold';
+    this.layout = LAYOUTS[this.mapId];
     this.started = false;
     this.hostId = null;
     // Spectators (e.g. the ?view=tv display): joined to the socket.io room so
@@ -399,7 +414,8 @@ class GameRoom {
 
   _startGame() {
     this.started = true;
-    this.board.loadMap(MAP_DATA);
+    const composed = composeLayout(this.layout, PIECES_DATA);
+    this.board.loadMap({ tiles: composed.tiles });
     this.market.init();
     this.gameState.players = this.players;
 
@@ -407,9 +423,10 @@ class GameRoom {
     let activeBlockades = null;
     if (this.enableBlockades) {
       const terrains = shuffle(BLOCKADE_TERRAIN_POOL);
-      activeBlockades = BLOCKADE_SEAMS.map((seam, i) => ({
+      const eligibleSeams = composed.seams.filter(s => !s.sides.includes('ending'));
+      activeBlockades = eligibleSeams.map((seam, i) => ({
         ...seam,
-        terrainType: terrains[i],
+        terrainType: terrains[i % terrains.length],
         brokenBy: null,
       }));
       this.gameState.activeBlockades = activeBlockades;
@@ -502,9 +519,9 @@ class GameManager {
     this.playerRooms = new Map();
   }
 
-  createRoom(socket, playerName, { debugMode = false, maxPlayers = 2, enableBlockades = true, asSpectator = false } = {}) {
+  createRoom(socket, playerName, { debugMode = false, maxPlayers = 2, enableBlockades = true, asSpectator = false, map = 'hills-of-gold' } = {}) {
     const roomId = uuidv4().slice(0, 6).toUpperCase();
-    const room = new GameRoom(roomId, this.io, { debugMode, maxPlayers, enableBlockades });
+    const room = new GameRoom(roomId, this.io, { debugMode, maxPlayers, enableBlockades, map });
     room.onEmpty = () => this.rooms.delete(room.roomId);
     this.rooms.set(roomId, room);
     if (asSpectator) {

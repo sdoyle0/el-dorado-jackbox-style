@@ -1,0 +1,3751 @@
+{
+  "_meta": {
+    "source": "El Dorado Map Studio",
+    "note": "Local axial coordinates relative to each piece anchor."
+  },
+  "pieces": {
+    "A": {
+      "pair": "AB",
+      "kind": "terrain",
+      "hexes": [
+        {
+          "dq": -4,
+          "dr": 1,
+          "terrainType": "start",
+          "movementCost": 1,
+          "playerNumber": 1
+        },
+        {
+          "dq": -4,
+          "dr": 2,
+          "terrainType": "start",
+          "movementCost": 1,
+          "playerNumber": 2
+        },
+        {
+          "dq": -4,
+          "dr": 3,
+          "terrainType": "start",
+          "movementCost": 1,
+          "playerNumber": 3
+        },
+        {
+          "dq": -4,
+          "dr": 4,
+          "terrainType": "start",
+          "movementCost": 1,
+          "playerNumber": 4
+        },
+        {
+          "dq": -3,
+          "dr": 0,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -3,
+          "dr": 1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -3,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -3,
+          "dr": 3,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -3,
+          "dr": 4,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": -1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 0,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 4,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 1,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 3,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": -2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 0,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 4,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": -1,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 3,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 1,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": -2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 3,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": -1,
+          "terrainType": "mountain",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 0,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": -2,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": -1,
+          "terrainType": "mountain",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": 0,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": 1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": 2,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": 2,
+          "dr": -2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 2,
+          "dr": -1,
+          "terrainType": "camp",
+          "movementCost": 1
+        },
+        {
+          "dq": 2,
+          "dr": 0,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 2,
+          "dr": 1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        }
+      ]
+    },
+    "B": {
+      "pair": "AB",
+      "kind": "start",
+      "hexes": [
+        {
+          "dq": 0,
+          "dr": 0,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": 0,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 2,
+          "dr": 0,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 3,
+          "dr": 0,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": 1,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": 2,
+          "dr": 1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 3,
+          "dr": 1,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 2,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 2,
+          "dr": 2,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": 3,
+          "dr": 2,
+          "terrainType": "camp",
+          "movementCost": 1
+        },
+        {
+          "dq": -3,
+          "dr": 3,
+          "terrainType": "start",
+          "movementCost": 1,
+          "playerNumber": 4
+        },
+        {
+          "dq": -2,
+          "dr": 3,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 3,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 3,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": 3,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 2,
+          "dr": 3,
+          "terrainType": "mountain",
+          "movementCost": 0
+        },
+        {
+          "dq": 3,
+          "dr": 3,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": -3,
+          "dr": 4,
+          "terrainType": "start",
+          "movementCost": 1,
+          "playerNumber": 3
+        },
+        {
+          "dq": -2,
+          "dr": 4,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 4,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 4,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": 4,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 2,
+          "dr": 4,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -3,
+          "dr": 5,
+          "terrainType": "start",
+          "movementCost": 1,
+          "playerNumber": 2
+        },
+        {
+          "dq": -2,
+          "dr": 5,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 5,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 5,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": 5,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -3,
+          "dr": 6,
+          "terrainType": "start",
+          "movementCost": 1,
+          "playerNumber": 1
+        },
+        {
+          "dq": -2,
+          "dr": 6,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 6,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 6,
+          "terrainType": "jungle",
+          "movementCost": 1
+        }
+      ]
+    },
+    "C": {
+      "pair": "CD",
+      "kind": "terrain",
+      "hexes": [
+        {
+          "dq": 0,
+          "dr": 0,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": 0,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 2,
+          "dr": 0,
+          "terrainType": "rubble",
+          "movementCost": 1
+        },
+        {
+          "dq": 3,
+          "dr": 0,
+          "terrainType": "rubble",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 1,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": 1,
+          "terrainType": "rubble",
+          "movementCost": 1
+        },
+        {
+          "dq": 2,
+          "dr": 1,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": 3,
+          "dr": 1,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 2,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 2,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 2,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": 2,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": 2,
+          "dr": 2,
+          "terrainType": "rubble",
+          "movementCost": 1
+        },
+        {
+          "dq": 3,
+          "dr": 2,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": -3,
+          "dr": 3,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 3,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 3,
+          "terrainType": "rubble",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 3,
+          "terrainType": "mountain",
+          "movementCost": 0
+        },
+        {
+          "dq": 1,
+          "dr": 3,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": 2,
+          "dr": 3,
+          "terrainType": "rubble",
+          "movementCost": 1
+        },
+        {
+          "dq": 3,
+          "dr": 3,
+          "terrainType": "rubble",
+          "movementCost": 1
+        },
+        {
+          "dq": -3,
+          "dr": 4,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 4,
+          "terrainType": "rubble",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 4,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 4,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": 4,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": 2,
+          "dr": 4,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": -3,
+          "dr": 5,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 5,
+          "terrainType": "rubble",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 5,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 5,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": 5,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": -3,
+          "dr": 6,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 6,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 6,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 6,
+          "terrainType": "water",
+          "movementCost": 1
+        }
+      ]
+    },
+    "D": {
+      "pair": "CD",
+      "kind": "terrain",
+      "hexes": [
+        {
+          "dq": -3,
+          "dr": 0,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": -3,
+          "dr": 1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -3,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -3,
+          "dr": 3,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": -1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 3,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 0,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 1,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 2,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 2,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 1,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": -1,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 0,
+          "terrainType": "water",
+          "movementCost": 2
+        },
+        {
+          "dq": -1,
+          "dr": -2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 3,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": -2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": -1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": -3,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": 0,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 2,
+          "dr": 1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 2,
+          "dr": 0,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 3,
+          "dr": -1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 0,
+          "terrainType": "mountain",
+          "movementCost": 0
+        },
+        {
+          "dq": 1,
+          "dr": -1,
+          "terrainType": "mountain",
+          "movementCost": 0
+        },
+        {
+          "dq": 3,
+          "dr": -2,
+          "terrainType": "mountain",
+          "movementCost": 0
+        },
+        {
+          "dq": 2,
+          "dr": -3,
+          "terrainType": "mountain",
+          "movementCost": 0
+        },
+        {
+          "dq": 0,
+          "dr": 3,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": 0,
+          "dr": -3,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": 3,
+          "dr": 0,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": 0,
+          "dr": 1,
+          "terrainType": "water",
+          "movementCost": 2
+        },
+        {
+          "dq": 0,
+          "dr": 2,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": 1,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": 2,
+          "dr": -2,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": -2,
+          "terrainType": "village",
+          "movementCost": 3
+        },
+        {
+          "dq": 2,
+          "dr": -1,
+          "terrainType": "village",
+          "movementCost": 3
+        },
+        {
+          "dq": 3,
+          "dr": -3,
+          "terrainType": "water",
+          "movementCost": 3
+        }
+      ]
+    },
+    "E": {
+      "pair": "EF",
+      "kind": "terrain",
+      "hexes": [
+        {
+          "dq": -3,
+          "dr": 0,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -3,
+          "dr": 1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": -2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": -1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 0,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": 0,
+          "dr": -2,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": -3,
+          "dr": 2,
+          "terrainType": "rubble",
+          "movementCost": 1
+        },
+        {
+          "dq": -3,
+          "dr": 3,
+          "terrainType": "mountain",
+          "movementCost": 0
+        },
+        {
+          "dq": -2,
+          "dr": 2,
+          "terrainType": "mountain",
+          "movementCost": 0
+        },
+        {
+          "dq": 0,
+          "dr": -1,
+          "terrainType": "mountain",
+          "movementCost": 0
+        },
+        {
+          "dq": -2,
+          "dr": -1,
+          "terrainType": "rubble",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 1,
+          "terrainType": "rubble",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 3,
+          "terrainType": "rubble",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 3,
+          "terrainType": "rubble",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": -1,
+          "dr": 0,
+          "terrainType": "jungle",
+          "movementCost": 3
+        },
+        {
+          "dq": -1,
+          "dr": 1,
+          "terrainType": "rubble",
+          "movementCost": 3
+        },
+        {
+          "dq": 0,
+          "dr": -3,
+          "terrainType": "camp",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 0,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 1,
+          "terrainType": "rubble",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 2,
+          "terrainType": "water",
+          "movementCost": 2
+        },
+        {
+          "dq": 0,
+          "dr": 3,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": -3,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": -2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": -1,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": 0,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": 1,
+          "terrainType": "mountain",
+          "movementCost": 0
+        },
+        {
+          "dq": 1,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 2,
+          "dr": -3,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": 3,
+          "dr": -3,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": 3,
+          "dr": -2,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": 2,
+          "dr": -2,
+          "terrainType": "mountain",
+          "movementCost": 0
+        },
+        {
+          "dq": 2,
+          "dr": -1,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": 2,
+          "dr": 0,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": 2,
+          "dr": 1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 3,
+          "dr": -1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 3,
+          "dr": 0,
+          "terrainType": "rubble",
+          "movementCost": 1
+        }
+      ]
+    },
+    "F": {
+      "pair": "EF",
+      "kind": "terrain",
+      "hexes": [
+        {
+          "dq": -3,
+          "dr": 1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -3,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": -3,
+          "dr": 3,
+          "terrainType": "rubble",
+          "movementCost": 1
+        },
+        {
+          "dq": -3,
+          "dr": 4,
+          "terrainType": "rubble",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 4,
+          "terrainType": "rubble",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 3,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 0,
+          "terrainType": "mountain",
+          "movementCost": 0
+        },
+        {
+          "dq": -1,
+          "dr": -1,
+          "terrainType": "mountain",
+          "movementCost": 0
+        },
+        {
+          "dq": -1,
+          "dr": 0,
+          "terrainType": "mountain",
+          "movementCost": 0
+        },
+        {
+          "dq": 0,
+          "dr": 1,
+          "terrainType": "mountain",
+          "movementCost": 0
+        },
+        {
+          "dq": -1,
+          "dr": 1,
+          "terrainType": "water",
+          "movementCost": 2
+        },
+        {
+          "dq": -1,
+          "dr": 2,
+          "terrainType": "village",
+          "movementCost": 2
+        },
+        {
+          "dq": -1,
+          "dr": 3,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 4,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 4,
+          "terrainType": "camp",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 3,
+          "terrainType": "jungle",
+          "movementCost": 3
+        },
+        {
+          "dq": 0,
+          "dr": 2,
+          "terrainType": "rubble",
+          "movementCost": 2
+        },
+        {
+          "dq": 0,
+          "dr": 0,
+          "terrainType": "water",
+          "movementCost": 3
+        },
+        {
+          "dq": 0,
+          "dr": -1,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": -2,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": -2,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": -1,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": 0,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": 1,
+          "dr": 1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": 3,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": 2,
+          "dr": 2,
+          "terrainType": "rubble",
+          "movementCost": 1
+        },
+        {
+          "dq": 2,
+          "dr": 1,
+          "terrainType": "water",
+          "movementCost": 2
+        },
+        {
+          "dq": 2,
+          "dr": 0,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 2,
+          "dr": -1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 2,
+          "dr": -2,
+          "terrainType": "rubble",
+          "movementCost": 1
+        },
+        {
+          "dq": 3,
+          "dr": -2,
+          "terrainType": "rubble",
+          "movementCost": 1
+        },
+        {
+          "dq": 3,
+          "dr": -1,
+          "terrainType": "rubble",
+          "movementCost": 1
+        },
+        {
+          "dq": 3,
+          "dr": 0,
+          "terrainType": "water",
+          "movementCost": 2
+        },
+        {
+          "dq": 3,
+          "dr": 1,
+          "terrainType": "camp",
+          "movementCost": 2
+        }
+      ]
+    },
+    "G": {
+      "pair": "GH",
+      "kind": "terrain",
+      "hexes": [
+        {
+          "dq": 0,
+          "dr": 0,
+          "terrainType": "camp",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": 0,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 2,
+          "dr": 0,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 3,
+          "dr": 0,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 1,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": 1,
+          "dr": 1,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": 2,
+          "dr": 1,
+          "terrainType": "mountain",
+          "movementCost": 0
+        },
+        {
+          "dq": 3,
+          "dr": 1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 2,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 2,
+          "terrainType": "village",
+          "movementCost": 2
+        },
+        {
+          "dq": 1,
+          "dr": 2,
+          "terrainType": "rubble",
+          "movementCost": 1
+        },
+        {
+          "dq": 2,
+          "dr": 2,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": 3,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -3,
+          "dr": 3,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 3,
+          "terrainType": "mountain",
+          "movementCost": 0
+        },
+        {
+          "dq": -1,
+          "dr": 3,
+          "terrainType": "rubble",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 3,
+          "terrainType": "village",
+          "movementCost": 3
+        },
+        {
+          "dq": 1,
+          "dr": 3,
+          "terrainType": "village",
+          "movementCost": 2
+        },
+        {
+          "dq": 2,
+          "dr": 3,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": 3,
+          "dr": 3,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -3,
+          "dr": 4,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 4,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 4,
+          "terrainType": "village",
+          "movementCost": 2
+        },
+        {
+          "dq": 0,
+          "dr": 4,
+          "terrainType": "village",
+          "movementCost": 4
+        },
+        {
+          "dq": 1,
+          "dr": 4,
+          "terrainType": "village",
+          "movementCost": 2
+        },
+        {
+          "dq": 2,
+          "dr": 4,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -3,
+          "dr": 5,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 5,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": -1,
+          "dr": 5,
+          "terrainType": "village",
+          "movementCost": 2
+        },
+        {
+          "dq": 0,
+          "dr": 5,
+          "terrainType": "mountain",
+          "movementCost": 0
+        },
+        {
+          "dq": 1,
+          "dr": 5,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": -3,
+          "dr": 6,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 6,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 6,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 6,
+          "terrainType": "mountain",
+          "movementCost": 0
+        }
+      ]
+    },
+    "H": {
+      "pair": "GH",
+      "kind": "terrain",
+      "hexes": [
+        {
+          "dq": -4,
+          "dr": 1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -4,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": -4,
+          "dr": 3,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": -4,
+          "dr": 4,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": -3,
+          "dr": 1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -3,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -3,
+          "dr": 3,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -3,
+          "dr": 4,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": -3,
+          "dr": 0,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": -1,
+          "terrainType": "village",
+          "movementCost": 2
+        },
+        {
+          "dq": -2,
+          "dr": 0,
+          "terrainType": "village",
+          "movementCost": 2
+        },
+        {
+          "dq": -2,
+          "dr": 1,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 2,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 3,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 4,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": -1,
+          "dr": -2,
+          "terrainType": "village",
+          "movementCost": 3
+        },
+        {
+          "dq": -1,
+          "dr": -1,
+          "terrainType": "mountain",
+          "movementCost": 0
+        },
+        {
+          "dq": -1,
+          "dr": 0,
+          "terrainType": "village",
+          "movementCost": 2
+        },
+        {
+          "dq": -1,
+          "dr": 1,
+          "terrainType": "village",
+          "movementCost": 2
+        },
+        {
+          "dq": -1,
+          "dr": 2,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 3,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 4,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": -2,
+          "terrainType": "village",
+          "movementCost": 2
+        },
+        {
+          "dq": 0,
+          "dr": -1,
+          "terrainType": "village",
+          "movementCost": 2
+        },
+        {
+          "dq": 0,
+          "dr": 0,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 1,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 2,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 3,
+          "terrainType": "water",
+          "movementCost": 2
+        },
+        {
+          "dq": 1,
+          "dr": 2,
+          "terrainType": "water",
+          "movementCost": 2
+        },
+        {
+          "dq": 2,
+          "dr": 1,
+          "terrainType": "water",
+          "movementCost": 2
+        },
+        {
+          "dq": 2,
+          "dr": 0,
+          "terrainType": "water",
+          "movementCost": 2
+        },
+        {
+          "dq": 2,
+          "dr": -1,
+          "terrainType": "water",
+          "movementCost": 2
+        },
+        {
+          "dq": 1,
+          "dr": 1,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": 0,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": -1,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": 2,
+          "dr": -2,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": -2,
+          "terrainType": "village",
+          "movementCost": 1
+        }
+      ]
+    },
+    "I": {
+      "pair": "IJ",
+      "kind": "terrain",
+      "hexes": [
+        {
+          "dq": 0,
+          "dr": 0,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": 0,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": 2,
+          "dr": 0,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": 3,
+          "dr": 0,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 1,
+          "terrainType": "village",
+          "movementCost": 2
+        },
+        {
+          "dq": 0,
+          "dr": 1,
+          "terrainType": "village",
+          "movementCost": 2
+        },
+        {
+          "dq": 1,
+          "dr": 1,
+          "terrainType": "village",
+          "movementCost": 2
+        },
+        {
+          "dq": 2,
+          "dr": 1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 3,
+          "dr": 1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 2,
+          "terrainType": "water",
+          "movementCost": 2
+        },
+        {
+          "dq": -1,
+          "dr": 2,
+          "terrainType": "rubble",
+          "movementCost": 3
+        },
+        {
+          "dq": 0,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 2,
+          "dr": 2,
+          "terrainType": "mountain",
+          "movementCost": 0
+        },
+        {
+          "dq": 3,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -3,
+          "dr": 3,
+          "terrainType": "water",
+          "movementCost": 2
+        },
+        {
+          "dq": -2,
+          "dr": 3,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 3,
+          "terrainType": "mountain",
+          "movementCost": 0
+        },
+        {
+          "dq": 0,
+          "dr": 3,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": 1,
+          "dr": 3,
+          "terrainType": "mountain",
+          "movementCost": 0
+        },
+        {
+          "dq": 2,
+          "dr": 3,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 3,
+          "dr": 3,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -3,
+          "dr": 4,
+          "terrainType": "water",
+          "movementCost": 2
+        },
+        {
+          "dq": -2,
+          "dr": 4,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 4,
+          "terrainType": "mountain",
+          "movementCost": 0
+        },
+        {
+          "dq": 0,
+          "dr": 4,
+          "terrainType": "camp",
+          "movementCost": 3
+        },
+        {
+          "dq": 1,
+          "dr": 4,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": 2,
+          "dr": 4,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -3,
+          "dr": 5,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 5,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 5,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": 0,
+          "dr": 5,
+          "terrainType": "mountain",
+          "movementCost": 0
+        },
+        {
+          "dq": 1,
+          "dr": 5,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -3,
+          "dr": 6,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 6,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 6,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 6,
+          "terrainType": "mountain",
+          "movementCost": 0
+        }
+      ]
+    },
+    "J": {
+      "pair": "IJ",
+      "kind": "terrain",
+      "hexes": [
+        {
+          "dq": 0,
+          "dr": 0,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": 0,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": 2,
+          "dr": 0,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": 3,
+          "dr": 0,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 1,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 1,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": 1,
+          "terrainType": "water",
+          "movementCost": 2
+        },
+        {
+          "dq": 2,
+          "dr": 1,
+          "terrainType": "mountain",
+          "movementCost": 0
+        },
+        {
+          "dq": 3,
+          "dr": 1,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 2,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 2,
+          "terrainType": "village",
+          "movementCost": 2
+        },
+        {
+          "dq": 0,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": 1,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 2,
+          "dr": 2,
+          "terrainType": "water",
+          "movementCost": 2
+        },
+        {
+          "dq": 3,
+          "dr": 2,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": -3,
+          "dr": 3,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 3,
+          "terrainType": "village",
+          "movementCost": 2
+        },
+        {
+          "dq": -1,
+          "dr": 3,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 3,
+          "terrainType": "camp",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": 3,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": 2,
+          "dr": 3,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": 3,
+          "dr": 3,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": -3,
+          "dr": 4,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 4,
+          "terrainType": "village",
+          "movementCost": 2
+        },
+        {
+          "dq": -1,
+          "dr": 4,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 4,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": 4,
+          "terrainType": "rubble",
+          "movementCost": 2
+        },
+        {
+          "dq": 2,
+          "dr": 4,
+          "terrainType": "rubble",
+          "movementCost": 2
+        },
+        {
+          "dq": -3,
+          "dr": 5,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 5,
+          "terrainType": "mountain",
+          "movementCost": 0
+        },
+        {
+          "dq": -1,
+          "dr": 5,
+          "terrainType": "rubble",
+          "movementCost": 2
+        },
+        {
+          "dq": 0,
+          "dr": 5,
+          "terrainType": "rubble",
+          "movementCost": 2
+        },
+        {
+          "dq": 1,
+          "dr": 5,
+          "terrainType": "rubble",
+          "movementCost": 1
+        },
+        {
+          "dq": -3,
+          "dr": 6,
+          "terrainType": "rubble",
+          "movementCost": 2
+        },
+        {
+          "dq": -2,
+          "dr": 6,
+          "terrainType": "rubble",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 6,
+          "terrainType": "rubble",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 6,
+          "terrainType": "rubble",
+          "movementCost": 1
+        }
+      ]
+    },
+    "K": {
+      "pair": "KL",
+      "kind": "terrain",
+      "hexes": [
+        {
+          "dq": 0,
+          "dr": 0,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": 1,
+          "dr": 0,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 2,
+          "dr": 0,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 3,
+          "dr": 0,
+          "terrainType": "camp",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 1,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": 0,
+          "dr": 1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": 1,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": 2,
+          "dr": 1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 3,
+          "dr": 1,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": -2,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": -1,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 3
+        },
+        {
+          "dq": 1,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 2,
+          "dr": 2,
+          "terrainType": "water",
+          "movementCost": 3
+        },
+        {
+          "dq": 3,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": -3,
+          "dr": 3,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 3,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 3,
+          "terrainType": "jungle",
+          "movementCost": 3
+        },
+        {
+          "dq": 0,
+          "dr": 3,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": 3,
+          "terrainType": "jungle",
+          "movementCost": 3
+        },
+        {
+          "dq": 2,
+          "dr": 3,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 3,
+          "dr": 3,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -3,
+          "dr": 4,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": -2,
+          "dr": 4,
+          "terrainType": "village",
+          "movementCost": 4
+        },
+        {
+          "dq": -1,
+          "dr": 4,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 4,
+          "terrainType": "jungle",
+          "movementCost": 3
+        },
+        {
+          "dq": 1,
+          "dr": 4,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 2,
+          "dr": 4,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": -3,
+          "dr": 5,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": -2,
+          "dr": 5,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 5,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": 0,
+          "dr": 5,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": 5,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": -3,
+          "dr": 6,
+          "terrainType": "camp",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 6,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 6,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 6,
+          "terrainType": "jungle",
+          "movementCost": 2
+        }
+      ]
+    },
+    "L": {
+      "pair": "KL",
+      "kind": "terrain",
+      "hexes": [
+        {
+          "dq": -4,
+          "dr": 1,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": -4,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -4,
+          "dr": 3,
+          "terrainType": "village",
+          "movementCost": 2
+        },
+        {
+          "dq": -4,
+          "dr": 4,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": -3,
+          "dr": 0,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": -3,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": -3,
+          "dr": 4,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": -3,
+          "dr": 1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -3,
+          "dr": 3,
+          "terrainType": "camp",
+          "movementCost": 2
+        },
+        {
+          "dq": -2,
+          "dr": -1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 0,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 4,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 1,
+          "terrainType": "mountain",
+          "movementCost": 0
+        },
+        {
+          "dq": -1,
+          "dr": 4,
+          "terrainType": "mountain",
+          "movementCost": 0
+        },
+        {
+          "dq": 0,
+          "dr": 1,
+          "terrainType": "mountain",
+          "movementCost": 0
+        },
+        {
+          "dq": -2,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": -2,
+          "dr": 3,
+          "terrainType": "village",
+          "movementCost": 2
+        },
+        {
+          "dq": -1,
+          "dr": 3,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 0,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": -1,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": -2,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": -1,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": -2,
+          "terrainType": "camp",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": -2,
+          "terrainType": "camp",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 0,
+          "terrainType": "jungle",
+          "movementCost": 3
+        },
+        {
+          "dq": 0,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": 0,
+          "dr": 3,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": 1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": 0,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": -1,
+          "terrainType": "jungle",
+          "movementCost": 3
+        },
+        {
+          "dq": 2,
+          "dr": -2,
+          "terrainType": "jungle",
+          "movementCost": 3
+        },
+        {
+          "dq": 2,
+          "dr": -1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 2,
+          "dr": 0,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": 2,
+          "dr": 1,
+          "terrainType": "jungle",
+          "movementCost": 2
+        }
+      ]
+    },
+    "M": {
+      "pair": "MN",
+      "kind": "terrain",
+      "hexes": [
+        {
+          "dq": -4,
+          "dr": 1,
+          "terrainType": "camp",
+          "movementCost": 1
+        },
+        {
+          "dq": -4,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -4,
+          "dr": 3,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -4,
+          "dr": 4,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -3,
+          "dr": 0,
+          "terrainType": "water",
+          "movementCost": 4
+        },
+        {
+          "dq": -3,
+          "dr": 1,
+          "terrainType": "mountain",
+          "movementCost": 0
+        },
+        {
+          "dq": -3,
+          "dr": 2,
+          "terrainType": "mountain",
+          "movementCost": 0
+        },
+        {
+          "dq": -3,
+          "dr": 3,
+          "terrainType": "village",
+          "movementCost": 4
+        },
+        {
+          "dq": -3,
+          "dr": 4,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": -1,
+          "terrainType": "mountain",
+          "movementCost": 0
+        },
+        {
+          "dq": -2,
+          "dr": 4,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 0,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 3,
+          "terrainType": "village",
+          "movementCost": 2
+        },
+        {
+          "dq": -1,
+          "dr": -2,
+          "terrainType": "mountain",
+          "movementCost": 0
+        },
+        {
+          "dq": -1,
+          "dr": 4,
+          "terrainType": "mountain",
+          "movementCost": 0
+        },
+        {
+          "dq": 0,
+          "dr": 3,
+          "terrainType": "mountain",
+          "movementCost": 0
+        },
+        {
+          "dq": 0,
+          "dr": 2,
+          "terrainType": "mountain",
+          "movementCost": 0
+        },
+        {
+          "dq": 0,
+          "dr": 1,
+          "terrainType": "mountain",
+          "movementCost": 0
+        },
+        {
+          "dq": 0,
+          "dr": 0,
+          "terrainType": "mountain",
+          "movementCost": 0
+        },
+        {
+          "dq": -1,
+          "dr": -1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 0,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 3,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 1,
+          "terrainType": "rubble",
+          "movementCost": 2
+        },
+        {
+          "dq": 0,
+          "dr": -2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": -2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 2,
+          "dr": -2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 2,
+          "dr": -1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": 0,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": 1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": -1,
+          "terrainType": "rubble",
+          "movementCost": 2
+        },
+        {
+          "dq": 1,
+          "dr": -1,
+          "terrainType": "rubble",
+          "movementCost": 2
+        },
+        {
+          "dq": 2,
+          "dr": 0,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": 2,
+          "dr": 1,
+          "terrainType": "water",
+          "movementCost": 1
+        }
+      ]
+    },
+    "N": {
+      "pair": "MN",
+      "kind": "terrain",
+      "hexes": [
+        {
+          "dq": 0,
+          "dr": 0,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": 0,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": 2,
+          "dr": 0,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 3,
+          "dr": 0,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 1,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 1,
+          "terrainType": "village",
+          "movementCost": 2
+        },
+        {
+          "dq": 1,
+          "dr": 1,
+          "terrainType": "village",
+          "movementCost": 2
+        },
+        {
+          "dq": 2,
+          "dr": 1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 3,
+          "dr": 1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 2,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 2,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 2,
+          "terrainType": "village",
+          "movementCost": 3
+        },
+        {
+          "dq": 1,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 2,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": 3,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -3,
+          "dr": 3,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 3,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 3,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 3,
+          "terrainType": "village",
+          "movementCost": 4
+        },
+        {
+          "dq": 1,
+          "dr": 3,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": 2,
+          "dr": 3,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 3,
+          "dr": 3,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -3,
+          "dr": 4,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 4,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": -1,
+          "dr": 4,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 4,
+          "terrainType": "village",
+          "movementCost": 3
+        },
+        {
+          "dq": 1,
+          "dr": 4,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": 2,
+          "dr": 4,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -3,
+          "dr": 5,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 5,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 5,
+          "terrainType": "village",
+          "movementCost": 2
+        },
+        {
+          "dq": 0,
+          "dr": 5,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": 5,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": -3,
+          "dr": 6,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 6,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 6,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 6,
+          "terrainType": "water",
+          "movementCost": 1
+        }
+      ]
+    },
+    "O": {
+      "pair": "OP",
+      "kind": "terrain",
+      "hexes": [
+        {
+          "dq": -2,
+          "dr": -1,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": -2,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": -1,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 0,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 0,
+          "terrainType": "water",
+          "movementCost": 4
+        },
+        {
+          "dq": 0,
+          "dr": -2,
+          "terrainType": "village",
+          "movementCost": 2
+        },
+        {
+          "dq": -2,
+          "dr": 1,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": 0,
+          "dr": 1,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": -2,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 3,
+          "terrainType": "rubble",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 3,
+          "terrainType": "rubble",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 0,
+          "terrainType": "rubble",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 2,
+          "terrainType": "rubble",
+          "movementCost": 2
+        },
+        {
+          "dq": -1,
+          "dr": 2,
+          "terrainType": "mountain",
+          "movementCost": 0
+        },
+        {
+          "dq": -1,
+          "dr": 1,
+          "terrainType": "mountain",
+          "movementCost": 0
+        },
+        {
+          "dq": -1,
+          "dr": -1,
+          "terrainType": "mountain",
+          "movementCost": 0
+        }
+      ]
+    },
+    "P": {
+      "pair": "OP",
+      "kind": "terrain",
+      "hexes": [
+        {
+          "dq": -2,
+          "dr": -1,
+          "terrainType": "water",
+          "movementCost": 3
+        },
+        {
+          "dq": -2,
+          "dr": 3,
+          "terrainType": "water",
+          "movementCost": 3
+        },
+        {
+          "dq": 0,
+          "dr": 0,
+          "terrainType": "water",
+          "movementCost": 3
+        },
+        {
+          "dq": -2,
+          "dr": 0,
+          "terrainType": "water",
+          "movementCost": 2
+        },
+        {
+          "dq": -2,
+          "dr": 2,
+          "terrainType": "water",
+          "movementCost": 2
+        },
+        {
+          "dq": -2,
+          "dr": 1,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": -1,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 0,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 1,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 2,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 2,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": -2,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": -2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 3,
+          "terrainType": "rubble",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": -1,
+          "terrainType": "rubble",
+          "movementCost": 2
+        },
+        {
+          "dq": 0,
+          "dr": 1,
+          "terrainType": "jungle",
+          "movementCost": 2
+        }
+      ]
+    },
+    "Q": {
+      "pair": "QR",
+      "kind": "terrain",
+      "hexes": [
+        {
+          "dq": -2,
+          "dr": -1,
+          "terrainType": "jungle",
+          "movementCost": 3
+        },
+        {
+          "dq": -1,
+          "dr": -2,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": -1,
+          "dr": 1,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": -1,
+          "dr": 3,
+          "terrainType": "jungle",
+          "movementCost": 2
+        },
+        {
+          "dq": 0,
+          "dr": -1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 0,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 0,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": -1,
+          "terrainType": "water",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": -2,
+          "terrainType": "water",
+          "movementCost": 2
+        },
+        {
+          "dq": -2,
+          "dr": 1,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 2,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 0,
+          "terrainType": "village",
+          "movementCost": 3
+        },
+        {
+          "dq": -2,
+          "dr": 3,
+          "terrainType": "rubble",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 2,
+          "terrainType": "rubble",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 1,
+          "terrainType": "rubble",
+          "movementCost": 3
+        }
+      ]
+    },
+    "R": {
+      "pair": "QR",
+      "kind": "terrain",
+      "hexes": [
+        {
+          "dq": -3,
+          "dr": -1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": -2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": -2,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -3,
+          "dr": 0,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": -1,
+          "terrainType": "jungle",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": -1,
+          "terrainType": "jungle",
+          "movementCost": 3
+        },
+        {
+          "dq": -3,
+          "dr": 1,
+          "terrainType": "mountain",
+          "movementCost": 0
+        },
+        {
+          "dq": -2,
+          "dr": 0,
+          "terrainType": "mountain",
+          "movementCost": 0
+        },
+        {
+          "dq": -1,
+          "dr": 0,
+          "terrainType": "mountain",
+          "movementCost": 0
+        },
+        {
+          "dq": -3,
+          "dr": 2,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 1,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 1,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 2,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 3,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": -3,
+          "dr": 3,
+          "terrainType": "village",
+          "movementCost": 1
+        },
+        {
+          "dq": -2,
+          "dr": 2,
+          "terrainType": "camp",
+          "movementCost": 1
+        }
+      ]
+    },
+    "ending": {
+      "pair": "ending-jungle",
+      "kind": "ending",
+      "hexes": [
+        {
+          "dq": 0,
+          "dr": 0,
+          "terrainType": "jungle",
+          "movementCost": 1,
+          "isFinishing": true
+        },
+        {
+          "dq": 1,
+          "dr": 0,
+          "terrainType": "el_dorado",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 1,
+          "terrainType": "jungle",
+          "movementCost": 1,
+          "isFinishing": true
+        },
+        {
+          "dq": 1,
+          "dr": 1,
+          "terrainType": "el_dorado",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 1,
+          "isFinishing": true
+        },
+        {
+          "dq": 0,
+          "dr": 2,
+          "terrainType": "el_dorado",
+          "movementCost": 1
+        }
+      ]
+    },
+    "ending-jungle": {
+      "pair": "ending-jungle",
+      "kind": "ending",
+      "hexes": [
+        {
+          "dq": 0,
+          "dr": 0,
+          "terrainType": "jungle",
+          "movementCost": 1,
+          "isFinishing": true
+        },
+        {
+          "dq": 1,
+          "dr": 0,
+          "terrainType": "el_dorado",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 1,
+          "terrainType": "jungle",
+          "movementCost": 1,
+          "isFinishing": true
+        },
+        {
+          "dq": 1,
+          "dr": 1,
+          "terrainType": "el_dorado",
+          "movementCost": 1
+        },
+        {
+          "dq": -1,
+          "dr": 2,
+          "terrainType": "jungle",
+          "movementCost": 1,
+          "isFinishing": true
+        },
+        {
+          "dq": 0,
+          "dr": 2,
+          "terrainType": "el_dorado",
+          "movementCost": 1
+        }
+      ]
+    },
+    "ending-water": {
+      "pair": "ending",
+      "kind": "terrain",
+      "hexes": [
+        {
+          "dq": 0,
+          "dr": -1,
+          "terrainType": "water",
+          "movementCost": 1,
+          "isFinishing": true
+        },
+        {
+          "dq": 0,
+          "dr": 0,
+          "terrainType": "water",
+          "movementCost": 1,
+          "isFinishing": true
+        },
+        {
+          "dq": -1,
+          "dr": 1,
+          "terrainType": "water",
+          "movementCost": 1,
+          "isFinishing": true
+        },
+        {
+          "dq": 1,
+          "dr": -1,
+          "terrainType": "el_dorado",
+          "movementCost": 1
+        },
+        {
+          "dq": 1,
+          "dr": 0,
+          "terrainType": "el_dorado",
+          "movementCost": 1
+        },
+        {
+          "dq": 0,
+          "dr": 1,
+          "terrainType": "el_dorado",
+          "movementCost": 1
+        }
+      ]
+    }
+  }
+}

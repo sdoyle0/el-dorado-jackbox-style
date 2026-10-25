@@ -57,6 +57,7 @@ app.get('/api/qr', async (req, res) => {
 });
 
 app.use('/shared', express.static(path.join(__dirname, '../shared')));
+app.use('/tools', express.static(path.join(__dirname, '..', 'tools')));
 app.use(express.static(path.join(__dirname, '..', 'client')));
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'client', 'index.html'));
@@ -67,13 +68,14 @@ const gameManager = new GameManager(io);
 io.on('connection', (socket) => {
   console.log(`[connect] ${socket.id}`);
 
-  socket.on('create_room', ({ playerName, playerCount = 2, debugMode = false, enableBlockades = true, asSpectator = false }) => {
+  socket.on('create_room', ({ playerName, playerCount = 2, debugMode = false, enableBlockades = true, asSpectator = false, map = 'hills-of-gold' }) => {
     const count = Math.min(4, Math.max(1, Number(playerCount) || 2));
     const { room, player, spectator } = gameManager.createRoom(socket, playerName, {
       debugMode,
       maxPlayers: count,
       enableBlockades: Boolean(enableBlockades),
       asSpectator: Boolean(asSpectator),
+      map: map || 'hills-of-gold',
     });
     socket.emit('joined_room', {
       roomId: room.roomId,
