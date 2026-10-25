@@ -7,6 +7,7 @@ const { Server } = require('socket.io');
 const path = require('path');
 const { GameManager } = require('./game/GameManager');
 const { CARD_DEFINITIONS, getPurchasingPower } = require('../shared/cardData');
+const { listLayouts } = require('../shared/layoutRegistry');
 
 const app = express();
 const server = http.createServer(app);
@@ -17,6 +18,10 @@ const io = new Server(server, {
 });
 
 const PORT = process.env.PORT || 3000;
+
+app.get('/api/maps', (req, res) => {
+  res.json(listLayouts());
+});
 
 // Block 9: QR-code join. Phones scan a QR on the TV/waiting room, so the
 // encoded URL must use the host's real LAN IPv4 (never localhost) —

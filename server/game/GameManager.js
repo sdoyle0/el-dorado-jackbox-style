@@ -8,18 +8,10 @@ const { BLOCKADE_SEAMS, BLOCKADE_TERRAIN_POOL } = require('../../shared/blockade
 const { GameState: GS } = require('../../shared/constants');
 const { composeLayout } = require('../../shared/mapCompose');
 const PIECES_DATA = require('../../shared/pieces.json');
-const HILLS_OF_GOLD = require('../../shared/layouts/hills-of-gold');
-const FIRST_PLAY = require('../../shared/layouts/first-play');
-const LAYOUTS = {
-  'hills-of-gold': HILLS_OF_GOLD,
-  'first-play': FIRST_PLAY,
-};
+const { layouts: LAYOUTS } = require('../../shared/layoutRegistry');
+const DEFAULT_LAYOUT_ID = LAYOUTS['hills-of-gold'] ? 'hills-of-gold' : Object.keys(LAYOUTS)[0];
 
-const MAP_DATA = { tiles: composeLayout(HILLS_OF_GOLD, PIECES_DATA).tiles };
-console.log(
-  `[map] server start: composed "${HILLS_OF_GOLD.name}" from shared/layouts/hills-of-gold.js — ` +
-  `${MAP_DATA.tiles.length} tiles, ${HILLS_OF_GOLD.placements.length} placements (mapData.json not loaded)`
-);
+console.log(`[map] server start: discovered ${Object.keys(LAYOUTS).length} layouts in shared/layouts`);
 
 // Block 8: phone refresh mid-turn keeps its seat for a grace period instead
 // of losing it instantly. No DB — the Player object stays in the roster with
@@ -44,7 +36,7 @@ class GameRoom {
     this.maxPlayers = Math.min(4, Math.max(debugMode ? 1 : 2, maxPlayers));
     this.debugMode = debugMode;
     this.enableBlockades = enableBlockades;
-    this.mapId = LAYOUTS[map] ? map : 'hills-of-gold';
+    this.mapId = Object.hasOwn(LAYOUTS, map) ? map : DEFAULT_LAYOUT_ID;
     this.layout = LAYOUTS[this.mapId];
     this.started = false;
     this.hostId = null;

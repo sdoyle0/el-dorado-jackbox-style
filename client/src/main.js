@@ -116,8 +116,37 @@ document.addEventListener('DOMContentLoaded', () => {
   const roomCodeInput = document.getElementById('room-code-input');
   const countBtns = document.querySelectorAll('.count-btn');
   const blockadesToggle = document.getElementById('blockades-toggle');
+  const mapSelect = document.getElementById('map-select');
 
   let selectedPlayerCount = 2;
+  async function loadMapOptions() {
+    try {
+      const response = await fetch('/api/maps');
+      if (!response.ok) throw new Error(`Map list request failed (${response.status})`);
+      const maps = await response.json();
+      if (!Array.isArray(maps) || maps.length === 0) throw new Error('No expedition maps are available');
+
+      mapSelect.replaceChildren(...maps.map(map => {
+        const option = document.createElement('option');
+        option.value = map.id;
+        option.textContent = map.name;
+        return option;
+      }));
+      const requestedMap = new URLSearchParams(window.location.search).get('map');
+      mapSelect.value = maps.some(map => map.id === requestedMap)
+        ? requestedMap
+        : (maps.some(map => map.id === 'hills-of-gold') ? 'hills-of-gold' : maps[0].id);
+      mapSelect.disabled = false;
+      createRoomBtn.disabled = false;
+    } catch (error) {
+      console.error('[maps] could not load expedition maps', error);
+      mapSelect.replaceChildren(new Option('Maps unavailable', ''));
+      setLobbyError('Could not load expedition maps. Please refresh and try again.');
+      createRoomBtn.disabled = true;
+    }
+  }
+  loadMapOptions();
+
   countBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       countBtns.forEach(b => b.classList.remove('active'));
@@ -1246,8 +1275,7 @@ document.addEventListener('DOMContentLoaded', () => {
     cancelRejoinRetry();
     pendingIdentity = name; // Block 8: refresh-safe session
     const enableBlockades = blockadesToggle?.checked ?? true;
-    const mapParam = new URLSearchParams(window.location.search).get('map') || 'hills-of-gold';
-    client.createRoom(name, selectedPlayerCount, DEBUG, enableBlockades, VIEW === 'tv', mapParam);
+    client.createRoom(name, selectedPlayerCount, DEBUG, enableBlockades, VIEW === 'tv', mapSelect.value);
   });
 
   joinRoomBtn.addEventListener('click', () => {

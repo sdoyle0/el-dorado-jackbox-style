@@ -237,6 +237,24 @@ body {
   box-shadow: 0 0 0 3px rgba(201,162,39,0.12);
 }
 
+.lobby-map-select {
+  width: 100%;
+  padding: 0.65rem 1rem;
+  border: 1px solid rgba(201,162,39,0.25);
+  border-radius: var(--radius-sm);
+  background: rgba(13,17,23,0.7);
+  color: var(--text-bright);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.lobby-map-select:focus {
+  border-color: var(--gold-mid);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(201,162,39,0.12);
+}
+
 #lobby-actions {
   width: 100%;
   display: flex;

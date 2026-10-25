@@ -30,13 +30,17 @@
             <button class="count-btn" data-count="3">3</button>
             <button class="count-btn" data-count="4">4</button>
           </div>
+          <label class="lobby-label" for="map-select">Expedition map</label>
+          <select id="map-select" class="lobby-map-select" disabled>
+            <option value="">Loading maps…</option>
+          </select>
           <div class="blockade-toggle-row">
             <label class="blockade-toggle-label">
               <input type="checkbox" id="blockades-toggle" checked/>
               Enable blockades
             </label>
           </div>
-          <button id="create-room-btn" class="primary-btn">Begin Expedition</button>
+          <button id="create-room-btn" class="primary-btn" disabled>Begin Expedition</button>
         </div>
 
         <div class="lobby-divider" id="lobby-divider-or">or</div>
