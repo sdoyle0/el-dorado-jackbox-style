@@ -10,9 +10,13 @@ Build a user-facing map selector for new game rooms in this repository.
   room is created. `client/src/main.js` currently reads a `?map=` query
   parameter instead of offering a UI choice.
 - Hills of Gold is the verified playable layout and must remain the default.
-- First Play is a draft and currently fails its connectivity proof. Do not
-  expose it as a playable choice unless its layout is corrected, visually
-  checked against the setup diagram, and its proof passes.
+- First Play currently passes the structural/connectivity validator, but its
+  placements have not been verified against the setup diagram. Do not expose
+  it as a playable choice until it is visually confirmed and its checks pass.
+- The Hills of Gold proof currently reports a terrain mismatch and movement
+  cost differences between the composed pieces and `shared/mapData.json`.
+  Inspect those differences (including the ×4 costs) and decide whether the
+  piece data or the canonical fixture is authoritative before changing either.
 - The browser Map Studio at `tools/mapbuilder/` is a separate authoring tool;
   do not conflate its local map-building controls with the game lobby selector.
 
