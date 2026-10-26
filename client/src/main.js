@@ -113,24 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderMarket(market) {
     cardUI.renderMarket(market);
     if (VIEW !== 'tv' || !tvMarketCards) return;
-
-    tvMarketCards.replaceChildren(...(market?.shop || []).map((card) => {
-      const row = document.createElement('div');
-      row.className = `tv-market-card terrain-${card.movementTerrain || 'empty'}`;
-      row.setAttribute('role', 'listitem');
-
-      const name = document.createElement('span');
-      name.className = 'tv-market-card-name';
-      name.textContent = card.cardName || card.key;
-
-      const details = document.createElement('span');
-      details.className = 'tv-market-card-details';
-      details.textContent = `${card.cost} gold · ${card.remaining} left`;
-
-      if (card.remaining <= 0) row.classList.add('sold-out');
-      row.append(name, details);
-      return row;
-    }));
+    cardUI.renderReadOnlyMarket(tvMarketCards, market);
   }
 
   // ── Lobby UI refs ──────────────────────────────────────────────────────────

@@ -18,7 +18,7 @@
 body.view-tv #game-screen.active {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  grid-template-columns: minmax(0, 1fr) clamp(260px, 18vw, 340px);
+  grid-template-columns: minmax(0, 1fr) clamp(300px, 21vw, 400px);
   grid-template-areas:
     "status status"
     "board market";
@@ -187,11 +187,11 @@ body.view-tv #tv-market-panel {
   grid-area: market;
   display: flex;
   flex-direction: column;
-  gap: 0.7rem;
+  gap: 0.35rem;
   min-width: 0;
   min-height: 0;
-  padding: 1rem;
-  overflow-y: auto;
+  padding: 0.6rem;
+  overflow: hidden;
   border-left: 1px solid var(--border);
   background: linear-gradient(180deg, #0f1c2e 0%, #0b1522 100%);
 }
@@ -199,58 +199,108 @@ body.view-tv #tv-market-panel {
 body.view-tv #tv-market-panel h2 {
   flex: none;
   color: var(--gold-mid);
-  font: 600 1rem 'Cinzel', Georgia, serif;
+  font: 600 0.85rem 'Cinzel', Georgia, serif;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
 body.view-tv #tv-market-cards {
   display: grid;
-  align-content: start;
-  gap: 0.5rem;
+  flex: 1 1 auto;
+  min-height: 0;
+  align-content: stretch;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem;
 }
 
-body.view-tv .tv-market-card {
+body.view-tv .tv-market-card-wrapper {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 0.25rem;
-  min-height: 68px;
-  padding: 0.65rem 0.75rem;
-  border-left: 3px solid var(--text-mid);
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
   border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.045);
+  cursor: default;
 }
 
-body.view-tv .tv-market-card.terrain-jungle { border-left-color: #4cff4c; }
-body.view-tv .tv-market-card.terrain-water { border-left-color: #4ab8f0; }
-body.view-tv .tv-market-card.terrain-village { border-left-color: #ffd700; }
-body.view-tv .tv-market-card.terrain-wild { border-left-color: #aaa; }
-body.view-tv .tv-market-card.terrain-empty { border-left-color: #bd8bf0; }
+body.view-tv .tv-market-card-wrapper .market-card-info {
+  flex: none;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.1rem 0.25rem;
+  margin: 0;
+  font-size: clamp(0.65rem, 0.7vw, 0.78rem);
+}
 
-body.view-tv .tv-market-card-name {
+body.view-tv .tv-market-card-wrapper .market-card {
+  flex: 1 1 0;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  cursor: default;
+  transition: none;
+}
+
+body.view-tv .tv-market-card-wrapper .market-card:hover {
+  transform: none;
+}
+
+body.view-tv .tv-market-card-wrapper .card-header-strip {
+  flex: none;
+  height: clamp(1.55rem, 3vh, 2rem);
+  min-height: 0;
+  gap: 3px;
+  padding: 2px 4px;
+  font-size: clamp(0.58rem, 0.68vw, 0.74rem);
+}
+
+body.view-tv .tv-market-card-wrapper .card-name {
+  min-width: 0;
   overflow: hidden;
-  color: var(--text-bright);
-  font-size: 0.95rem;
-  font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-body.view-tv .tv-market-card-details {
+body.view-tv .tv-market-card-wrapper .card-stat-line {
   flex: none;
-  color: var(--text-mid);
-  font-size: 0.82rem;
+  font-size: clamp(0.8rem, 1vw, 1rem);
+}
+
+body.view-tv .tv-market-card-wrapper .market-card-info .cost-label,
+body.view-tv .tv-market-card-wrapper .market-card-info .cards-remaining {
+  color: var(--text-bright);
+  font-size: inherit;
+  font-weight: 700;
   white-space: nowrap;
 }
 
-body.view-tv .tv-market-card.sold-out {
-  opacity: 0.55;
+body.view-tv .tv-market-card-wrapper .market-card-info .cards-remaining {
+  color: var(--gold-bright);
 }
 
-body.view-tv .tv-market-card.sold-out .tv-market-card-details {
-  color: #ff9d91;
+body.view-tv .tv-market-card-wrapper .card-body-area {
+  flex: 1 1 0;
+  min-height: 0;
+  padding: 3px 4px 4px;
+  overflow: hidden;
+}
+
+body.view-tv .tv-market-card-wrapper .card-art-wrap {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+body.view-tv .tv-market-card-wrapper .card-art-wrap > img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  flex: none;
+  object-fit: contain;
 }
 
 /* Both sections stack in the sidebar; reserve is no longer tab-gated. */

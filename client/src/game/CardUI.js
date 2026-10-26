@@ -580,6 +580,15 @@ class CardUI {
     if (this._mode === 'market') this._updateAffordability();
   }
 
+  renderReadOnlyMarket(container, market) {
+    container.replaceChildren(...(market?.shop ?? []).map(card => {
+      const slot = this._makeMarketCardEl(card, false, false, false);
+      slot.classList.add('tv-market-card-wrapper');
+      slot.setAttribute('role', 'listitem');
+      return slot;
+    }));
+  }
+
   // ── Phone compact market (rows, no card art) ─────────────────────────────
   // Same data, same events (purchase_card via Buy), same tabs — just rows so
   // 6 shop cards + total + hand all fit a small screen. Purple cards keep
@@ -763,11 +772,12 @@ class CardUI {
     return row;
   }
 
-  _makeCardShared(card, isMarket, isReserve, transmitterActive) {
-    const btn = document.createElement('button');
+  _makeCardShared(card, isMarket, isReserve, transmitterActive, interactive = true) {
+    const btn = document.createElement(interactive ? 'button' : 'div');
+    if (interactive) btn.type = 'button';
     btn.className = `card-btn terrain-${card.movementTerrain || 'empty'}`;
     if (isReserve) btn.classList.add('market-reserve');
-    btn.dataset.instanceId = card.instanceId;
+    if (card.instanceId) btn.dataset.instanceId = card.instanceId;
     btn.dataset.cardKey = card.key;
 
     // Movement stat: number only (see market-row-moves note above).
@@ -805,11 +815,11 @@ class CardUI {
     //           so narrow 4-across headers keep name + badge readable).
     // Art + header (minus the icon itself) always reach the card. Phone
     // wallet mode hides both (pooling needs no details; see tv-phone.css).
-    const infoAttrs = fullDesc
+    const infoAttrs = fullDesc && interactive
       ? `data-effect="${card.specialEffect}" title="Details" role="button" aria-label="${card.cardName} details"` : '';
-    const infoHeader = fullDesc
+    const infoHeader = fullDesc && interactive
       ? `<span class="card-info-btn card-info-header" ${infoAttrs}>ℹ️</span>` : '';
-    const infoLine = fullDesc
+    const infoLine = fullDesc && interactive
       ? `<span class="card-info-btn card-info-line" ${infoAttrs}>ℹ️</span>` : '';
     const effectLineWithInfo = effectDesc
       ? `<div class="card-effect-line">${infoLine}<span class="card-effect-text">${effectDesc}</span></div>` : '';
@@ -856,9 +866,9 @@ class CardUI {
       wrapperElem.appendChild(marketCardInfo);
       wrapperElem.appendChild(btn);
 
-      if (isReserve && !transmitterActive) {
+      if (interactive && isReserve && !transmitterActive) {
         btn.classList.add('reserve-locked');
-      } else {
+      } else if (interactive) {
         btn.addEventListener('click', (e) => {
           if (e.target.closest('.card-info-btn')) return;
           this._onMarketCardClicked(card);
@@ -872,8 +882,8 @@ class CardUI {
 
   }
 
-  _makeMarketCardEl(card, isReserve, transmitterActive = false) {
-    return this._makeCardShared(card, true, isReserve, transmitterActive);
+  _makeMarketCardEl(card, isReserve, transmitterActive = false, interactive = true) {
+    return this._makeCardShared(card, true, isReserve, transmitterActive, interactive);
   }
 
   _onMarketCardClicked(card) {
