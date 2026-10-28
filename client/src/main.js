@@ -211,11 +211,18 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ── Toast ──────────────────────────────────────────────────────────────────
+  let connectionNotice = null;
+  let connectionNoticeTimer = null;
+
   function showToast(text, { icon = 'ℹ️', type = 'info', duration = 3500 } = {}) {
     const container = document.getElementById('toast-container');
     // Cap stacked toasts: a flurry of events (or fast testing) shouldn't
     // bury the UI. Oldest goes first; the rest fade on their own timers.
-    while (container.children.length >= 3) container.firstChild.remove();
+    while (container.children.length >= 3) {
+      const oldestToast = container.querySelector('.toast:not(.connection-notice)');
+      if (!oldestToast) break;
+      oldestToast.remove();
+    }
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
     toast.innerHTML = `<span class="toast-icon">${icon}</span><span class="toast-text">${text}</span>`;
@@ -224,6 +231,42 @@ document.addEventListener('DOMContentLoaded', () => {
       toast.classList.add('toast-out');
       toast.addEventListener('animationend', () => toast.remove(), { once: true });
     }, duration);
+  }
+
+  function showConnectionNotice(message, duration = 0) {
+    const container = document.getElementById('toast-container');
+    if (connectionNoticeTimer) {
+      clearTimeout(connectionNoticeTimer);
+      connectionNoticeTimer = null;
+    }
+    if (!connectionNotice) {
+      while (container.children.length >= 3) {
+        const oldestToast = container.querySelector('.toast:not(.connection-notice)');
+        if (!oldestToast) break;
+        oldestToast.remove();
+      }
+      connectionNotice = document.createElement('div');
+      connectionNotice.className = 'toast toast-warn connection-notice';
+      connectionNotice.setAttribute('role', 'status');
+      connectionNotice.setAttribute('aria-live', 'polite');
+      const icon = document.createElement('span');
+      icon.className = 'toast-icon';
+      icon.textContent = '⚠️';
+      const text = document.createElement('span');
+      text.className = 'toast-text';
+      connectionNotice.append(icon, text);
+      container.appendChild(connectionNotice);
+    }
+    connectionNotice.querySelector('.toast-text').textContent = message;
+    if (duration > 0) {
+      const notice = connectionNotice;
+      connectionNoticeTimer = setTimeout(() => {
+        if (connectionNotice !== notice) return;
+        notice.remove();
+        connectionNotice = null;
+        connectionNoticeTimer = null;
+      }, duration);
+    }
   }
 
   // ── Log ────────────────────────────────────────────────────────────────────
@@ -237,6 +280,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── Game + client setup ────────────────────────────────────────────────────
   const socket = io();
+  let hasConnected = false;
+  let lastDisconnectReason = '';
+  socket.on('connect', () => {
+    if (hasConnected) {
+      const previousReason = lastDisconnectReason
+        ? ` Previous disconnect: ${lastDisconnectReason}.`
+        : '';
+      showConnectionNotice(`Connection restored.${previousReason}`, 15000);
+      lastDisconnectReason = '';
+    }
+    hasConnected = true;
+  });
+  socket.on('disconnect', (reason) => {
+    lastDisconnectReason = reason;
+    showConnectionNotice(`Connection lost. Reason: ${reason}`);
+  });
+  socket.on('connect_error', (error) => {
+    showConnectionNotice(`Connection error: ${error.message}. Retrying…`);
+  });
+  socket.io.on('reconnect_attempt', (attempt) => {
+    const previousReason = lastDisconnectReason
+      ? ` Last disconnect: ${lastDisconnectReason}.`
+      : '';
+    showConnectionNotice(`Reconnecting (attempt ${attempt}).${previousReason}`);
+  });
+  socket.io.on('reconnect_error', (error) => {
+    showConnectionNotice(`Reconnect attempt failed: ${error.message}. Retrying…`);
+  });
   const client = new GameClient(socket);
   const renderer = new HexRenderer(document.getElementById('hex-board'));
   // Desktop default view (bare URL, no ?view=) is board-click only — there is
