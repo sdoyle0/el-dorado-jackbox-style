@@ -5,6 +5,12 @@
 
 /* ── Shared bits ─────────────────────────────────────────────────────────── */
 
+body.view-tv #player-name-input,
+body.view-tv #tutorial-btn,
+body.view-phone #tutorial-btn {
+  display: none;
+}
+
 #board-toggle-btn {
   display: none; /* only shown in phone view (JS removes .hidden there) */
 }
