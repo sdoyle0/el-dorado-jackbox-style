@@ -893,14 +893,8 @@ class CardUI {
          </div>` : '';
 
     const effectDesc = this._specialDescription(card.specialEffect);
-    // Phone tiles show the one-liner as a sub-line under the art with the ℹ️
-    // inline (see .card-info-line) — full width, no header crowding, art
-    // untouched. Desktop hides the block line and uses the header ℹ️.
-    const effectLine = effectDesc
-      ? `<div class="card-effect-line">${effectDesc}</div>` : '';
-    // Phone hand rows are single-line: the same one-liner lives inside the
-    // header strip (right of the name) so the card doesn't grow taller.
-    // Desktop keeps the block line below the header (hidden on phone).
+    // Keep reminders after the artwork, as in the phone hand, and reserve the
+    // same space on every full card so hand and market rows stay aligned.
     const effectInline = effectDesc
       ? `<span class="card-effect-inline">${effectDesc}</span>` : '';
 
@@ -928,7 +922,8 @@ class CardUI {
     const infoLine = fullDesc && interactive
       ? `<span class="card-info-btn card-info-line" ${infoAttrs}>ℹ️</span>` : '';
     const effectLineWithInfo = effectDesc
-      ? `<div class="card-effect-line">${infoLine}<span class="card-effect-text">${effectDesc}</span></div>` : '';
+      ? `<div class="card-effect-line">${infoLine}<span class="card-effect-text">${effectDesc}</span></div>`
+      : '<div class="card-effect-line card-effect-line-empty" aria-hidden="true"></div>';
 
     btn.innerHTML = `
       <div class="card-header-strip">
@@ -938,10 +933,10 @@ class CardUI {
         ${movesLine}
         ${infoHeader}
       </div>
-      ${effectLineWithInfo}
       <div class="card-body-area">
         <div class="card-art-wrap" style="position:relative">${cardImage}</div>
-      </div>`;
+      </div>
+      ${effectLineWithInfo}`;
 
     // One-time-use pill overlaid on the card art so the header
     // stays clean for long card names — same signal as the phone market rows.

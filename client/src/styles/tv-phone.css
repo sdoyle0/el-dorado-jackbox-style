@@ -262,6 +262,10 @@ body.view-tv .tv-market-card-wrapper .card-header-strip {
   font-size: clamp(0.58rem, 0.68vw, 0.74rem);
 }
 
+body.view-tv .card-effect-line {
+  display: none;
+}
+
 body.view-tv .tv-market-card-wrapper .card-name {
   min-width: 0;
   overflow: hidden;
@@ -576,6 +580,7 @@ body.view-phone #hand-cards .card-stat-line {
    hidden — at 3-across it stole the name's room. Desktop keeps both. */
 body.view-phone #hand-cards .card-effect-line {
   display: block;
+  height: auto;
   order: 3;
   font-size: 0.55rem;
   padding: 2px 4px 4px;
@@ -623,6 +628,9 @@ body.view-phone #hand-cards .card-effect-line {
   display: flex;
   align-items: center;
   gap: 4px;
+}
+body.view-phone #hand-cards .card-effect-line-empty {
+  display: none;
 }
 body.view-phone #hand-cards .card-effect-line .card-info-line {
   position: static;
