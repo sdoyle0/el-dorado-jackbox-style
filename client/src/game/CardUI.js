@@ -759,22 +759,28 @@ class CardUI {
 
     // Buy button outside the card, below it — wider and shorter so it never
     // competes with the header text or push other content around.
-    const buy = document.createElement('button');
-    buy.type = 'button';
-    buy.className = 'market-row-buy';
-    buy.textContent = transmitterActive ? 'Take' : 'Buy';
-    buy.disabled = locked;
-    if (!locked) {
-      buy.addEventListener('click', () => this._onMarketCardClicked(card));
-    }
-    row.appendChild(buy);
+    row.appendChild(this._makeMarketBuyButton(card, transmitterActive, locked));
 
     return row;
   }
 
-  _makeCardShared(card, isMarket, isReserve, transmitterActive, interactive = true) {
-    const btn = document.createElement(interactive ? 'button' : 'div');
-    if (interactive) btn.type = 'button';
+  _makeMarketBuyButton(card, transmitterActive, disabled = false) {
+    const buy = document.createElement('button');
+    buy.type = 'button';
+    buy.className = 'market-row-buy';
+    buy.textContent = transmitterActive ? 'Take' : 'Buy';
+    buy.disabled = disabled;
+    buy.setAttribute('aria-label', `${transmitterActive ? 'Take' : 'Buy'} ${card.cardName || card.key}`);
+    buy.addEventListener('click', (event) => {
+      event.stopPropagation();
+      this._onMarketCardClicked(card);
+    });
+    return buy;
+  }
+
+  _makeCardShared(card, isMarket, isReserve, transmitterActive, interactive = true, showBuyButton = true) {
+    const btn = document.createElement(interactive && !isMarket ? 'button' : 'div');
+    if (interactive && !isMarket) btn.type = 'button';
     btn.className = `card-btn terrain-${card.movementTerrain || 'empty'}`;
     if (isReserve) btn.classList.add('market-reserve');
     if (card.instanceId) btn.dataset.instanceId = card.instanceId;
@@ -849,6 +855,8 @@ class CardUI {
 
       const wrapperElem = document.createElement('div');
       wrapperElem.className = 'market-card-wrapper';
+      const reserveLocked = isReserve && !transmitterActive;
+      if (reserveLocked) wrapperElem.classList.add('reserve-locked');
       
       const costElem = document.createElement('div');
       costElem.className = 'cost-label' + (transmitterActive ? ' free' : '');
@@ -865,14 +873,8 @@ class CardUI {
 
       wrapperElem.appendChild(marketCardInfo);
       wrapperElem.appendChild(btn);
-
-      if (interactive && isReserve && !transmitterActive) {
-        btn.classList.add('reserve-locked');
-      } else if (interactive) {
-        btn.addEventListener('click', (e) => {
-          if (e.target.closest('.card-info-btn')) return;
-          this._onMarketCardClicked(card);
-        });
+      if (interactive && showBuyButton) {
+        wrapperElem.appendChild(this._makeMarketBuyButton(card, transmitterActive, reserveLocked));
       }
 
       return wrapperElem;
@@ -882,8 +884,8 @@ class CardUI {
 
   }
 
-  _makeMarketCardEl(card, isReserve, transmitterActive = false, interactive = true) {
-    return this._makeCardShared(card, true, isReserve, transmitterActive, interactive);
+  _makeMarketCardEl(card, isReserve, transmitterActive = false, interactive = true, showBuyButton = true) {
+    return this._makeCardShared(card, true, isReserve, transmitterActive, interactive, showBuyButton);
   }
 
   _onMarketCardClicked(card) {
@@ -1009,17 +1011,14 @@ class CardUI {
     // shop Buy buttons so no purchase can fire, but keep the cards visible.
     if (this._marketReadOnly) {
       this.shopEl.querySelectorAll('.market-card-wrapper:not(.empty):not(.reserve-locked)').forEach(wrapper => {
-        wrapper.classList.toggle('cant-afford', true);
-        wrapper.classList.toggle('can-afford', false);
+        const buyBtn = wrapper.querySelector('.market-row-buy');
+        if (buyBtn) buyBtn.disabled = true;
       });
       this.shopEl.querySelectorAll('.market-row-item:not(.reserve-locked)').forEach(row => {
         row.classList.toggle('cant-afford', true);
         row.classList.toggle('can-afford', false);
         const buyBtn = row.querySelector('.market-row-buy');
         if (buyBtn) buyBtn.disabled = true;
-      });
-      this.shopEl.querySelectorAll('.market-card').forEach(btn => {
-        if (!btn.closest('.reserve-locked')) btn.disabled = true;
       });
       return;
     }
@@ -1028,8 +1027,8 @@ class CardUI {
     // must not lock it, and it must not lock a later buy).
     if (this._purchaseLocked && !(this._transmitterBonus > 0)) {
       this.shopEl.querySelectorAll('.market-card-wrapper:not(.empty):not(.reserve-locked)').forEach(wrapper => {
-        wrapper.classList.toggle('cant-afford', true);
-        wrapper.classList.toggle('can-afford', false);
+        const buyBtn = wrapper.querySelector('.market-row-buy');
+        if (buyBtn) buyBtn.disabled = true;
       });
       this.shopEl.querySelectorAll('.market-row-item:not(.reserve-locked)').forEach(row => {
         row.classList.toggle('cant-afford', true);
@@ -1045,9 +1044,9 @@ class CardUI {
       const costEl = wrapper.querySelector('.cost-label');
       if (!costEl) return;
       const cost = parseFloat(costEl.textContent.replace(/[^0-9.]/g, ''));
-      const affordable = power >= cost;
-      wrapper.classList.toggle('cant-afford', !affordable);
-      wrapper.classList.toggle('can-afford', affordable);
+      const affordable = Number.isNaN(cost) || power >= cost;
+      const buyBtn = wrapper.querySelector('.market-row-buy');
+      if (buyBtn) buyBtn.disabled = !affordable;
     });
     // …and phone compact rows (cost from .market-row-cost; FREE rows in
     // Transmitter mode have no number and parse as NaN → always enabled).
@@ -1130,7 +1129,7 @@ class CardUI {
       // future cost (not FREE) + remaining. Build unlocked (transmitterActive
       // = false gives the real price) then drop the reserve-lock so the
       // tile is tappable with a choose handler instead of a buy handler.
-      const el = this._makeMarketCardEl(card, true, false);
+      const el = this._makeMarketCardEl(card, true, false, true, false);
       el.querySelector('.market-card')?.classList.remove('reserve-locked');
       el.addEventListener('click', (e) => {
         if (e.target.closest('.card-info-btn')) return;

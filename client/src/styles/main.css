@@ -1513,14 +1513,6 @@ body.view-phone .market-onetime-pill {
   font-weight: 800;
   letter-spacing: 0.08em;
 }
-#shop-slots.transmitter-active .market-card-wrapper {
-  box-shadow: 0 0 0 2px rgba(255,224,102,0.85), 0 2px 10px rgba(255,224,102,0.2);
-  border-radius: var(--radius-sm);
-}
-#shop-slots.transmitter-active .market-card-wrapper:hover {
-  box-shadow: 0 0 0 2px #ffe066, 0 4px 14px rgba(255,224,102,0.35);
-}
-
 .market-card-info {
     display: flex;
     justify-content: space-between;
@@ -1539,11 +1531,6 @@ body.view-phone .market-onetime-pill {
   display: flex;
   flex-direction: column;
   box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-  transition: transform 0.1s, box-shadow 0.1s;
-}
-.market-card:not(.empty):not(.reserve-locked):hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 16px rgba(0,0,0,0.55);
 }
 .market-card.empty {
   opacity: 0.35;
@@ -1558,20 +1545,24 @@ body.view-phone .market-onetime-pill {
   border: 1px dashed var(--border);
   border-radius: var(--radius-sm);
 }
-.market-card.reserve-locked { cursor: not-allowed; }
-.market-card.reserve-locked .card-info-btn,
-
-.market-card-wrapper { cursor: pointer; }
-.market-card-wrapper.cant-afford { cursor: not-allowed; opacity: 0.85; }
-
-/* Affordability states */
-#shop-slots:not(.transmitter-active) .market-available-section .market-card-wrapper.can-afford {
-  box-shadow: 0 0 0 2px #3adf3a, 0 2px 10px rgba(58,223,58,0.2);
+#shop-slots .market-card-wrapper > .market-row-buy {
+  display: block;
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid var(--gold-mid, #c9a227);
+  border-radius: var(--radius-sm);
+  background: #2a4a2a;
+  color: #fff;
+  font: 700 0.8rem 'Inter', sans-serif;
+  cursor: pointer;
 }
-#shop-slots:not(.transmitter-active) .market-available-section .market-card-wrapper.can-afford:hover {
-  box-shadow: 0 0 0 2px #6aef6a, 0 4px 14px rgba(58,223,58,0.3);
+#shop-slots .market-card-wrapper > .market-row-buy:hover:not(:disabled) {
+  background: #356135;
 }
-.market-available-section .market-card-wrapper.cant-afford:hover { opacity: 0.95; }
+#shop-slots .market-card-wrapper > .market-row-buy:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 .card-remaining { margin-top: auto; font-size: 0.68rem; opacity: 0.7; }
 
 /* ─────────────────────────────────────────────────────────────────────────────
