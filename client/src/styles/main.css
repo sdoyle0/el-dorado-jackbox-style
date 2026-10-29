@@ -1320,6 +1320,68 @@ body.view-phone .market-onetime-pill {
   border-color: var(--gold-dim);
 }
 
+/* ── Overpayment confirmation ───────────────────────────────────────────── */
+.purchase-overpay-confirm {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(4px);
+}
+.purchase-overpay-confirm.hidden { display: none; }
+.purchase-overpay-content {
+  width: min(100%, 420px);
+  padding: 1.5rem;
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(160deg, var(--mid-navy) 0%, var(--deep-navy) 100%);
+  box-shadow: 0 24px 64px rgba(0,0,0,0.7);
+}
+.purchase-overpay-content h2 {
+  margin: 0 0 0.75rem;
+  color: var(--gold-bright);
+  font-family: 'Cinzel', serif;
+  font-size: 1.15rem;
+}
+.purchase-overpay-content p {
+  margin: 0 0 1.25rem;
+  color: var(--text-bright);
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+.purchase-overpay-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.65rem;
+}
+.purchase-overpay-actions button {
+  min-height: 44px;
+  padding: 0.55rem 0.9rem;
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-sm);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.purchase-overpay-adjust {
+  background: var(--pale-navy);
+  color: var(--text-bright);
+}
+.purchase-overpay-buy {
+  background: linear-gradient(135deg, var(--gold-dim), var(--gold-bright));
+  color: var(--deep-navy);
+}
+.purchase-overpay-actions button:focus-visible {
+  outline: 2px solid var(--gold-bright);
+  outline-offset: 2px;
+}
+
 /* ─────────────────────────────────────────────────────────────────────────────
    MARKET OVERLAY
 ───────────────────────────────────────────────────────────────────────────── */

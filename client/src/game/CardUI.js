@@ -79,6 +79,8 @@ class CardUI {
     // ── Shared state ────────────────────────────────────────────────────────
     this._currentHand      = [];
     this._lastMarket       = null;
+    this._overpayPending   = null;
+    this._overpayReturnFocus = null;
 
     // ── Market state ────────────────────────────────────────────────────────
     this._transmitterBonus = 0;
@@ -108,6 +110,7 @@ class CardUI {
     this._bindControls();
     this._bindHandDelegate();
     this._createInfoModal();
+    this._createOverpayConfirmation();
     this._bindInfoDelegates();
     // Discard needs a selection first — never start enabled.
     this.setDiscardEnabled(false);
@@ -169,6 +172,103 @@ class CardUI {
     title.textContent = names[effect] || effect;
     text.textContent = this._specialFullDescription(effect);
     modal.classList.remove('hidden');
+  }
+
+  _createOverpayConfirmation() {
+    const overlay = document.createElement('div');
+    overlay.id = 'purchase-overpay-confirm';
+    overlay.className = 'purchase-overpay-confirm hidden';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-labelledby', 'purchase-overpay-title');
+    overlay.setAttribute('aria-describedby', 'purchase-overpay-message');
+
+    const content = document.createElement('div');
+    content.className = 'purchase-overpay-content';
+
+    const title = document.createElement('h2');
+    title.id = 'purchase-overpay-title';
+    title.textContent = 'Spend extra buying power?';
+
+    const message = document.createElement('p');
+    message.id = 'purchase-overpay-message';
+
+    const actions = document.createElement('div');
+    actions.className = 'purchase-overpay-actions';
+
+    const adjustButton = document.createElement('button');
+    adjustButton.type = 'button';
+    adjustButton.className = 'purchase-overpay-adjust';
+    adjustButton.textContent = 'Choose fewer cards';
+    adjustButton.addEventListener('click', () => this._closeOverpayConfirmation());
+
+    const buyButton = document.createElement('button');
+    buyButton.type = 'button';
+    buyButton.className = 'purchase-overpay-buy';
+    buyButton.textContent = 'Buy anyway';
+    buyButton.addEventListener('click', () => {
+      const purchase = this._overpayPending;
+      if (!purchase) return;
+      this._closeOverpayConfirmation();
+      this.onMarketCard?.(purchase);
+    });
+
+    actions.append(adjustButton, buyButton);
+    content.append(title, message, actions);
+    overlay.appendChild(content);
+    document.body.appendChild(overlay);
+
+    overlay.addEventListener('click', (event) => {
+      if (event.target === overlay) this._closeOverpayConfirmation();
+    });
+    document.addEventListener('keydown', (event) => {
+      if (overlay.classList.contains('hidden')) return;
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        this._closeOverpayConfirmation();
+      } else if (event.key === 'Tab') {
+        const buttons = [adjustButton, buyButton];
+        const activeIndex = buttons.indexOf(document.activeElement);
+        if (event.shiftKey && activeIndex === 0) {
+          event.preventDefault();
+          buyButton.focus();
+        } else if (!event.shiftKey && activeIndex === buttons.length - 1) {
+          event.preventDefault();
+          adjustButton.focus();
+        }
+      }
+    });
+  }
+
+  _showOverpayConfirmation(card, power, handCardsUsed) {
+    if (this._overpayPending) return;
+
+    this._overpayPending = { cardKey: card.key, handCardsUsed };
+    this._overpayReturnFocus = document.activeElement;
+    const message = document.getElementById('purchase-overpay-message');
+    const cardName = card.cardName || card.key;
+    const unusedPower = this._formatPurchasePower(power - card.cost);
+    const pooledCount = this._purchasePool.size;
+    const pooledLabel = pooledCount === 1 ? 'card will' : 'cards will';
+    message.textContent =
+      `Buying ${cardName} costs ${card.cost} power, but you have pooled ${this._formatPurchasePower(power)}. ` +
+      `All ${pooledCount} pooled ${pooledLabel} be spent; ${unusedPower} power will go unused.`;
+
+    const overlay = document.getElementById('purchase-overpay-confirm');
+    overlay.classList.remove('hidden');
+    overlay.querySelector('.purchase-overpay-adjust').focus();
+  }
+
+  _closeOverpayConfirmation() {
+    if (!this._overpayPending) return;
+    this._overpayPending = null;
+    document.getElementById('purchase-overpay-confirm').classList.add('hidden');
+    if (this._overpayReturnFocus?.isConnected) this._overpayReturnFocus.focus();
+    this._overpayReturnFocus = null;
+  }
+
+  _formatPurchasePower(power) {
+    return Number(power.toFixed(1)).toString();
   }
 
   // ── Static control bindings ──────────────────────────────────────────────
@@ -916,6 +1016,10 @@ class CardUI {
       return;
     }
     const handCardsUsed = [...this._purchasePool.keys()];
+    if (power > card.cost) {
+      this._showOverpayConfirmation(card, power, handCardsUsed);
+      return;
+    }
     this.onMarketCard?.({ cardKey: card.key, handCardsUsed });
   }
 
