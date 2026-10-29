@@ -1056,6 +1056,7 @@ document.addEventListener('DOMContentLoaded', () => {
     pendingRemovals = count;
     pendingRemovalsTotal = count;
     if (playedInstanceId) pendingRemovalPlayedId = playedInstanceId;
+    handUI.classList.add('card-removal-open');
     // Scientist/Travel Log have no movement — drop any stale move list so
     // its Cancel ("return card to hand") can't fire mid-removal.
     clearMoveList();
@@ -1118,6 +1119,7 @@ document.addEventListener('DOMContentLoaded', () => {
     pendingRemovals = 0;
     pendingRemovalsTotal = 0;
     pendingRemovalPlayedId = null;
+    handUI.classList.remove('card-removal-open');
     // Only touch the movement highlight if we were actually in removal —
     // otherwise a stray clear could wipe a legitimate movement selection.
     if (wasRemoval) cardUI.updateSelectedCardForMovement(null);

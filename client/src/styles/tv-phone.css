@@ -678,6 +678,17 @@ body.view-phone #hand-messages {
   order: 4;
 }
 
+/* During card removal, keep the prompt beside the hand cards it describes.
+   The map and destination list follow it; normal phone order is restored
+   as soon as the removal prompt closes. */
+body.view-phone #player-hand-ui.card-removal-open #hand-messages {
+  order: 1;
+}
+body.view-phone #player-hand-ui.card-removal-open #minimap-panel,
+body.view-phone #player-hand-ui.card-removal-open #move-list-panel {
+  order: 2;
+}
+
 body.view-phone #hand-controls button {
   flex: 1 1 30%;
   min-height: 44px;
