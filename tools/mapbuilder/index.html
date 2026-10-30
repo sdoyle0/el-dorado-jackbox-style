@@ -289,6 +289,13 @@
             <button id="addPlacement" class="primary">Add</button>
           </div>
         </div>
+        <h3>Selected piece</h3>
+        <div class="button-row">
+          <button id="rotateLeft">↶ Rotate</button>
+          <button id="rotateRight">Rotate ↷</button>
+          <button id="removePlacement" class="danger">Remove</button>
+        </div>
+        <p class="hint" id="placementHint">Select a placed piece on the board or in the list. Drag it to move; it snaps to the hex grid.</p>
         <div class="field">
           <label for="mapName">Map name</label>
           <input id="mapName" value="First Play">
@@ -319,12 +326,6 @@
 
         <h3>Placed pieces</h3>
         <div id="placementList"></div>
-        <div class="button-row">
-          <button id="rotateLeft">↶ Rotate</button>
-          <button id="rotateRight">Rotate ↷</button>
-          <button id="removePlacement" class="danger">Remove</button>
-        </div>
-        <p class="hint" id="placementHint">Select a placed piece on the board or in the list. Drag it to move; it snaps to the hex grid.</p>
         <h3>Import layout</h3>
         <div class="field">
           <label for="layoutFile">Map layout file (JSON or exported JS)</label>
@@ -780,7 +781,6 @@
       const offset = state.placements.length * 2;
       state.placements.push({ side, rot: 0, at: `${offset}_${offset}` });
       selectPlacement(state.placements.length - 1);
-      fitCamera('map');
       saveLocal();
     }
     function changeRotation(delta, index = state.selectedPlacement) {
