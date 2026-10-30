@@ -2422,8 +2422,7 @@ document.addEventListener('DOMContentLoaded', () => {
       body.view-phone .market-row-thumb { display: none; }
       /* Pooling rule reminder under the header (one static line). */
       body.view-phone #pool-rule { flex: none; }
-      body.view-phone #reserve-picker-box { max-height: 86dvh; overflow-y: auto;
-        -webkit-overflow-scrolling: touch; }
+      body.view-phone #reserve-picker-box { max-width: 580px; max-height: 86dvh; }
       body.view-phone #reserve-cards { display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem;
         width: 100%; max-width: 34rem; margin-inline: auto; }
