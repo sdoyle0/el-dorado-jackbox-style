@@ -161,10 +161,21 @@ document.addEventListener('DOMContentLoaded', () => {
       const maps = await response.json();
       if (!Array.isArray(maps) || maps.length === 0) throw new Error('No expedition maps are available');
 
-      mapSelect.replaceChildren(...maps.map(map => {
+      const difficultyOrder = { easy: 0, moderate: 1, difficult: 2 };
+      const sortedMaps = [...maps].sort((a, b) => {
+        if (a.id === 'first-play') return b.id === 'first-play' ? 0 : -1;
+        if (b.id === 'first-play') return 1;
+        return (difficultyOrder[a.difficulty] ?? 3) - (difficultyOrder[b.difficulty] ?? 3)
+          || a.name.localeCompare(b.name);
+      });
+
+      mapSelect.replaceChildren(...sortedMaps.map(map => {
         const option = document.createElement('option');
         option.value = map.id;
-        option.textContent = map.name;
+        const difficulty = map.difficulty
+          ? `${map.difficulty[0].toUpperCase()}${map.difficulty.slice(1)}`
+          : 'Unknown';
+        option.textContent = `${map.name} (${difficulty})`;
         return option;
       }));
       const requestedMap = new URLSearchParams(window.location.search).get('map');
