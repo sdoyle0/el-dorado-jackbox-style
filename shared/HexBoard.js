@@ -113,7 +113,9 @@ class HexBoard {
     if (terrain === _ElDoradoBoardDeps.TerrainType.START) return false;
     if (terrain === _ElDoradoBoardDeps.TerrainType.MOUNTAIN) return false;
     if (terrain === _ElDoradoBoardDeps.TerrainType.EL_DORADO) return false;
-    if (players.some((p) => p.currentTileId === neighbor.id)) return false;
+    if (players.some((p) =>
+      (Array.isArray(p.pieceTileIds) ? p.pieceTileIds : [p.currentTileId]).includes(neighbor.id)
+    )) return false;
 
     if (playedCard.specialEffect === _ElDoradoBoardDeps.CardEffect.NATIVE) return true;
 

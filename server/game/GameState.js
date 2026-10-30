@@ -7,6 +7,8 @@ class GameStateManager {
     this.state = GS.AWAITING_CARD;
     this.players = [];
     this.currentPlayerIndex = 0;
+    this.twoPlayerMode = false;
+    this.activePieceIndex = 0;
     this.playedCardData = null;
     this.wildCardTerrain = null;
     this.movesRemaining = 0;
@@ -90,6 +92,7 @@ class GameStateManager {
     this.playedCardData = card;
     this.movesRemaining = card.movementTotal;
     this.state = GS.AWAITING_MOVE;
+    this.activePieceIndex = this.twoPlayerMode ? player.activePieceIndex : 0;
 
     if (isDiscardingFromHand) {
       this._disposeFinishedCard(player, false);
@@ -106,7 +109,32 @@ class GameStateManager {
       this._disposeFinishedCard(player);
       return { ok: true };
     }
+    return { ok: true };
+  }
 
+  selectPiece(playerId, pieceIndex) {
+    if (!this._isCurrentPlayer(playerId)) return { ok: false, error: 'not your turn' };
+    if (!this.twoPlayerMode) return { ok: false, error: 'piece selection is only available in two-player games' };
+    const cardHasStartedMoving = this.state === GS.AWAITING_MOVE
+      && this.playedCardData
+      && this.movesRemaining < this.playedCardData.movementTotal;
+    if ((this.state !== GS.AWAITING_CARD && this.state !== GS.AWAITING_MOVE)
+      || cardHasStartedMoving
+      || this.selectingCardsToRemove > 0) {
+      return { ok: false, error: 'finish the current card before switching pieces' };
+    }
+    const player = this.currentPlayer;
+    if (!Number.isInteger(pieceIndex) || pieceIndex < 0 || pieceIndex >= player.pieceTileIds.length) {
+      return { ok: false, error: 'invalid piece' };
+    }
+    if (player.finishedPieceIndices[pieceIndex]) {
+      return { ok: false, error: 'that piece has already reached El Dorado' };
+    }
+
+    player.activePieceIndex = pieceIndex;
+    this.activePieceIndex = pieceIndex;
+    this.emit('piece_selected', { playerId, pieceIndex });
+    if (this.state === GS.AWAITING_MOVE) this._recalculateValidMoves();
     return { ok: true };
   }
 
@@ -227,10 +255,13 @@ class GameStateManager {
       }
     }
 
-    player.currentTileId = tileId;
-    this.emit('pawn_moved', { playerId, tileId });
+    this._setPiecePosition(player, this.activePieceIndex, tileId);
+    this.emit('pawn_moved', { playerId, tileId, pieceIndex: this.activePieceIndex });
 
     // ── Finishing spaces ───────────────────────────────────────────────────
+    if (this.twoPlayerMode && (tile.isFinishing || tile.terrainType === TerrainType.EL_DORADO)) {
+      return this._handleTwoPieceFinishing(playerId, player, this.activePieceIndex);
+    }
     if (tile.isFinishing) {
       this._recordFinisher(playerId);
       this._relocateFinisher(player);
@@ -315,13 +346,16 @@ class GameStateManager {
 
     for (const card of extraCards) player.playCard(card.instanceId);
 
-    player.currentTileId = tileId;
-    this.emit('pawn_moved', { playerId, tileId });
+    this._setPiecePosition(player, this.activePieceIndex, tileId);
+    this.emit('pawn_moved', { playerId, tileId, pieceIndex: this.activePieceIndex });
 
     // A rubble-cost finishing tile (no such tile on the current map, but
     // future maps may have one) follows the same final-round flow as a
     // normal finishing arrival — record the finisher instead of ending
     // the game outright so blockade tiebreaks still apply.
+    if (this.twoPlayerMode && (tile.isFinishing || tile.terrainType === TerrainType.EL_DORADO)) {
+      return this._handleTwoPieceFinishing(playerId, player, this.activePieceIndex);
+    }
     if (tile.isFinishing) {
       this._recordFinisher(playerId);
       this._relocateFinisher(player);
@@ -398,13 +432,16 @@ class GameStateManager {
     for (const card of extraCards) player.removeCardPermanently(card.instanceId);
     if (this.playedCardData) player.removeCardPermanently(this.playedCardData.instanceId);
 
-    player.currentTileId = tileId;
-    this.emit('pawn_moved', { playerId, tileId });
+    this._setPiecePosition(player, this.activePieceIndex, tileId);
+    this.emit('pawn_moved', { playerId, tileId, pieceIndex: this.activePieceIndex });
     this.emit('hand_updated', { playerId, hand: player.hand });
 
     // A camp finishing tile (none on the current map, but future maps may
     // have one) follows the normal final-round flow — record the finisher
     // instead of ending outright so blockade tiebreaks still apply.
+    if (this.twoPlayerMode && (tile.isFinishing || tile.terrainType === TerrainType.EL_DORADO)) {
+      return this._handleTwoPieceFinishing(playerId, player, this.activePieceIndex);
+    }
     if (tile.isFinishing) {
       this._recordFinisher(playerId);
       this._relocateFinisher(player);
@@ -469,7 +506,6 @@ class GameStateManager {
       this.validMoves = [];
       this.breakableBlockades = [];
     }
-
     player.drawUpToFour();
 
     this.state = GS.AWAITING_CARD;
@@ -489,6 +525,7 @@ class GameStateManager {
 
     this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
     const next = this.currentPlayer;
+    this.activePieceIndex = this.twoPlayerMode ? next.activePieceIndex : 0;
 
     this.purchasedThisTurn = false;
     this.emit('hand_updated', { playerId: player.id, hand: player.hand });
@@ -617,7 +654,7 @@ class GameStateManager {
   _recalculateValidMoves() {
     const player = this.currentPlayer;
     this.validMoves = this.board.getValidMoves({
-      currentTileId: player.currentTileId,
+      currentTileId: player.pieceTileIds[this.activePieceIndex] ?? player.currentTileId,
       playedCard: this.playedCardData,
       movesRemaining: this.movesRemaining,
       wildCardTerrain: this.wildCardTerrain,
@@ -628,7 +665,7 @@ class GameStateManager {
 
     // Also compute which blockades are breakable from here with this card
     this.breakableBlockades = this.board.getBreakableBlockades({
-      currentTileId: player.currentTileId,
+      currentTileId: player.pieceTileIds[this.activePieceIndex] ?? player.currentTileId,
       playedCard: this.playedCardData,
       movesRemaining: this.movesRemaining,
       wildCardTerrain: this.wildCardTerrain,
@@ -734,6 +771,7 @@ class GameStateManager {
     this.movesRemaining = 0;
     this.validMoves = [];
     this.breakableBlockades = [];
+    this.activePieceIndex = this.twoPlayerMode ? player.activePieceIndex : 0;
     this.emit('card_disposed', { playerId: player.id });
     this.emit('hand_updated', { playerId: player.id, hand: player.hand });
   }
@@ -746,6 +784,7 @@ class GameStateManager {
     this.movesRemaining = 0;
     this.validMoves = [];
     this.breakableBlockades = [];
+    this.activePieceIndex = this.twoPlayerMode ? player.activePieceIndex : 0;
     this.emit('hand_updated', { playerId: player.id, hand: player.hand });
   }
 
@@ -786,20 +825,64 @@ class GameStateManager {
     this.movesRemaining = 0;
     this.validMoves = [];
     this.breakableBlockades = [];
+    this.activePieceIndex = this.twoPlayerMode ? this.currentPlayer?.activePieceIndex ?? 0 : 0;
   }
 
   _isCurrentPlayer(playerId) {
     return this.currentPlayer && this.currentPlayer.id === playerId;
   }
 
-  _relocateFinisher(player) {
+  _relocateFinisher(player, pieceIndex = 0) {
     const elDoradoTiles = [...this.board.tiles.values()]
       .filter(t => t.terrainType === TerrainType.EL_DORADO);
-    const occupiedIds = new Set(this.players.map(p => p.currentTileId));
+    const occupiedIds = new Set(this.players.flatMap(p =>
+      Array.isArray(p.pieceTileIds) ? p.pieceTileIds : [p.currentTileId]
+    ));
     const podium = elDoradoTiles.find(t => !occupiedIds.has(t.id));
     if (!podium) return;
-    player.currentTileId = podium.id;
-    this.emit('pawn_moved', { playerId: player.id, tileId: podium.id });
+    this._setPiecePosition(player, pieceIndex, podium.id);
+    this.emit('pawn_moved', { playerId: player.id, tileId: podium.id, pieceIndex });
+  }
+
+  _setPiecePosition(player, pieceIndex, tileId) {
+    if (!Array.isArray(player.pieceTileIds)) player.pieceTileIds = [player.currentTileId];
+    player.pieceTileIds[pieceIndex] = tileId;
+    if (pieceIndex === 0) player.currentTileId = tileId;
+  }
+
+  _handleTwoPieceFinishing(playerId, player, pieceIndex) {
+    player.finishedPieceIndices[pieceIndex] = true;
+    this.emit('piece_finished', { playerId, pieceIndex });
+    const nextPieceIndex = player.finishedPieceIndices.findIndex(finished => !finished);
+    if (nextPieceIndex >= 0) {
+      player.activePieceIndex = nextPieceIndex;
+      this.activePieceIndex = nextPieceIndex;
+      this.emit('piece_selected', { playerId, pieceIndex: nextPieceIndex });
+    }
+    this._relocateFinisher(player, pieceIndex);
+
+    const finishedAllPieces = player.finishedPieceIndices.every(Boolean);
+    if (finishedAllPieces) {
+      this._recordFinisher(playerId);
+      if (!this.finalRoundTriggered) {
+        this.finalRoundTriggered = true;
+        this.finalRoundTriggerPlayerIndex = this.currentPlayerIndex;
+        if (this.currentPlayerIndex === this.players.length - 1) {
+          this._disposeFinishedCard(player);
+          this.state = GS.GAME_OVER;
+          this.emit('game_won', this._gameWonPayload());
+          return { ok: true };
+        }
+        this.emit('final_round_started', {
+          triggeredByPlayerId: playerId,
+          winnerId: this.firstWinnerId,
+        });
+      }
+    }
+
+    this._disposeFinishedCard(player);
+    this.endTurn(playerId);
+    return { ok: true };
   }
 }
 

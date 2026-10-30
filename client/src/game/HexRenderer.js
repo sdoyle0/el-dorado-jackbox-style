@@ -646,43 +646,45 @@ class HexRenderer {
   // prefers-reduced-motion. Purely visual: game state is already updated by
   // the caller, so interrupting a slide never corrupts a position.
   setPawnPosition(playerId, tileId, colorIndex = 0, opts = {}) {
+    const tokenId = Number.isInteger(opts.pieceIndex)
+      ? `${playerId}:piece:${opts.pieceIndex}`
+      : playerId;
     // A chained move or correction arriving mid-slide wins at once — and
     // resumes from the currently painted position (not the stale target),
     // so rapid chained moves glide continuously instead of jumping.
-    const inflight = this._pawnAnims.get(playerId);
+    const inflight = this._pawnAnims.get(tokenId);
     if (inflight != null) {
       if (typeof cancelAnimationFrame === 'function') cancelAnimationFrame(inflight);
-      const cur = this.pawnEls.get(playerId);
+      const cur = this.pawnEls.get(tokenId);
       const curBody = cur && cur._slideShapes ? cur._slideShapes[1] : null;
       if (curBody && typeof curBody.getAttribute === 'function') {
         const px = parseFloat(curBody.getAttribute('cx'));
         const py = parseFloat(curBody.getAttribute('cy'));
-        if (isFinite(px) && isFinite(py)) this._pawnCenters.set(playerId, { cx: px, cy: py });
+        if (isFinite(px) && isFinite(py)) this._pawnCenters.set(tokenId, { cx: px, cy: py });
       }
-      this._pawnAnims.delete(playerId);
+      this._pawnAnims.delete(tokenId);
     }
-    // Remove ALL existing tokens for this player (querySelector alone only
-    // drops the first match, so a past duplicate would leave a ghost behind).
-    for (const el of this.svg.querySelectorAll(`[data-pawn="${CSS.escape(playerId)}"]`)) {
+    for (const el of this.svg.querySelectorAll(`[data-pawn="${CSS.escape(tokenId)}"]`)) {
       el.remove();
     }
-    this.pawnEls.delete(playerId);
+    this.pawnEls.delete(tokenId);
 
     const entry = this.tileEls.get(tileId);
     if (!entry) {
-      this._pawnCenters.delete(playerId);
+      this._pawnCenters.delete(tokenId);
       return;
     }
 
     const { cx, cy } = this._center(entry.tile.q, entry.tile.r);
-    const from = this._pawnCenters.get(playerId) || null;
-    this._pawnCenters.set(playerId, { cx, cy });
+    const from = this._pawnCenters.get(tokenId) || null;
+    this._pawnCenters.set(tokenId, { cx, cy });
     const animate = opts.animate !== false
       && from != null && (from.cx !== cx || from.cy !== cy)
       && !prefersReducedMotion()
       && typeof requestAnimationFrame === 'function';
     const start = animate ? from : { cx, cy };
-    const g = this._buildPawn(playerId, colorIndex, start.cx, start.cy);
+    const pieceNumber = Number.isInteger(opts.pieceIndex) ? opts.pieceIndex + 1 : null;
+    const g = this._buildPawn(tokenId, colorIndex, start.cx, start.cy, playerId, pieceNumber);
 
     if (!animate) return;
 
@@ -691,37 +693,40 @@ class HexRenderer {
     // by lerping each painted coordinate toward its own target.
     const DURATION = 380;
     const targets = new Map(); // element → {x0,y0,x1,y1,halo:boolean}
-    const put = (el, x0, y0, x1, y1) => targets.set(el, { x0, y0, x1, y1 });
-    const [halo, body, highlight, ring] = g._slideShapes;
+    const put = (el, x0, y0, x1, y1, xAttr = 'cx', yAttr = 'cy') =>
+      targets.set(el, { x0, y0, x1, y1, xAttr, yAttr });
+    const [halo, body, highlight, ring, pieceLabel] = g._slideShapes;
     put(halo, start.cx, start.cy + 2, cx, cy + 2);
     put(body, start.cx, start.cy, cx, cy);
     put(highlight, start.cx - 5, start.cy - 5, cx - 5, cy - 5);
     put(ring, start.cx, start.cy, cx, cy);
+    if (pieceLabel) put(pieceLabel, start.cx, start.cy, cx, cy, 'x', 'y');
     const t0 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
     const step = (now) => {
       const p = easeInOutCubic(Math.min(1, Math.max(0, (now - t0) / DURATION)));
       for (const [el, t] of targets) {
-        el.setAttribute('cx', String(t.x0 + (t.x1 - t.x0) * p));
-        el.setAttribute('cy', String(t.y0 + (t.y1 - t.y0) * p));
+        el.setAttribute(t.xAttr, String(t.x0 + (t.x1 - t.x0) * p));
+        el.setAttribute(t.yAttr, String(t.y0 + (t.y1 - t.y0) * p));
       }
       if (p < 1) {
-        this._pawnAnims.set(playerId, requestAnimationFrame(step));
+        this._pawnAnims.set(tokenId, requestAnimationFrame(step));
       } else {
-        this._pawnAnims.delete(playerId);
+        this._pawnAnims.delete(tokenId);
       }
     };
-    this._pawnAnims.set(playerId, requestAnimationFrame(step));
+    this._pawnAnims.set(tokenId, requestAnimationFrame(step));
   }
 
   // Build the pawn token group at an explicit center. Returns the group;
   // the animated shapes are attached as g._slideShapes in paint order.
-  _buildPawn(playerId, colorIndex, cx, cy) {
+  _buildPawn(tokenId, colorIndex, cx, cy, ownerId = tokenId, pieceNumber = null) {
     const palette = PAWN_PALETTE[colorIndex] || PAWN_PALETTE[0];
     const ns = 'http://www.w3.org/2000/svg';
     const mk = (tag) => document.createElementNS(ns, tag);
 
     const g = mk('g');
-    g.setAttribute('data-pawn', playerId);
+    g.setAttribute('data-pawn', tokenId);
+    g.setAttribute('data-player', ownerId);
     g.setAttribute('pointer-events', 'none');
 
     const halo = mk('circle');
@@ -757,18 +762,39 @@ class HexRenderer {
     ring.setAttribute('stroke-width', '1');
     g.appendChild(ring);
 
-    g._slideShapes = [halo, body, highlight, ring];
+    const slideShapes = [halo, body, highlight, ring];
+    if (pieceNumber != null) {
+      const label = mk('text');
+      label.setAttribute('x', cx);
+      label.setAttribute('y', cy);
+      label.setAttribute('text-anchor', 'middle');
+      label.setAttribute('dominant-baseline', 'central');
+      label.setAttribute('fill', '#fff8dc');
+      label.setAttribute('stroke', '#172331');
+      label.setAttribute('stroke-width', '1.5');
+      label.setAttribute('paint-order', 'stroke');
+      label.setAttribute('font-family', 'Inter, sans-serif');
+      label.setAttribute('font-size', '25');
+      label.setAttribute('font-weight', '900');
+      label.textContent = String(pieceNumber);
+      g.appendChild(label);
+      slideShapes.push(label);
+    }
+
+    g._slideShapes = slideShapes;
     this.svg.appendChild(g);
-    this.pawnEls.set(playerId, g);
+    this.pawnEls.set(tokenId, g);
     return g;
   }
 
   // Remove one player's pawn token entirely (seat expired / removed).
   removePawn(playerId) {
-    for (const el of this.svg.querySelectorAll(`[data-pawn="${CSS.escape(playerId)}"]`)) {
+    for (const el of this.svg.querySelectorAll(`[data-player="${CSS.escape(playerId)}"]`)) {
       el.remove();
     }
-    this.pawnEls.delete(playerId);
+    for (const key of this.pawnEls.keys()) {
+      if (key === playerId || key.startsWith(`${playerId}:piece:`)) this.pawnEls.delete(key);
+    }
   }
 
   // Reconcile pawn tokens against the authoritative roster. Drops tokens for
@@ -781,17 +807,26 @@ class HexRenderer {
     const list = Array.isArray(players) ? players : [];
     const wanted = new Set(list.map(p => p && p.id).filter(Boolean));
     for (const el of [...this.svg.querySelectorAll('[data-pawn]')]) {
-      if (!wanted.has(el.getAttribute('data-pawn'))) el.remove();
+      if (!wanted.has(el.getAttribute('data-player'))) el.remove();
     }
     for (const [key, el] of [...this.pawnEls]) {
-      if (!wanted.has(key) || !el.isConnected) this.pawnEls.delete(key);
+      const ownerId = el.getAttribute('data-player');
+      if (!wanted.has(ownerId) || !el.isConnected) this.pawnEls.delete(key);
     }
     list.forEach((p, i) => {
-      if (!p || !p.id || !p.currentTileId) return;
-      const known = this.pawnEls.get(p.id);
-      if (!known || !known.isConnected) {
-        this.setPawnPosition(p.id, p.currentTileId, i);
-      }
+      if (!p || !p.id) return;
+      const tiles = Array.isArray(p.pieceTileIds) && p.pieceTileIds.length
+        ? p.pieceTileIds
+        : [p.currentTileId];
+      tiles.forEach((tileId, pieceIndex) => {
+        if (!tileId) return;
+        const isMultiPiece = tiles.length > 1;
+        const tokenId = isMultiPiece ? `${p.id}:piece:${pieceIndex}` : p.id;
+        const known = this.pawnEls.get(tokenId);
+        if (!known || !known.isConnected) {
+          this.setPawnPosition(p.id, tileId, i, isMultiPiece ? { pieceIndex } : {});
+        }
+      });
     });
   }
 

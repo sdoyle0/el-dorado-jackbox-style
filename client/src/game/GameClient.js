@@ -15,6 +15,8 @@ class GameClient {
     this.onPawnMoved = null;
     this.onHandUpdated = null;
     this.onValidMoves = null;
+    this.onPieceSelected = null;
+    this.onPieceFinished = null;
     this.onTurnEnded = null;
     this.onMarketUpdated = null;
     this.onPurchaseOpened = null;
@@ -62,6 +64,8 @@ class GameClient {
     s.on('pawn_moved', d => this.onPawnMoved?.(d));
     s.on('hand_updated', d => this.onHandUpdated?.(d));
     s.on('valid_moves_updated', d => this.onValidMoves?.(d));
+    s.on('piece_selected', d => this.onPieceSelected?.(d));
+    s.on('piece_finished', d => this.onPieceFinished?.(d));
     s.on('turn_ended', d => this.onTurnEnded?.(d));
     s.on('market_updated', d => this.onMarketUpdated?.(d));
     s.on('purchase_opened', d => this.onPurchaseOpened?.(d));
@@ -81,8 +85,8 @@ class GameClient {
 
   // ── Lobby ──────────────────────────────────────────────────────────────────
 
-  createRoom(playerName, playerCount = 2, debugMode = false, enableBlockades = true, asSpectator = false, map = 'hills-of-gold') {
-    this.socket.emit('create_room', { playerName, playerCount, debugMode, enableBlockades, asSpectator, map });
+  createRoom(playerName, playerCount = 2, debugMode = false, enableBlockades = true, asSpectator = false, map = 'hills-of-gold', enableTwoPlayerPieces = true) {
+    this.socket.emit('create_room', { playerName, playerCount, debugMode, enableBlockades, asSpectator, map, enableTwoPlayerPieces });
   }
 
   joinRoom(playerName, roomId, asSpectator = false) {
@@ -107,6 +111,7 @@ class GameClient {
   cancelCard() { this.socket.emit('cancel_card'); }
   finishRemove() { this.socket.emit('finish_remove'); }
   movePawn(tileId) { this.socket.emit('move_pawn', { tileId }); }
+  selectPiece(pieceIndex) { this.socket.emit('select_piece', { pieceIndex }); }
   moveToRubble(tileId, extraCardIds) { this.socket.emit('move_to_rubble', { tileId, extraCardIds }); }
   moveToCamp(tileId, extraCardIds) { this.socket.emit('move_to_camp', { tileId, extraCardIds }); }
   endTurn() { this.socket.emit('end_turn'); }

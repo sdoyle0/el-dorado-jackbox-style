@@ -392,6 +392,7 @@ body {
       "heading heading"
       "players-label preview"
       "players preview"
+      "two-player-pieces preview"
       "map-label preview"
       "map-select preview"
       "preview-caption preview"
@@ -406,6 +407,7 @@ body {
   #create-room-section h2 { grid-area: heading; }
   #player-count-label { grid-area: players-label; align-self: end; }
   #player-count-btns { grid-area: players; }
+  #two-player-pieces-row { grid-area: two-player-pieces; }
   #create-room-section label[for="map-select"] { grid-area: map-label; align-self: end; }
   #map-select { grid-area: map-select; }
   #map-preview {
@@ -992,11 +994,11 @@ body {
   flex-direction: row;
   gap: 0.4rem;
   overflow-x: auto;
-  margin-right: 0.75rem;
-  padding-bottom: 2px; /* prevent clip on hover lift */
+  overflow-y: hidden;
+  padding: 4px 0 2px; /* prevent clip on hover lift */
   scrollbar-width: thin;
   scrollbar-color: var(--pale-navy) transparent;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-width: 0;
   align-items: flex-start; /* cards size to content, never stretch tall */
 }
@@ -1004,16 +1006,12 @@ body {
    140px: at narrow widths they shrink (names ellipsis) instead of
    overflowing into a scroll strip. Phone tiles override this with their
    own grid rules (tv-phone.css, higher specificity).
-   max-width is height-driven, not width-driven: art height follows width
-   (848×1264 portraits), and the bar is a fixed 250px (232px content after
-   padding; card chrome eats ~47px: border + 2rem header + body padding).
-   124px caps art at ~185px so the card never exceeds the bar — any excess
-   would surface as a vertical scrollbar (#hand-cards has overflow-x:auto,
-   which forces overflow-y off visible). */
+   max-width is height-driven: the reserved effect reminder below each card
+   adds ~41px, so card art must stay short enough to fit the 250px hand bar. */
 #hand-cards .card-btn {
   flex: 1 1 0;
   min-width: 96px;
-  max-width: 124px;
+  max-width: 110px;
   width: auto;
 }
 #hand-cards .card-body-area {
@@ -1028,6 +1026,85 @@ body {
    reserves a wide blank lane right of the buttons while the cards scroll. */
 #hand-messages:empty {
   display: none;
+}
+
+/* ── Two-piece movement picker ────────────────────────────────────────────── */
+#piece-choice-panel {
+  display: flex;
+  flex-direction: column;
+  align-self: flex-start;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 0.25rem;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0;
+}
+#piece-choice-panel.hidden { display: none; }
+.piece-choice-heading {
+  color: var(--text-mid);
+  font-size: 0.68rem;
+  font-weight: 700;
+  white-space: nowrap;
+  text-align: center;
+}
+.piece-choice-options {
+  display: flex;
+  gap: 0.3rem;
+}
+.piece-choice-button {
+  display: grid;
+  place-items: center;
+  flex: 0 0 2.3rem;
+  width: 2.3rem;
+  height: 2.3rem;
+  padding: 0;
+  border: 1px solid rgba(173,184,197,0.4);
+  border-radius: 50%;
+  background: linear-gradient(145deg, #263648, #111b27);
+  color: #b7c1cc;
+  box-shadow: inset 0 1px rgba(255,255,255,0.05), 0 2px 5px rgba(0,0,0,0.35);
+  cursor: pointer;
+  font: 800 1rem 'Inter', sans-serif;
+  transition: background 0.15s, border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+}
+.piece-choice-button.is-active {
+  border-color: #ffe27a;
+  background: radial-gradient(circle at 35% 25%, #f8d96b, #b27b20 72%, #714916);
+  color: #1b1a15;
+  box-shadow: 0 0 0 2px rgba(255,215,0,0.2), 0 0 12px rgba(255,215,0,0.25),
+    inset 0 1px rgba(255,255,255,0.45), 0 2px 5px rgba(0,0,0,0.35);
+}
+.piece-choice-button:hover:not(:disabled),
+.piece-choice-button:focus-visible {
+  border-color: var(--gold-bright);
+  transform: translateY(-1px) scale(1.05);
+  box-shadow: 0 0 11px rgba(255,215,0,0.25), inset 0 1px rgba(255,255,255,0.1);
+  outline: none;
+}
+.piece-choice-button:disabled:not(.is-active) {
+  border-color: rgba(173,184,197,0.25);
+  color: #778391;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+.piece-choice-number { line-height: 1; }
+.piece-choice-cancel {
+  align-self: center;
+  min-height: 1.65rem;
+  padding: 0.2rem 0.7rem;
+  border: 1px solid rgba(201,162,39,0.35);
+  border-radius: 999px;
+  background: rgba(13,17,23,0.55);
+  color: var(--text-mid);
+  cursor: pointer;
+  font: 600 0.68rem 'Inter', sans-serif;
+}
+.piece-choice-cancel:hover,
+.piece-choice-cancel:focus-visible {
+  border-color: var(--gold-mid);
+  color: var(--text-bright);
+  outline: none;
 }
 
 /* ── Hand controls ────────────────────────────────────────────────────────── */
@@ -2358,6 +2435,23 @@ body:has(#final-round-banner) #game-screen.active {
   align-items: center;
   justify-content: center;
   margin: 0.1rem 0 0.1rem;
+}
+
+.lobby-rule-toggle-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  margin: 0.1rem 0;
+}
+
+.lobby-rule-toggle-row.hidden { display: none; }
+
+.lobby-rule-toggle-help {
+  margin: 0 0 0 1.65rem;
+  color: var(--text-dim);
+  font-size: 0.68rem;
+  line-height: 1.35;
 }
 
 .blockade-toggle-label {

@@ -17,6 +17,9 @@ class Player {
     this.socketId      = socketId;
     this.name          = name || `Player ${playerNumber}`;
     this.currentTileId = null;
+    this.pieceTileIds  = [];
+    this.finishedPieceIndices = [];
+    this.activePieceIndex = 0;
     this.deck          = [];
     this.hand          = [];
     this.discardPile   = [];
@@ -26,7 +29,10 @@ class Player {
 
   // Mirrors multiplayer_service.initialize_game() per-player setup
   init(startTileId) {
-    this.currentTileId = startTileId;
+    this.pieceTileIds = Array.isArray(startTileId) ? [...startTileId] : [startTileId];
+    this.currentTileId = this.pieceTileIds[0] ?? null;
+    this.finishedPieceIndices = this.pieceTileIds.map(() => false);
+    this.activePieceIndex = 0;
     this.deck          = shuffle(buildStarterDeck());
     this.hand          = [];
     this.discardPile   = [];
@@ -82,6 +88,9 @@ class Player {
     return {
       id: this.id, playerNumber: this.playerNumber, name: this.name,
       currentTileId: this.currentTileId,
+      pieceTileIds: [...this.pieceTileIds],
+      finishedPieceIndices: [...this.finishedPieceIndices],
+      activePieceIndex: this.activePieceIndex,
       handSize: this.hand.length, deckSize: this.deck.length, discardSize: this.discardPile.length,
     };
   }

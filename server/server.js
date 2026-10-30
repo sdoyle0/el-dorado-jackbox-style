@@ -83,12 +83,13 @@ const gameManager = new GameManager(io);
 io.on('connection', (socket) => {
   console.log(`[connect] ${socket.id}`);
 
-  socket.on('create_room', ({ playerName, playerCount = 2, debugMode = false, enableBlockades = true, asSpectator = false, map = 'hills-of-gold' }) => {
+  socket.on('create_room', ({ playerName, playerCount = 2, debugMode = false, enableBlockades = true, enableTwoPlayerPieces = true, asSpectator = false, map = 'hills-of-gold' }) => {
     const count = Math.min(4, Math.max(1, Number(playerCount) || 2));
     const { room, player, spectator } = gameManager.createRoom(socket, playerName, {
       debugMode,
       maxPlayers: count,
       enableBlockades: Boolean(enableBlockades),
+      enableTwoPlayerPieces: Boolean(enableTwoPlayerPieces),
       asSpectator: Boolean(asSpectator),
       map: map || 'hills-of-gold',
     });
@@ -101,6 +102,7 @@ io.on('connection', (socket) => {
       maxPlayers: room.maxPlayers,
       debugMode,
       enableBlockades: room.enableBlockades,
+      enableTwoPlayerPieces: room.enableTwoPlayerPieces,
       players: room.players.map(p => p.toPublicData()),
       hostId: room.hostId,
     });
@@ -122,6 +124,7 @@ io.on('connection', (socket) => {
       maxPlayers: room.maxPlayers,
       debugMode: room.debugMode,
       enableBlockades: room.enableBlockades,
+      enableTwoPlayerPieces: room.enableTwoPlayerPieces,
       players: room.players.map(p => p.toPublicData()),
       hostId: room.hostId,
     });
@@ -157,6 +160,7 @@ io.on('connection', (socket) => {
       maxPlayers: room.maxPlayers,
       debugMode,
       enableBlockades: room.enableBlockades,
+      enableTwoPlayerPieces: room.enableTwoPlayerPieces,
       players: room.players.map(p => p.toPublicData()),
       hostId: room.hostId,
     });
@@ -181,6 +185,11 @@ io.on('connection', (socket) => {
   socket.on('move_pawn', ({ tileId }) => {
     const room = gameManager.getRoomForSocket(socket.id);
     if (room) room.handleMovePawn(socket.id, tileId);
+  });
+
+  socket.on('select_piece', ({ pieceIndex }) => {
+    const room = gameManager.getRoomForSocket(socket.id);
+    if (room) room.handleSelectPiece(socket.id, pieceIndex);
   });
 
   socket.on('move_to_rubble', ({ tileId, extraCardIds }) => {
@@ -251,6 +260,7 @@ io.on('connection', (socket) => {
     const player = room.players.find(p => p.socketId === socket.id);
     if (!player) return;
     player.currentTileId = tileId;
+    if (Array.isArray(player.pieceTileIds)) player.pieceTileIds[0] = tileId;
     room._broadcast('pawn_moved', { playerId: player.id, tileId });
   });
 });

@@ -124,6 +124,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const roomCodeInput = document.getElementById('room-code-input');
   const countBtns = document.querySelectorAll('.count-btn');
   const blockadesToggle = document.getElementById('blockades-toggle');
+  const twoPlayerPiecesRow = document.getElementById('two-player-pieces-row');
+  const twoPlayerPiecesToggle = document.getElementById('two-player-pieces-toggle');
   const mapSelect = document.getElementById('map-select');
   const mapPreviewRenderer = new HexRenderer(document.getElementById('map-preview'));
   const mapPreviewCaption = document.getElementById('map-preview-caption');
@@ -199,6 +201,7 @@ document.addEventListener('DOMContentLoaded', () => {
       countBtns.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       selectedPlayerCount = Number(btn.dataset.count);
+      twoPlayerPiecesRow?.classList.toggle('hidden', selectedPlayerCount !== 2);
     });
   });
 
@@ -375,6 +378,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Block 8 (7d hands-off TV): auto-dismiss timer for TV modals.
   let tvModalTimer = null;
   let selectedCard = null;
+  let selectedPieceIndex = 0;
   let selectedValidMoves = [];
   // Rulebook p4: 1 buy per turn. Display gate only — the server flag is
   // authoritative. Set on own card_purchased, cleared on turn_ended /
@@ -584,6 +588,88 @@ document.addEventListener('DOMContentLoaded', () => {
     return panel;
   }
 
+  function ensurePieceChoicePanel() {
+    ensureMoveListStyles();
+    let panel = document.getElementById('piece-choice-panel');
+    if (panel) return panel;
+    panel = document.createElement('section');
+    panel.id = 'piece-choice-panel';
+    panel.className = 'hidden';
+    panel.setAttribute('aria-live', 'polite');
+    const host = document.getElementById('player-hand-ui') || document.getElementById('game-screen');
+    const cards = document.getElementById('hand-cards');
+    const controls = document.getElementById('hand-controls');
+    if (controls && controls.parentNode === host) host.insertBefore(panel, controls);
+    else if (cards && cards.parentNode === host) cards.after(panel);
+    else host.appendChild(panel);
+    return panel;
+  }
+
+  function hidePieceChoicePanel() {
+    const panel = document.getElementById('piece-choice-panel');
+    if (panel) {
+      panel.classList.add('hidden');
+      panel.replaceChildren();
+    }
+  }
+
+  function syncPiecePicker() {
+    const player = allPlayers.find(p => p.id === client.playerId);
+    const pieceTileIds = player?.pieceTileIds;
+    if (!Array.isArray(pieceTileIds) || pieceTileIds.length < 2) {
+      hidePieceChoicePanel();
+      return;
+    }
+
+    const panel = ensurePieceChoicePanel();
+    const heading = document.createElement('span');
+    heading.className = 'piece-choice-heading';
+    heading.textContent = 'Active pawn';
+    const options = document.createElement('div');
+    options.className = 'piece-choice-options';
+    pieceTileIds.forEach((tileId, pieceIndex) => {
+      const finished = !!player.finishedPieceIndices?.[pieceIndex];
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'piece-choice-button';
+      const isActive = selectedPieceIndex === pieceIndex;
+      button.classList.toggle('is-active', isActive);
+      button.setAttribute('aria-pressed', String(isActive));
+      const pieceName = `Piece ${pieceIndex + 1}`;
+      button.setAttribute('aria-label', finished
+        ? `${pieceName}, finished`
+        : `${pieceName}${isActive ? ', active' : ', select to make active'}`);
+      button.title = finished
+        ? `${pieceName} has reached El Dorado`
+        : `${pieceName}${isActive ? ' is active' : ' — click to make active'}`;
+      button.disabled = finished
+        || !client.isMyTurn(currentTurnPlayerId)
+        || (!!selectedCard && moveMovementTotal > 0
+          && typeof moveMovesRemaining === 'number'
+          && moveMovesRemaining < moveMovementTotal)
+        || pendingRemovals > 0
+        || pendingRemovalsTotal > 0;
+
+      const number = document.createElement('span');
+      number.className = 'piece-choice-number';
+      number.textContent = String(pieceIndex + 1);
+
+      button.append(number);
+      button.addEventListener('click', () => {
+        if (button.disabled) return;
+        selectedPieceIndex = pieceIndex;
+        player.activePieceIndex = pieceIndex;
+        syncPiecePicker();
+        try { refreshPersistentMap(); } catch (e) { /* map optional */ }
+        client.selectPiece(pieceIndex);
+      });
+      options.appendChild(button);
+    });
+
+    panel.replaceChildren(heading, options);
+    panel.classList.remove('hidden');
+  }
+
   // #8 experiment v3: the mini-map is a persistent panel of its own that
   // stays open all game (phone) instead of flashing in/out per card. Three
   // modes from the same render:
@@ -626,7 +712,8 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     const me = allPlayers.find(p => p.id === client.playerId);
-    const centerTileId = me?.currentTileId || null;
+    const centerTileId = (selectedPieceIndex != null ? me?.pieceTileIds?.[selectedPieceIndex] : null)
+      || me?.currentTileId || null;
     let tiles = [];
     try {
       tiles = Array.from(clientBoard.tiles.values());
@@ -657,10 +744,13 @@ document.addEventListener('DOMContentLoaded', () => {
       && (!!selectedCard || !!rubblePendingTileId);
     const movesForRender = interactive ? selectedValidMoves : [];
     const myIdx = Math.max(0, allPlayers.findIndex(p => p.id === client.playerId));
-    const pawns = (allPlayers || []).map((p, i) => ({
-      tileId: p.currentTileId,
-      color: PAWN_COLORS[i % PAWN_COLORS.length],
-    })).filter(p => p.tileId);
+    const pawns = (allPlayers || []).flatMap((p, i) =>
+      (Array.isArray(p.pieceTileIds) && p.pieceTileIds.length
+        ? p.pieceTileIds
+        : [p.currentTileId])
+        .map(tileId => ({ tileId, color: PAWN_COLORS[i % PAWN_COLORS.length] }))
+        .filter(pawn => pawn.tileId)
+    );
     const drawn = miniMap.render({
       tiles,
       centerTileId,
@@ -941,6 +1031,7 @@ document.addEventListener('DOMContentLoaded', () => {
     cardUI.updateSelectedCardForMovement(null);
     clearMoveList();
     syncDiscardButton();
+    syncPiecePicker();
     if (instanceId) client.cancelCard(instanceId);
     else client.cancelCard();
     if (wasPartial) {
@@ -1023,6 +1114,7 @@ document.addEventListener('DOMContentLoaded', () => {
         clearMoveList();
         exitRubblePaymentMode();
         syncDiscardButton();
+        syncPiecePicker();
       }, () => {
         exitRubblePaymentMode();
         syncDiscardButton();
@@ -1047,6 +1139,7 @@ document.addEventListener('DOMContentLoaded', () => {
         clearMoveList();
         exitRubblePaymentMode();
         syncDiscardButton();
+        syncPiecePicker();
       }, () => {
         // "Change destination": the mover stays played and the destination
         // list stays up — only the toll panel goes away.
@@ -1113,6 +1206,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (pendingRemovalPlayedId) cardUI.updateSelectedCardForMovement(pendingRemovalPlayedId);
     updateRemovePromptText();
     syncDiscardButton();
+    syncPiecePicker();
   }
 
   function updateRemovePromptText() {
@@ -1166,6 +1260,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof syncDiscardButton === 'function') {
       try { syncDiscardButton(); } catch (e) { /* early boot — button not ready */ }
     }
+    if (typeof syncPiecePicker === 'function') syncPiecePicker();
   }
 
   // Keep the desktop modal copy, but add the persistent banner + toast/log
@@ -1188,6 +1283,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (pendingRemovalPlayedId) cardUI.updateSelectedCardForMovement(pendingRemovalPlayedId);
       updateRemovePromptText();
       syncDiscardButton();
+      syncPiecePicker();
       return;
     }
     showRemovePrompt(count, playedInstanceId);
@@ -1240,7 +1336,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Waiting-room state
-  let waitingRoomState = { players: [], maxPlayers: 2, hostId: null, enableBlockades: true };
+  let waitingRoomState = {
+    players: [], maxPlayers: 2, hostId: null, enableBlockades: true, enableTwoPlayerPieces: true,
+  };
 
   // ── Helpers ────────────────────────────────────────────────────────────────
   function setLobbyError(msg) {
@@ -1315,13 +1413,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── Waiting-room rendering ─────────────────────────────────────────────────
   function renderWaitingRoom() {
-    const { players, maxPlayers, hostId, enableBlockades } = waitingRoomState;
+    const { players, maxPlayers, hostId, enableBlockades, enableTwoPlayerPieces } = waitingRoomState;
     roomCodeValue.textContent = client.roomId || '';
     updateJoinQr();
     waitingSubtitle.textContent = `${players.length} / ${maxPlayers} players joined`;
     waitingBlockadesNote.textContent = enableBlockades
       ? '🚧 Blockades enabled'
       : 'Blockades disabled';
+    if (maxPlayers === 2) {
+      waitingBlockadesNote.textContent += ` · ${enableTwoPlayerPieces ? 'Two pawns each' : 'One pawn each'}`;
+    }
 
     waitingPlayers.innerHTML = '';
     for (let i = 0; i < maxPlayers; i++) {
@@ -1392,7 +1493,12 @@ document.addEventListener('DOMContentLoaded', () => {
     cancelRejoinRetry();
     pendingIdentity = name; // Block 8: refresh-safe session
     const enableBlockades = blockadesToggle?.checked ?? true;
-    client.createRoom(name, selectedPlayerCount, DEBUG, enableBlockades, VIEW === 'tv', mapSelect.value);
+    const enableTwoPlayerPieces = selectedPlayerCount === 2
+      && (twoPlayerPiecesToggle?.checked ?? true);
+    client.createRoom(
+      name, selectedPlayerCount, DEBUG, enableBlockades, VIEW === 'tv',
+      mapSelect.value, enableTwoPlayerPieces
+    );
   });
 
   joinRoomBtn.addEventListener('click', () => {
@@ -1466,6 +1572,7 @@ document.addEventListener('DOMContentLoaded', () => {
       maxPlayers: data.maxPlayers,
       hostId: data.hostId,
       enableBlockades: data.enableBlockades ?? true,
+      enableTwoPlayerPieces: data.enableTwoPlayerPieces ?? true,
     };
     storeSession(data.roomId, pendingIdentity || nameInput.value.trim(), data.isSpectator);
     // Keep ?room= in sync with the room actually joined. A stale ?room=
@@ -1552,6 +1659,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (data.maxPlayers) waitingRoomState.maxPlayers = data.maxPlayers;
     if (data.hostId) waitingRoomState.hostId = data.hostId;
     if (data.enableBlockades !== undefined) waitingRoomState.enableBlockades = data.enableBlockades;
+    if (data.enableTwoPlayerPieces !== undefined) {
+      waitingRoomState.enableTwoPlayerPieces = data.enableTwoPlayerPieces;
+    }
     if (waitingScreen.classList.contains('active')) renderWaitingRoom();
     syncRoster(data.players);
   };
@@ -1575,10 +1685,19 @@ document.addEventListener('DOMContentLoaded', () => {
           currentTurnPlayerId = fresh.id;
           turnIdChanged = true;
         }
-        if (fresh.currentTileId && fresh.currentTileId !== p.currentTileId) {
-          const idx = allPlayers.findIndex(q => q.playerNumber === fresh.playerNumber);
-          renderer.setPawnPosition(fresh.id, fresh.currentTileId, idx >= 0 ? idx : 0);
-        }
+        const oldTiles = p.pieceTileIds || [p.currentTileId];
+        const freshTiles = fresh.pieceTileIds || [fresh.currentTileId];
+        const idx = allPlayers.findIndex(q => q.playerNumber === fresh.playerNumber);
+        freshTiles.forEach((tileId, pieceIndex) => {
+          if (tileId && tileId !== oldTiles[pieceIndex]) {
+            renderer.setPawnPosition(
+              fresh.id,
+              tileId,
+              idx >= 0 ? idx : 0,
+              freshTiles.length > 1 ? { pieceIndex } : {}
+            );
+          }
+        });
         return { ...p, ...fresh };
       });
     renderer.syncPawns(allPlayers);
@@ -1589,6 +1708,21 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!turnIdChanged) {
       try { refreshPersistentMap(); } catch (e) { /* map optional */ }
     }
+  }
+
+  function drawPlayerPieces(player, colorIndex) {
+    const pieceTileIds = Array.isArray(player.pieceTileIds) && player.pieceTileIds.length
+      ? player.pieceTileIds
+      : [player.currentTileId];
+    pieceTileIds.forEach((tileId, pieceIndex) => {
+      if (!tileId) return;
+      renderer.setPawnPosition(
+        player.id,
+        tileId,
+        colorIndex,
+        pieceTileIds.length > 1 ? { pieceIndex, animate: false } : { animate: false }
+      );
+    });
   }
 
   client.onPlayerJoined = ({ player }) => log(`${player.name} joined.`);
@@ -1615,9 +1749,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     renderer.render(tiles);
 
-    players.forEach((p, i) => {
-      if (p.currentTileId) renderer.setPawnPosition(p.id, p.currentTileId, i);
-    });
+    players.forEach(drawPlayerPieces);
 
     // ── Blockades ────────────────────────────────────────────────────────────
     activeBlockades = blockades || [];
@@ -1628,6 +1760,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     renderMarket(market);
     currentTurnPlayerId = currentPlayerId;
+    selectedPieceIndex = allPlayers.find(p => p.id === client.playerId)?.activePieceIndex ?? 0;
     updateTurnLabel(currentPlayerId);
 
     isMidMove = false;
@@ -1640,6 +1773,7 @@ document.addEventListener('DOMContentLoaded', () => {
     moveMovementTotal = 0;
     clearMoveList();
     syncDiscardButton();
+    syncPiecePicker();
     try { refreshPersistentMap(); } catch (e) { /* map optional */ }
 
     showToast('Expedition begun! Good luck.', { icon: '🗺️', type: 'accent' });
@@ -1851,6 +1985,7 @@ document.addEventListener('DOMContentLoaded', () => {
       cardUI.updateSelectedCardForMovement(pendingRemovalPlayedId);
     }
     syncDiscardButton();
+    syncPiecePicker();
   };
 
   client.onValidMoves = ({ validMoves, breakableBlockades = [], movesRemaining, movementTotal }) => {
@@ -1865,6 +2000,7 @@ document.addEventListener('DOMContentLoaded', () => {
       renderer.clearHighlights();
       renderer.setBreakableBlockades([], []);
       clearMoveList();
+      syncPiecePicker();
       return;
     }
     isMidMove = true;
@@ -1872,6 +2008,7 @@ document.addEventListener('DOMContentLoaded', () => {
     moveMovesRemaining = (typeof movesRemaining === 'number') ? movesRemaining : null;
     moveMovementTotal = movementTotal || 0;
     currentBreakableBlockades = breakableBlockades;
+    syncPiecePicker();
     renderer.setValidMoves(selectedValidMoves);
     renderer.setBreakableBlockades(breakableBlockades, activeBlockades);
     // Phone list mirrors the TV highlights, but only for the acting player.
@@ -1888,11 +2025,37 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  client.onPawnMoved = ({ playerId, tileId }) => {
+  client.onPieceSelected = ({ playerId, pieceIndex }) => {
+    const player = allPlayers.find(p => p.id === playerId);
+    if (player) player.activePieceIndex = pieceIndex;
+    if (playerId === client.playerId) selectedPieceIndex = pieceIndex;
+    syncPiecePicker();
+    try { refreshPersistentMap(); } catch (e) { /* map optional */ }
+  };
+
+  client.onPieceFinished = ({ playerId, pieceIndex }) => {
+    const player = allPlayers.find(p => p.id === playerId);
+    if (player) {
+      if (!Array.isArray(player.finishedPieceIndices)) player.finishedPieceIndices = [];
+      player.finishedPieceIndices[pieceIndex] = true;
+    }
+    syncPiecePicker();
+  };
+
+  client.onPawnMoved = ({ playerId, tileId, pieceIndex = 0 }) => {
     const idx = allPlayers.findIndex(p => p.id === playerId);
     const player = allPlayers.find(p => p.id === playerId);
-    if (player) player.currentTileId = tileId;
-    renderer.setPawnPosition(playerId, tileId, idx >= 0 ? idx : 0);
+    if (player) {
+      if (!Array.isArray(player.pieceTileIds)) player.pieceTileIds = [player.currentTileId];
+      player.pieceTileIds[pieceIndex] = tileId;
+      if (pieceIndex === 0) player.currentTileId = tileId;
+    }
+    renderer.setPawnPosition(
+      playerId,
+      tileId,
+      idx >= 0 ? idx : 0,
+      player?.pieceTileIds?.length > 1 ? { pieceIndex } : {}
+    );
     renderer.clearHighlights();
     playSfx('move');
     // Chained moves re-render via the following valid_moves_updated; final
@@ -1939,6 +2102,7 @@ document.addEventListener('DOMContentLoaded', () => {
     clearRemovePrompt();
     exitRubblePaymentMode();
     syncDiscardButton();
+    syncPiecePicker();
     try { refreshPersistentMap(); } catch (e) { /* map optional */ }
   };
 
@@ -1970,6 +2134,8 @@ document.addEventListener('DOMContentLoaded', () => {
     cardUI.setPurchaseLocked(false);
     currentTurnPlayerId = nextPlayerId;
     updateTurnLabel(nextPlayerId);
+    selectedPieceIndex = allPlayers.find(p => p.id === client.playerId)?.activePieceIndex ?? selectedPieceIndex ?? 0;
+    syncPiecePicker();
     log(`${nextPlayerName}'s turn.`, 'turn');
 
     if (nextPlayerId === client.playerId) {
@@ -2060,9 +2226,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     renderer.render(snap.tiles || []);
 
-    (snap.players || []).forEach((p, i) => {
-      if (p.currentTileId) renderer.setPawnPosition(p.id, p.currentTileId, i);
-    });
+    (snap.players || []).forEach(drawPlayerPieces);
 
     activeBlockades = snap.blockades || [];
     blockadeEdgeLookup = activeBlockades.length > 0
@@ -2076,6 +2240,7 @@ document.addEventListener('DOMContentLoaded', () => {
     hasPurchasedThisTurn = !!snap.purchasedThisTurn;
     cardUI.setPurchaseLocked(hasPurchasedThisTurn);
     isMidMove = false;
+    selectedPieceIndex = allPlayers.find(p => p.id === client.playerId)?.activePieceIndex ?? 0;
     selectedCard = null;
     selectedValidMoves = [];
     currentBreakableBlockades = [];
@@ -2085,6 +2250,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateTurnLabel(currentTurnPlayerId);
     try { refreshPersistentMap(); } catch (e) { /* map optional */ }
     syncDiscardButton();
+    syncPiecePicker();
 
     if (snap.finalRound && snap.finalRound.triggered) {
       const trigger = (snap.players || []).find(p => p.id === snap.finalRound.triggeredByPlayerId);
@@ -2369,6 +2535,7 @@ document.addEventListener('DOMContentLoaded', () => {
       maxPlayers: data.maxPlayers,
       hostId: data.hostId,
       enableBlockades: data.enableBlockades ?? true,
+      enableTwoPlayerPieces: data.enableTwoPlayerPieces ?? true,
     };
     showScreen('waiting');
     renderWaitingRoom();
@@ -2532,6 +2699,7 @@ document.addEventListener('DOMContentLoaded', () => {
     cardUI.updateSelectedCardForMovement(instanceId);
 
     if (selectedCard && selectedCard.instanceId === instanceId) {
+      isMidMove = false;
       selectedCard = null;
       selectedValidMoves = [];
       currentBreakableBlockades = [];
@@ -2543,6 +2711,7 @@ document.addEventListener('DOMContentLoaded', () => {
       exitRubblePaymentMode();
       cardUI.updateSelectedCardForMovement(null);
       syncDiscardButton();
+      syncPiecePicker();
       client.cancelCard(instanceId);
       return;
     }
@@ -2554,8 +2723,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (card.movementTotal > 0 || card.specialEffect === ElDoradoConstants.CardEffect.NATIVE) {
+      selectedPieceIndex = player.activePieceIndex ?? selectedPieceIndex ?? 0;
+      player.activePieceIndex = selectedPieceIndex;
+      const pieceTileId = player.pieceTileIds?.[selectedPieceIndex] ?? player.currentTileId;
       const moves = clientBoard.getValidMoves({
-        currentTileId: player.currentTileId,
+        currentTileId: pieceTileId,
         playedCard: card,
         movesRemaining: card.movementTotal,
         wildCardTerrain: null,
@@ -2566,7 +2738,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Also preview which blockades this card can break
       const breakable = clientBoard.getBreakableBlockades({
-        currentTileId: player.currentTileId,
+        currentTileId: pieceTileId,
         playedCard: card,
         movesRemaining: card.movementTotal,
         wildCardTerrain: null,
@@ -2574,6 +2746,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       selectedCard = card;
+      syncPiecePicker();
       selectedValidMoves = moves;
       currentBreakableBlockades = breakable;
       renderer.setValidMoves(moves);

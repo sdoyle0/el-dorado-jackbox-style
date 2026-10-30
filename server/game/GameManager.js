@@ -29,13 +29,14 @@ function shuffle(arr) {
 }
 
 class GameRoom {
-  constructor(roomId, io, { debugMode = false, maxPlayers = 2, enableBlockades = true, map = 'hills-of-gold' } = {}) {
+  constructor(roomId, io, { debugMode = false, maxPlayers = 2, enableBlockades = true, enableTwoPlayerPieces = true, map = 'hills-of-gold' } = {}) {
     this.roomId = roomId;
     this.io = io;
     this.players = [];
     this.maxPlayers = Math.min(4, Math.max(debugMode ? 1 : 2, maxPlayers));
     this.debugMode = debugMode;
     this.enableBlockades = enableBlockades;
+    this.enableTwoPlayerPieces = enableTwoPlayerPieces;
     this.mapId = Object.hasOwn(LAYOUTS, map) ? map : DEFAULT_LAYOUT_ID;
     this.layout = LAYOUTS[this.mapId];
     this.started = false;
@@ -108,6 +109,7 @@ class GameRoom {
       players: this.players.map(p => p.toPublicData()),
       hostId: this.hostId,
       maxPlayers: this.maxPlayers,
+      enableTwoPlayerPieces: this.enableTwoPlayerPieces,
     });
 
     return player;
@@ -124,6 +126,7 @@ class GameRoom {
       players: this.players.map(p => p.toPublicData()),
       hostId: this.hostId,
       maxPlayers: this.maxPlayers,
+      enableTwoPlayerPieces: this.enableTwoPlayerPieces,
     });
     return true;
   }
@@ -389,6 +392,7 @@ class GameRoom {
       hostId: this.hostId,
       maxPlayers: this.maxPlayers,
       enableBlockades: this.enableBlockades,
+      enableTwoPlayerPieces: this.enableTwoPlayerPieces,
     });
     return { ok: true };
   }
@@ -400,12 +404,16 @@ class GameRoom {
       started: this.started,
       hostId: this.hostId,
       enableBlockades: this.enableBlockades,
+      enableTwoPlayerPieces: this.enableTwoPlayerPieces,
       players: this.players.map(p => p.toPublicData()),
     };
   }
 
   _startGame() {
     this.started = true;
+    this.gameState.twoPlayerMode = this.maxPlayers === 2
+      && this.players.length === 2
+      && this.enableTwoPlayerPieces;
     const composed = composeLayout(this.layout, PIECES_DATA);
     this.board.loadMap({ tiles: composed.tiles });
     this.market.init();
@@ -431,12 +439,15 @@ class GameRoom {
     }
 
     for (const player of this.players) {
-      const startTile = this.board.getPlayerStartTile(player.playerNumber);
-      if (!startTile) {
-        console.error(`No start tile for player ${player.playerNumber}`);
+      const startNumbers = this.gameState.twoPlayerMode
+        ? [player.playerNumber, player.playerNumber + 2]
+        : [player.playerNumber];
+      const startTiles = startNumbers.map(number => this.board.getPlayerStartTile(number));
+      if (startTiles.some(tile => !tile)) {
+        console.error(`No start tile(s) for player ${player.playerNumber}`);
         continue;
       }
-      player.init(startTile.id);
+      player.init(startTiles.map(tile => tile.id));
     }
 
     this._broadcast('game_started', {
@@ -444,6 +455,7 @@ class GameRoom {
       players: this.players.map(p => p.toPublicData()),
       currentPlayerId: this.gameState.currentPlayer?.id,
       market: this.market.getShopState(),
+      enableTwoPlayerPieces: this.gameState.twoPlayerMode,
       blockades: activeBlockades
         ? activeBlockades.map(b => ({ id: b.id, label: b.label, terrainType: b.terrainType, edges: b.edges }))
         : [],
@@ -461,6 +473,11 @@ class GameRoom {
 
   handleMovePawn(socketId, tileId) {
     const result = this.gameState.movePawn(socketId, tileId);
+    if (!result.ok) this.io.to(socketId).emit('action_error', { message: result.error });
+  }
+
+  handleSelectPiece(socketId, pieceIndex) {
+    const result = this.gameState.selectPiece(socketId, pieceIndex);
     if (!result.ok) this.io.to(socketId).emit('action_error', { message: result.error });
   }
 
@@ -516,9 +533,11 @@ class GameManager {
     this.playerRooms = new Map();
   }
 
-  createRoom(socket, playerName, { debugMode = false, maxPlayers = 2, enableBlockades = true, asSpectator = false, map = 'hills-of-gold' } = {}) {
+  createRoom(socket, playerName, { debugMode = false, maxPlayers = 2, enableBlockades = true, enableTwoPlayerPieces = true, asSpectator = false, map = 'hills-of-gold' } = {}) {
     const roomId = uuidv4().slice(0, 6).toUpperCase();
-    const room = new GameRoom(roomId, this.io, { debugMode, maxPlayers, enableBlockades, map });
+    const room = new GameRoom(roomId, this.io, {
+      debugMode, maxPlayers, enableBlockades, enableTwoPlayerPieces, map,
+    });
     room.onEmpty = () => this.rooms.delete(room.roomId);
     this.rooms.set(roomId, room);
     if (asSpectator) {
