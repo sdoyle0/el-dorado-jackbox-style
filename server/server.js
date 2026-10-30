@@ -7,7 +7,9 @@ const { Server } = require('socket.io');
 const path = require('path');
 const { GameManager } = require('./game/GameManager');
 const { CARD_DEFINITIONS, getPurchasingPower } = require('../shared/cardData');
-const { listLayouts } = require('../shared/layoutRegistry');
+const { layouts, listLayouts } = require('../shared/layoutRegistry');
+const piecesData = require('../shared/pieces.json');
+const { composeLayout } = require('../shared/mapCompose');
 
 const app = express();
 const server = http.createServer(app);
@@ -21,6 +23,14 @@ const PORT = process.env.PORT || 3000;
 
 app.get('/api/maps', (req, res) => {
   res.json(listLayouts());
+});
+
+app.get('/api/maps/:id', (req, res) => {
+  const layout = layouts[req.params.id];
+  if (!layout) return res.status(404).json({ error: 'Map not found' });
+
+  const { tiles } = composeLayout(layout, piecesData);
+  res.json({ id: layout.id, name: layout.name, difficulty: layout.difficulty, tiles });
 });
 
 // Block 9: QR-code join. Phones scan a QR on the TV/waiting room, so the

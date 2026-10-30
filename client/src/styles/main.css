@@ -89,12 +89,13 @@ body {
 #lobby-screen {
   align-items: center;
   justify-content: center;
+  overflow-y: auto;
 }
 /* Short viewports (720p TV, squat windows): the waiting card + QR block are
    taller than the screen. Centering an overflowing flex child clips the top
    beyond reach and squeezes panels (see #waiting-players). Start-pack + auto
    margins instead: centered when it fits, top-aligned and scrollable when it
-   doesn't. Lobby keeps plain centering (its content is shorter). */
+   doesn't. The lobby uses the same overflow-safe alignment for its preview. */
 #waiting-screen {
   align-items: center;
   justify-content: flex-start;
@@ -124,6 +125,11 @@ body {
     inset 0 1px 0 rgba(255,255,255,0.04);
   position: relative;
   overflow: hidden;
+}
+
+#lobby-box {
+  flex-shrink: 0;
+  margin-block: auto;
 }
 
 /* Decorative corner flourish — top-left */
@@ -255,6 +261,22 @@ body {
   box-shadow: 0 0 0 3px rgba(201,162,39,0.12);
 }
 
+#map-preview {
+  display: block;
+  width: 100%;
+  height: 190px;
+  border: 1px solid rgba(201,162,39,0.2);
+  border-radius: var(--radius-sm);
+  background: radial-gradient(ellipse at center, #172b34, #0b121a);
+}
+
+.map-preview-caption {
+  margin: -0.3rem 0 0;
+  color: var(--text-dim);
+  font-size: 0.72rem;
+  text-align: center;
+}
+
 #lobby-actions {
   width: 100%;
   display: flex;
@@ -344,6 +366,72 @@ body {
   transform: none;
   box-shadow: none;
   filter: none;
+}
+
+@media (min-width: 900px) {
+  #lobby-box {
+    width: calc(100% - 2rem);
+    max-width: 1280px;
+    padding: 2rem 2.5rem;
+    gap: 0.9rem;
+  }
+
+  #lobby-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(240px, 0.62fr);
+    align-items: stretch;
+    gap: 1.5rem;
+  }
+
+  #lobby-divider-or { display: none; }
+
+  #create-room-section {
+    display: grid;
+    grid-template-columns: minmax(190px, 0.8fr) minmax(0, 1.2fr);
+    grid-template-areas:
+      "heading heading"
+      "players-label preview"
+      "players preview"
+      "map-label preview"
+      "map-select preview"
+      "preview-caption preview"
+      "blockades preview"
+      "start preview";
+    align-content: center;
+    justify-items: stretch;
+    column-gap: 1.25rem;
+    row-gap: 0.65rem;
+  }
+
+  #create-room-section h2 { grid-area: heading; }
+  #player-count-label { grid-area: players-label; align-self: end; }
+  #player-count-btns { grid-area: players; }
+  #create-room-section label[for="map-select"] { grid-area: map-label; align-self: end; }
+  #map-select { grid-area: map-select; }
+  #map-preview {
+    grid-area: preview;
+    width: 100%;
+    height: 100%;
+    min-height: 300px;
+  }
+  #map-preview-caption { grid-area: preview-caption; }
+  #create-room-section .blockade-toggle-row { grid-area: blockades; }
+  #create-room-btn { grid-area: start; justify-self: start; }
+
+  #join-room-section {
+    justify-content: center;
+    align-self: stretch;
+    padding-left: 1.5rem;
+    border-left: 1px solid var(--border);
+  }
+
+  body.view-tv #lobby-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body.view-tv #create-room-section {
+    grid-template-columns: minmax(220px, 0.7fr) minmax(0, 1.3fr);
+  }
 }
 
 .lobby-divider {

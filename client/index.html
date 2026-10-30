@@ -24,7 +24,7 @@
         <!-- Create a room (hidden in ?view=phone: phones join, TV hosts) -->
         <div class="lobby-section" id="create-room-section">
           <h2>Create Room</h2>
-          <label class="lobby-label">Expeditioners</label>
+          <label class="lobby-label" id="player-count-label">Expeditioners</label>
           <div id="player-count-btns">
             <button class="count-btn active" data-count="2">2</button>
             <button class="count-btn" data-count="3">3</button>
@@ -34,6 +34,8 @@
           <select id="map-select" class="lobby-map-select" disabled>
             <option value="">Loading maps…</option>
           </select>
+          <svg id="map-preview" role="img" aria-label="Preview of the selected expedition map"></svg>
+          <p id="map-preview-caption" class="map-preview-caption" aria-live="polite">Loading map preview…</p>
           <div class="blockade-toggle-row">
             <label class="blockade-toggle-label">
               <input type="checkbox" id="blockades-toggle" checked/>

@@ -125,8 +125,35 @@ document.addEventListener('DOMContentLoaded', () => {
   const countBtns = document.querySelectorAll('.count-btn');
   const blockadesToggle = document.getElementById('blockades-toggle');
   const mapSelect = document.getElementById('map-select');
+  const mapPreviewRenderer = new HexRenderer(document.getElementById('map-preview'));
+  const mapPreviewCaption = document.getElementById('map-preview-caption');
 
   let selectedPlayerCount = 2;
+  let mapPreviewRequest = 0;
+  async function loadMapPreview(mapId) {
+    const request = ++mapPreviewRequest;
+    mapPreviewCaption.textContent = 'Loading map preview…';
+    mapPreviewRenderer.render([]);
+    try {
+      const response = await fetch(`/api/maps/${encodeURIComponent(mapId)}`);
+      if (!response.ok) throw new Error(`Map preview request failed (${response.status})`);
+      const map = await response.json();
+      if (!Array.isArray(map.tiles) || map.tiles.length === 0) {
+        throw new Error(`Map "${mapId}" has no preview tiles`);
+      }
+      if (request !== mapPreviewRequest) return;
+      mapPreviewRenderer.render(map.tiles);
+      mapPreviewCaption.textContent = `${map.name} · ${map.tiles.length} spaces`;
+    } catch (error) {
+      if (request !== mapPreviewRequest) return;
+      console.error('[maps] could not load map preview', error);
+      mapPreviewRenderer.render([]);
+      mapPreviewCaption.textContent = 'Map preview unavailable.';
+    }
+  }
+
+  mapSelect.addEventListener('change', () => loadMapPreview(mapSelect.value));
+
   async function loadMapOptions() {
     try {
       const response = await fetch('/api/maps');
@@ -146,6 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
         : (maps.some(map => map.id === 'hills-of-gold') ? 'hills-of-gold' : maps[0].id);
       mapSelect.disabled = false;
       createRoomBtn.disabled = false;
+      await loadMapPreview(mapSelect.value);
     } catch (error) {
       console.error('[maps] could not load expedition maps', error);
       mapSelect.replaceChildren(new Option('Maps unavailable', ''));
